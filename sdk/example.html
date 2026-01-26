@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Print SDK Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+        padding: 40px;
+        background: #f5f5f5;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        padding: 40px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        margin-bottom: 32px;
+        color: #262626;
+      }
+      .section {
+        margin-bottom: 32px;
+      }
+      .section h2 {
+        font-size: 18px;
+        margin-bottom: 16px;
+        color: #595959;
+      }
+      button {
+        padding: 10px 20px;
+        margin-right: 12px;
+        margin-bottom: 12px;
+        background: #1890ff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      button:hover {
+        background: #40a9ff;
+      }
+      button.secondary {
+        background: #52c41a;
+      }
+      button.secondary:hover {
+        background: #73d13d;
+      }
+      pre {
+        background: #f5f5f5;
+        padding: 16px;
+        border-radius: 4px;
+        overflow-x: auto;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      .status {
+        padding: 12px;
+        margin-top: 16px;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      .status.success {
+        background: #f6ffed;
+        border: 1px solid #b7eb8f;
+        color: #52c41a;
+      }
+      .status.error {
+        background: #fff2f0;
+        border: 1px solid #ffccc7;
+        color: #ff4d4f;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🖨️ Print SDK 示例</h1>
+
+      <div class="section">
+        <h2>1. SDK 初始化（无需配置）</h2>
+        <pre><code>import { createPrintSDK } from '@printer/sdk';
+
+// 创建 SDK 实例（无需配置，完全解耦）
+const sdk = createPrintSDK();</code></pre>
+      </div>
+
+      <div class="section">
+        <h2>2. 测试打印功能</h2>
+        <button onclick="testPrint(false)">🖨️ 直接打印</button>
+        <button onclick="testPrint(true)" class="secondary">👁️ 预览后打印</button>
+        <div id="status"></div>
+      </div>
+
+      <div class="section">
+        <h2>3. 使用说明</h2>
+        <pre><code>// 直接打印（隐藏 iframe）
+await sdk.print({
+  template: templateData,  // 直接传入模板数据
+  data: { /* 业务数据 */ },
+  preview: false
+});
+
+// 预览后打印（新窗口）
+await sdk.print({
+  template: templateData,
+  data: { /* 业务数据 */ },
+  preview: true
+});
+
+// 仅生成 HTML（不打印）
+const html = await sdk.generateHTML(template, data);
+
+// 批量打印（同模板多数据）
+await sdk.printMultiple(template, dataList, {
+  preview: true,
+  onProgress: (progress) => console.log(progress)
+});</code></pre>
+      </div>
+    </div>
+
+    <script type="module">
+      import { createPrintSDK } from "./dist/index.esm.js"
+
+      // 初始化 SDK（无需配置）
+      const sdk = createPrintSDK()
+
+      // 测试数据
+      const testData = {
+        orderId: "ORDER20240122001",
+        orderTime: "2024-01-22T10:30:00Z",
+        receiver: {
+          name: "张三",
+          phone: "13800138000",
+          address: "北京市朝阳区XX街道XX号楼XX室",
+        },
+        sender: {
+          name: "某某电商仓库",
+          phone: "400-123-4567",
+          address: "上海市浦东新区仓储中心",
+        },
+        items: [
+          {
+            name: "iPhone 15 Pro Max",
+            sku: "IP15PM-256-BLK",
+            quantity: 1,
+            price: 9999.0,
+          },
+          {
+            name: "AirPods Pro 2",
+            sku: "APP2-WHT",
+            quantity: 2,
+            price: 1899.0,
+          },
+        ],
+        totalAmount: 13797.0,
+        shippingFee: 0,
+        remarks: "请在工作日配送，需要提前电话联系",
+      }
+
+      // 全局测试函数
+      window.testPrint = async (preview) => {
+        const statusEl = document.getElementById("status")
+        statusEl.innerHTML = '<div class="status">正在处理...</div>'
+
+        try {
+          // 获取模板数据（从服务端或本地）
+          const response = await fetch("http://localhost:3000/api/templates")
+          const templates = await response.json()
+
+          if (templates.length === 0) {
+            throw new Error("没有找到可用的模板，请先在设计器中创建并保存模板")
+          }
+
+          const template = templates[0] // 直接使用模板数据
+          console.log("使用模板:", template.name)
+
+          // SDK 直接接收模板数据，无需 templateId
+          await sdk.print({
+            template: template,
+            data: testData,
+            preview: preview,
+          })
+
+          statusEl.innerHTML = `<div class="status success">✅ ${preview ? "预览窗口已打开" : "打印任务已发送"}！</div>`
+        } catch (error) {
+          console.error("打印失败:", error)
+          statusEl.innerHTML = `<div class="status error">❌ ${error.message}</div>`
+        }
+      }
+    </script>
+  </body>
+</html>

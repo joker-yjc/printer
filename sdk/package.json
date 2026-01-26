@@ -1,0 +1,33 @@
+{
+  "name": "@printer/sdk",
+  "version": "0.1.0",
+  "description": "Universal Print SDK - Client-side print solution",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "print",
+    "sdk",
+    "client-side",
+    "template"
+  ],
+  "author": "joke_yao",
+  "license": "MIT",
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^11.1.6",
+    "rollup": "^4.9.6",
+    "tslib": "^2.6.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@types/qrcode": "^1.5.6",
+    "jsbarcode": "^3.12.3",
+    "qrcode": "^1.5.4"
+  }
+}

@@ -1,0 +1,137 @@
+/* 调整手柄容器 */
+.resize-handles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+/* 基础手柄样式 */
+.handle {
+  position: absolute;
+  background: #1890ff;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  pointer-events: auto;
+  z-index: 10;
+}
+
+.handle:hover {
+  background: #40a9ff;
+  transform: scale(1.2);
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.5);
+}
+
+.handle:active {
+  background: #096dd9;
+  transform: scale(1.1);
+}
+
+/* 四个角的手柄（较大，8px） */
+.handle-nw,
+.handle-ne,
+.handle-sw,
+.handle-se {
+  width: 8px;
+  height: 8px;
+}
+
+/* 四条边的手柄（较小，6px） */
+.handle-n,
+.handle-s,
+.handle-e,
+.handle-w {
+  width: 6px;
+  height: 6px;
+}
+
+/* 左上角 */
+.handle-nw {
+  top: -4px;
+  left: -4px;
+  cursor: nw-resize;
+}
+
+/* 右上角 */
+.handle-ne {
+  top: -4px;
+  right: -4px;
+  cursor: ne-resize;
+}
+
+/* 左下角 */
+.handle-sw {
+  bottom: -4px;
+  left: -4px;
+  cursor: sw-resize;
+}
+
+/* 右下角 */
+.handle-se {
+  bottom: -4px;
+  right: -4px;
+  cursor: se-resize;
+}
+
+/* 上边 */
+.handle-n {
+  top: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: n-resize;
+}
+
+/* 下边 */
+.handle-s {
+  bottom: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: s-resize;
+}
+
+/* 左边 */
+.handle-w {
+  top: 50%;
+  left: -3px;
+  transform: translateY(-50%);
+  cursor: w-resize;
+}
+
+/* 右边 */
+.handle-e {
+  top: 50%;
+  right: -3px;
+  transform: translateY(-50%);
+  cursor: e-resize;
+}
+
+/* 尺寸提示 */
+.size-tip {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(24, 144, 255, 0.95);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1001;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.size-tip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: rgba(24, 144, 255, 0.95);
+}

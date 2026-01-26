@@ -1,0 +1,42 @@
+.asset-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+.asset-header h3 {
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: #262626;
+}
+
+.asset-tree {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px;
+  min-height: 0;
+  max-height: calc(100vh - 100px);
+  overflow: auto;
+}
+
+.asset-tree :global(.ant-tree .ant-tree-treenode) {
+  padding: 2px 0;
+}
+
+.asset-tree :global(.ant-tree .ant-tree-node-content-wrapper) {
+  line-height: 20px;
+}
+.asset-tree :global(.ant-tree .ant-tree-switcher) {
+  width: 5px;
+  line-height: 20px;
+}
+
+.asset-tree :global(.ant-tree .ant-tree-title) {
+  font-size: 13px;
+}
+
+.asset-tree :global(.ant-tree .ant-tree-iconEle) {
+  width: 20px;
+  line-height: 20px;
+}

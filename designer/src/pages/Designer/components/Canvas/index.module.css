@@ -1,0 +1,142 @@
+.canvas-area {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #fafafa;
+}
+
+.toolbar {
+  height: 56px;
+  background: white;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 16px;
+}
+
+.canvas-wrapper {
+  flex: 1;
+  overflow: auto;
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.canvas-container {
+  position: relative;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ruler-horizontal {
+  position: absolute;
+  top: 0;
+  left: 30px;
+  right: 0;
+  height: 30px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #d9d9d9;
+}
+
+.ruler-vertical {
+  position: absolute;
+  top: 30px;
+  left: 0;
+  bottom: 0;
+  width: 30px;
+  background: #f5f5f5;
+  border-right: 1px solid #d9d9d9;
+}
+
+.page-content {
+  position: relative;
+  margin-left: 30px;
+  margin-top: 30px;
+  background: white;
+  border: 1px solid #e8e8e8;
+  transition: all 0.2s;
+}
+
+.page-content.grid-enabled {
+  background-image: linear-gradient(to right, #f0f0f0 1px, transparent 1px),
+    linear-gradient(to bottom, #f0f0f0 1px, transparent 1px);
+  background-size: 18.9px 18.9px; /* 5mm * 3.78 = 18.9px */
+  background-position: 0 0;
+}
+
+.page-content.drag-over {
+  border: 2px dashed #1890ff;
+  background: rgba(24, 144, 255, 0.05);
+}
+
+.component {
+  position: absolute;
+  border: 1px dashed transparent;
+  background: transparent;
+  cursor: move;
+  transition: all 0.2s;
+}
+
+.component:hover {
+  border: 1px dashed #1890ff;
+  background: rgba(24, 144, 255, 0.05);
+}
+
+.component.selected {
+  border: 2px solid #1890ff;
+  box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.2);
+}
+
+.component.dragging {
+  opacity: 0.7;
+  cursor: move !important;
+  z-index: 1000;
+}
+
+.component.out-of-bounds {
+  border: 2px dashed #ff4d4f !important;
+  box-shadow: 0 0 0 4px rgba(255, 77, 79, 0.15) !important;
+  background: rgba(255, 77, 79, 0.05) !important;
+}
+
+.component.out-of-bounds.selected {
+  border: 2px solid #ff4d4f !important;
+  box-shadow: 0 0 0 4px rgba(255, 77, 79, 0.25) !important;
+}
+
+.component-label {
+  position: absolute;
+  top: -20px;
+  left: 0;
+  font-size: 11px;
+  color: #1890ff;
+  background: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.text-component {
+  top: 80px;
+  left: 60px;
+  width: 200px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 14px;
+}
+
+.image-component {
+  top: 80px;
+  right: 60px;
+  width: 120px;
+  height: 120px;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8c8c8c;
+  font-size: 12px;
+}

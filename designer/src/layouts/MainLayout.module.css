@@ -1,0 +1,28 @@
+.main-layout {
+  min-height: 100vh;
+}
+
+.logo-section {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+  border-bottom: 1px solid #f0f0f0;
+  color: #1890ff;
+}
+
+/* 全局覆盖 Ant Design 样式 */
+.main-layout :global(.ant-layout-sider) {
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+}
+
+.main-layout :global(.ant-menu) {
+  padding-top: 16px;
+}
+
+.main-layout :global(.ant-layout-content) {
+  min-height: 280px;
+  overflow-y: auto;
+}

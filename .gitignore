@@ -1,0 +1,25 @@
+# 日志文件
+logs/
+*.log
+*.pid
+
+# 依赖
+node_modules/
+
+# 构建产物
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 环境变量
+.env
+.env.local

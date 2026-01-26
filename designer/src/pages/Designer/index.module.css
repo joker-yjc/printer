@@ -1,0 +1,22 @@
+.designer-container {
+  height: 100vh;
+  display: flex;
+}
+
+.left-panel {
+  border-right: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+}
+
+.center-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.right-panel {
+  border-left: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+}

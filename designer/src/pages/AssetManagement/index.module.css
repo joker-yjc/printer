@@ -1,0 +1,28 @@
+.asset-management {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f0f2f5;
+}
+
+.asset-management-header {
+  background: white;
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.asset-management-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.asset-management .ant-tabs {
+  flex: 1;
+  background: white;
+  padding: 0 24px;
+}
+
+.asset-management .ant-tabs-content {
+  height: 100%;
+}
