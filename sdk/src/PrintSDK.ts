@@ -64,17 +64,7 @@ export class PrintSDK {
       printWindow.document.write(html);
       printWindow.document.close();
 
-      // 等待二维码和条形码渲染完成后再打印
-      const checkReady = () => {
-        const isReady = printWindow.document.body.getAttribute('data-qr-barcode-ready');
-        if (isReady === 'true') {
-          printWindow.print();
-        } else {
-          console.log(12);
-          setTimeout(checkReady, 100);
-        }
-      };
-      setTimeout(checkReady, 300);
+      printWindow.print();
     } else {
       // 直接打印模式：在隐藏 iframe 中打印
       const iframe = document.createElement('iframe');

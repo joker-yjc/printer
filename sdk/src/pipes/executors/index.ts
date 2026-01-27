@@ -5,6 +5,7 @@
 
 export { DatePipe } from './DatePipe';
 export { CurrencyPipe } from './CurrencyPipe';
+export { MoneyPipe } from './MoneyPipe';
 
 /**
  * 简单管道执行器（无需配置选项）

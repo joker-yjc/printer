@@ -1,6 +1,6 @@
 {
   "name": "@printer/sdk",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Universal Print SDK - Client-side print solution",
   "type": "module",
   "main": "dist/index.js",
@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",
+    "decimal.js": "^10.6.0",
     "jsbarcode": "^3.12.3",
     "qrcode": "^1.5.4"
   }

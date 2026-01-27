@@ -56,6 +56,7 @@ export function executePipe(type: string, value: any, options?: Record<string, a
 // 注册执行器
 registerExecutor(Executors.DatePipe);
 registerExecutor(Executors.CurrencyPipe);
+registerExecutor(Executors.MoneyPipe);
 registerExecutor(Executors.UppercasePipe);
 registerExecutor(Executors.LowercasePipe);
 registerExecutor(Executors.SlicePipe);

@@ -498,6 +498,9 @@ export class PrintEngine {
       const dataForThisPage = remainingData.slice(0, rowsCanFit);
       remainingData = remainingData.slice(rowsCanFit);
 
+      // 判断是否为最后一页（用于合计行）
+      const isLastPage = remainingData.length === 0;
+
       // 创建当前页的表格片段
       const tableFragmentYMm = isFirstFragment
         ? (isFirstComponentInPage ? workingPageHeight : workingPageHeight + gap)
@@ -512,14 +515,25 @@ export class PrintEngine {
         props: {
           ...tableComponent.props,
           _pageData: dataForThisPage,
-          _showHeader: needHeader  // 控制是否显示表头
+          _showHeader: needHeader,  // 控制是否显示表头
+          _isLastPage: isLastPage,  // 标记是否为最后一页（用于合计行）
+          _totalData: tableData     // 传递全量数据（用于 total 模式合计）
         }
       };
 
       workingPage.push(tableFragment);
 
-      // 更新当前页高度
-      const tableFragmentHeight = (needHeader ? headerHeight : 0) + dataForThisPage.length * rowHeight;
+      // 计算合计行高度（如果启用合计功能）
+      const showSummary = tableComponent.props?.showSummary === true;
+      const summaryMode = tableComponent.props?.summaryMode || 'total';
+      const shouldShowSummaryOnThisPage = showSummary && (
+        summaryMode === 'page' || // 每页都显示合计
+        (summaryMode === 'total' && isLastPage) // 仅最后一页显示合计
+      );
+      const summaryHeight = shouldShowSummaryOnThisPage ? rowHeight : 0; // 合计行高度等于一行高度
+
+      // 更新当前页高度（包含合计行）
+      const tableFragmentHeight = (needHeader ? headerHeight : 0) + dataForThisPage.length * rowHeight + summaryHeight;
       if (isFirstFragment && !isFirstComponentInPage) {
         workingPageHeight += gap + tableFragmentHeight;
       } else {
