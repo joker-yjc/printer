@@ -23,3 +23,6 @@ Thumbs.db
 # 环境变量
 .env
 .env.local
+
+
+docs/ignore/
