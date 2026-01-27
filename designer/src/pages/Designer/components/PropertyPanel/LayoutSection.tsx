@@ -3,7 +3,7 @@
  * 负责组件的位置和尺寸配置
  */
 
-import { InputNumber, Typography } from 'antd';
+import { InputNumber, Typography, Tooltip } from 'antd';
 import styles from './index.module.css';
 import type { ComponentNode } from '../../../../types';
 
@@ -20,7 +20,9 @@ const LayoutSection: React.FC<LayoutSectionProps> = ({ component, onChange }) =>
       <div className={styles["property-title"]}>📍 布局属性</div>
       <div className={styles["property-list"]}>
         <div className={styles["property-item"]}>
-          <Text className={styles["property-label"]}>X 坐标 (mm)</Text>
+          <Tooltip title="组件相对于页面左侧的横向位置，可拖拽或直接输入">
+            <Text className={styles["property-label"]}>📍 X 坐标 (mm)</Text>
+          </Tooltip>
           <InputNumber
             style={{ width: '100%' }}
             value={component.layout.xMm}
@@ -28,7 +30,9 @@ const LayoutSection: React.FC<LayoutSectionProps> = ({ component, onChange }) =>
           />
         </div>
         <div className={styles["property-item"]}>
-          <Text className={styles["property-label"]}>Y 坐标 (mm)</Text>
+          <Tooltip title="组件相对于页面顶部的纵向位置，可拖拽或直接输入">
+            <Text className={styles["property-label"]}>📍 Y 坐标 (mm)</Text>
+          </Tooltip>
           <InputNumber
             style={{ width: '100%' }}
             value={component.layout.yMm}
@@ -36,7 +40,9 @@ const LayoutSection: React.FC<LayoutSectionProps> = ({ component, onChange }) =>
           />
         </div>
         <div className={styles["property-item"]}>
-          <Text className={styles["property-label"]}>宽度 (mm)</Text>
+          <Tooltip title="组件的宽度，可拖拽边框或直接输入">
+            <Text className={styles["property-label"]}>📏 宽度 (mm)</Text>
+          </Tooltip>
           <InputNumber
             style={{ width: '100%' }}
             value={component.layout.widthMm}
@@ -44,7 +50,9 @@ const LayoutSection: React.FC<LayoutSectionProps> = ({ component, onChange }) =>
           />
         </div>
         <div className={styles["property-item"]}>
-          <Text className={styles["property-label"]}>高度 (mm)</Text>
+          <Tooltip title="组件的高度，可拖拽边框或直接输入">
+            <Text className={styles["property-label"]}>📏 高度 (mm)</Text>
+          </Tooltip>
           <InputNumber
             style={{ width: '100%' }}
             value={component.layout.heightMm}

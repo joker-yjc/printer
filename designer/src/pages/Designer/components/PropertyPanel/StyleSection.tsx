@@ -11,9 +11,10 @@ interface StyleSectionProps {
   component: ComponentNode;
   onStyleChange: (field: string, value: any) => void;
   onPropsChange: (field: string, value: any) => void;
+  onLayoutChange?: (field: string, value: any) => void;
 }
 
-const StyleSection: React.FC<StyleSectionProps> = ({ component, onStyleChange, onPropsChange }) => {
+const StyleSection: React.FC<StyleSectionProps> = ({ component, onStyleChange, onPropsChange, onLayoutChange }) => {
   // 获取对应的样式插件
   const plugin = getPlugin(component.type);
 
@@ -21,7 +22,7 @@ const StyleSection: React.FC<StyleSectionProps> = ({ component, onStyleChange, o
     <div className={styles["property-section"]}>
       <div className={styles["property-title"]}>🎨 样式属性</div>
       <div className={styles["property-list"]}>
-        {plugin.render(component, onStyleChange, onPropsChange)}
+        {plugin.render(component, onStyleChange, onPropsChange, onLayoutChange)}
       </div>
     </div>
   );

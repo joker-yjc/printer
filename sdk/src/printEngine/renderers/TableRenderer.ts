@@ -62,6 +62,7 @@ export class TableRenderer implements ComponentRenderer {
     const cellBorder = bordered ? `border: 1px solid ${TABLE_STYLE_DEFAULT.BORDER_COLOR};` : '';
     const cellPadding = `padding: ${TABLE_STYLE_DEFAULT.CELL_PADDING};`;
     const cellTextStyle = `white-space: normal; word-break: break-word; line-height: ${STYLE_DEFAULT.LINE_HEIGHT}; vertical-align: top;`;
+    const textAlign = style?.textAlign || 'left'; // 对齐方式
 
     // ✅ 计算表头和数据行的高度（mm 转 px）
     const headerHeightPx = TABLE_DEFAULT.HEADER_HEIGHT * context.mmToPx;  // 10mm * 3.78 = 37.8px
@@ -73,7 +74,7 @@ export class TableRenderer implements ComponentRenderer {
       const headerCells = visibleColumns
         .map((col: any) => {
           const title = col.title || col.dataIndex;
-          return `<th style="${cellBorder} ${cellPadding} ${cellTextStyle} background: ${TABLE_STYLE_DEFAULT.HEADER_BACKGROUND}; font-weight: 600; text-align: left; height: ${headerHeightPx}px; box-sizing: border-box;">${title}</th>`;
+          return `<th style="${cellBorder} ${cellPadding} ${cellTextStyle} background: ${TABLE_STYLE_DEFAULT.HEADER_BACKGROUND}; font-weight: 600; text-align: ${textAlign}; height: ${headerHeightPx}px; box-sizing: border-box;">${title}</th>`;
         })
         .join('');
       headerHtml = `<thead class="table-header-repeat"><tr style="height: ${headerHeightPx}px;">${headerCells}</tr></thead>`;
@@ -87,7 +88,7 @@ export class TableRenderer implements ComponentRenderer {
           const cells = visibleColumns
             .map((col: any) => {
               const value = row[col.dataIndex] || '';
-              return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} height: ${rowHeightPx}px; box-sizing: border-box;">${value}</td>`;
+              return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} text-align: ${textAlign}; height: ${rowHeightPx}px; box-sizing: border-box;">${value}</td>`;
             })
             .join('');
           return `<tr style="height: ${rowHeightPx}px;">${cells}</tr>`;

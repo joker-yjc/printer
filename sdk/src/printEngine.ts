@@ -234,6 +234,41 @@ export class PrintEngine {
   }
 
   /**
+   * 判断是否需要换页
+   * @param currentHeight 当前页面累计高度
+   * @param componentHeight 组件高度
+   * @param gap 组件间距
+   * @param availableHeight 可用高度
+   * @param isFirstComponent 是否为页面第一个组件
+   */
+  private shouldBreakPage(
+    currentHeight: number,
+    componentHeight: number,
+    gap: number,
+    availableHeight: number,
+    isFirstComponent: boolean
+  ): boolean {
+    const needHeight = isFirstComponent ? componentHeight : gap + componentHeight;
+    return currentHeight + needHeight > availableHeight;
+  }
+
+  /**
+   * 计算表头高度（mm）
+   */
+  private calculateTableHeaderHeight(comp: ComponentNode): number {
+    // 使用 TABLE_DEFAULT.HEADER_HEIGHT 作为表头高度
+    return TABLE_DEFAULT.HEADER_HEIGHT;
+  }
+
+  /**
+   * 计算表格行高度（mm）
+   */
+  private calculateTableRowHeight(comp: ComponentNode): number {
+    // 使用 MIN_ROW_HEIGHT * ROW_HEIGHT_FACTOR 作为行高
+    return TABLE_DEFAULT.MIN_ROW_HEIGHT * TABLE_DEFAULT.ROW_HEIGHT_FACTOR;
+  }
+
+  /**
    * 渲染单个页面（直接渲染，不做智能布局）
    */
   private renderSinglePage(components: ComponentNode[]): string {
@@ -301,6 +336,13 @@ export class PrintEngine {
       const { comp, gap } = componentsWithGaps[i];
       const compHeightMm = comp.layout.heightMm || 50;
 
+      // 边界检查：组件高度接近页面高度时输出警告
+      if (compHeightMm > availableHeightMm * 0.8) {
+        console.warn(
+          `组件 ${comp.id} (${comp.type}) 高度 ${compHeightMm.toFixed(2)}mm 接近页面可用高度 ${availableHeightMm.toFixed(2)}mm，可能影响分页效果`
+        );
+      }
+
       // 4.1 如果是表格，进行跨页拆分
       if (comp.type === 'table' && comp.binding?.path) {
         const tableData = context.getValueByPath(comp.binding.path);
@@ -320,9 +362,7 @@ export class PrintEngine {
           isFirstComponentInPage = false;  // 表格后不再是第一个
         } else {
           // 空表格：按普通组件处理
-          const needHeight = (isFirstComponentInPage ? 0 : gap) + compHeightMm;
-
-          if (currentPageHeight + needHeight > availableHeightMm && currentPage.length > 0) {
+          if (this.shouldBreakPage(currentPageHeight, compHeightMm, gap, availableHeightMm, isFirstComponentInPage) && currentPage.length > 0) {
             // 换页
             pages.push(currentPage);
             currentPage = [];
@@ -353,10 +393,8 @@ export class PrintEngine {
       }
       // 4.2 普通组件：按相对间距累加高度
       else {
-        const needHeight = (isFirstComponentInPage ? 0 : gap) + compHeightMm;
-
-        // 判断是否需要换页
-        if (currentPageHeight + needHeight > availableHeightMm && currentPage.length > 0) {
+        // 使用辅助方法判断是否需要换页
+        if (this.shouldBreakPage(currentPageHeight, compHeightMm, gap, availableHeightMm, isFirstComponentInPage) && currentPage.length > 0) {
           // 换页
           pages.push(currentPage);
           currentPage = [];
@@ -397,6 +435,7 @@ export class PrintEngine {
 
   /**
    * 表格跨页拆分（基于相对间距）
+   * 支持 repeatHeader 配置、精确行高计算、空表格检查
    */
   private splitTableWithGap(
     tableComponent: ComponentNode,
@@ -408,9 +447,19 @@ export class PrintEngine {
     pages: ComponentNode[][],
     currentPage: ComponentNode[]
   ): { currentPage: ComponentNode[]; currentPageHeight: number } {
-    const headerHeight = TABLE_DEFAULT.HEADER_HEIGHT;  // 10mm
-    const rowHeight = TABLE_DEFAULT.MIN_ROW_HEIGHT * TABLE_DEFAULT.ROW_HEIGHT_FACTOR;  // 8 * 1.3 = 10.4mm
+    // 读取配置：是否重复表头（默认 true）
+    const repeatHeader = tableComponent.props?.pagination?.repeatHeader !== false;
+
+    // 使用精确计算的高度
+    const headerHeight = this.calculateTableHeaderHeight(tableComponent);
+    const rowHeight = this.calculateTableRowHeight(tableComponent);
     const marginTop = this.template.page.marginMm?.top || 0;
+
+    // 空表格检查
+    if (tableData.length === 0) {
+      console.info('表格无数据，跳过渲染');
+      return { currentPage, currentPageHeight };
+    }
 
     let remainingData = [...tableData];
     let workingPage = [...currentPage];
@@ -428,10 +477,12 @@ export class PrintEngine {
       }
 
       // 计算能放多少行
-      const needHeader = !isFirstFragment;
+      // 如果 repeatHeader = false 且是第一个片段，则表头已经在第一页了，后续页不需要表头
+      const needHeader = isFirstFragment || repeatHeader;
       const availableForRows = remainingHeight - (needHeader ? headerHeight : 0);
       const rowsCanFit = Math.floor(availableForRows / rowHeight);
 
+      // 确保至少有 1 行数据（避免只有表头的空页面）
       if (rowsCanFit <= 0) {
         // 当前页放不下，换页
         if (workingPage.length > 0) {
@@ -460,14 +511,15 @@ export class PrintEngine {
         },
         props: {
           ...tableComponent.props,
-          _pageData: dataForThisPage
+          _pageData: dataForThisPage,
+          _showHeader: needHeader  // 控制是否显示表头
         }
       };
 
       workingPage.push(tableFragment);
 
       // 更新当前页高度
-      const tableFragmentHeight = headerHeight + dataForThisPage.length * rowHeight;
+      const tableFragmentHeight = (needHeader ? headerHeight : 0) + dataForThisPage.length * rowHeight;
       if (isFirstFragment && !isFirstComponentInPage) {
         workingPageHeight += gap + tableFragmentHeight;
       } else {

@@ -13,14 +13,18 @@ interface ComponentPreviewProps {
 const ComponentPreview = ({ component }: ComponentPreviewProps) => {
   switch (component.type) {
     case 'text':
+      const textAlign = component.style?.textAlign || 'left';
+      // 将 textAlign 转换为 justifyContent（因为使用了 flex 布局）
+      const justifyContent = textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start';
+
       return (
         <div style={{
           fontSize: component.style?.fontSize || 14,
           color: component.style?.color || '#262626',
           fontWeight: component.style?.fontWeight || 'normal',
-          textAlign: component.style?.textAlign as any || 'left',
           display: 'flex',
           alignItems: 'center',
+          justifyContent,
           height: '100%',
           overflow: 'hidden',
           whiteSpace: 'nowrap',
@@ -31,12 +35,25 @@ const ComponentPreview = ({ component }: ComponentPreviewProps) => {
       );
 
     case 'line':
+      // 线条统一使用 border 实现，通过绝对定位让线条在容器中垂直居中
+      const lineHeight = (component.style?.borderTopWidth || 1) / 3.78;
+      const lineStyle = component.style?.borderTopStyle || 'solid';
+      const lineColor = component.style?.borderTopColor || '#000';
+
       return (
         <div style={{
           width: '100%',
-          height: component.props?.direction === 'vertical' ? '100%' : `${component.style?.borderTopWidth || 1}px`,
-          background: component.style?.borderTopColor || '#000',
-        }} />
+          height: '100%',  // 容器占满高度
+          position: 'relative',  // 相对定位
+          display: 'flex',
+          alignItems: 'center',  // 垂直居中
+        }}>
+          <div style={{
+            width: '100%',
+            height: '0px',  // 线条容器高度为0
+            borderTop: `${lineHeight}px ${lineStyle} ${lineColor}`,  // 统一使用 borderTop
+          }} />
+        </div>
       );
 
     case 'qrcode':
@@ -65,6 +82,7 @@ const ComponentPreview = ({ component }: ComponentPreviewProps) => {
       const bordered = component.props?.bordered !== false;
       const showHeader = component.props?.showHeader !== false;
       const visibleColumns = columns.filter((col: any) => !col.hidden);
+      const tableTextAlign = component.style?.textAlign || 'left';
 
       return (
         <table style={{
@@ -82,7 +100,7 @@ const ComponentPreview = ({ component }: ComponentPreviewProps) => {
                     padding: '8px',
                     background: '#fafafa',
                     fontWeight: 600,
-                    textAlign: 'left',
+                    textAlign: tableTextAlign as any,
                   }}>
                     {col.title || col.dataIndex}
                   </th>

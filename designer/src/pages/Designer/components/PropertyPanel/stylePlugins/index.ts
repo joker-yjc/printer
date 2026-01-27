@@ -6,6 +6,7 @@
 import type { StylePlugin } from './types';
 import { TextStylePlugin } from './TextStylePlugin';
 import { TableStylePlugin } from './TableStylePlugin';
+import { LineStylePlugin } from './LineStylePlugin';
 import { DefaultStylePlugin } from './DefaultStylePlugin';
 
 /**
@@ -41,4 +42,5 @@ export function getRegisteredPlugins(): string[] {
 // 初始化：注册所有插件
 registerPlugin(TextStylePlugin);
 registerPlugin(TableStylePlugin);
+registerPlugin(LineStylePlugin);
 registerPlugin(DefaultStylePlugin);

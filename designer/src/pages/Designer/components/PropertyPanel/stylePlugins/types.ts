@@ -19,10 +19,12 @@ export interface StylePlugin {
    * @param component 当前组件
    * @param onStyleChange 样式变更回调
    * @param onPropsChange Props变更回调
+   * @param onLayoutChange 布局变更回调（可选）
    */
   render: (
     component: ComponentNode,
     onStyleChange: (field: string, value: any) => void,
-    onPropsChange: (field: string, value: any) => void
+    onPropsChange: (field: string, value: any) => void,
+    onLayoutChange?: (field: string, value: any) => void
   ) => React.ReactNode;
 }

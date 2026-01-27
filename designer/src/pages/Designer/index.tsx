@@ -1,5 +1,5 @@
 import { Layout, Button, Tooltip, Space, message } from 'antd';
-import { ArrowLeftOutlined, CodeOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CodeOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import AssetPanel from './components/AssetPanel';
@@ -18,6 +18,8 @@ const Designer = () => {
   const [searchParams] = useSearchParams();
   const [debugOpen, setDebugOpen] = useState(false);
   const [, setLoading] = useState(false);
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const { generateTemplate, components, templateName, schemaId, loadTemplate } = useDesignerStore();
 
   // 加载 URL 参数中的模板
@@ -50,12 +52,101 @@ const Designer = () => {
 
   return (
     <Layout className="designer-container" style={{ height: '100vh' }}>
+      {/* 左侧面板折叠按钮 */}
+      {!leftPanelCollapsed && (
+        <div style={{
+          position: 'fixed',
+          left: 280,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          zIndex: 1000,
+        }}>
+          <Tooltip title="折叠左侧面板" placement="right">
+            <Button
+              type="text"
+              icon={<MenuFoldOutlined />}
+              onClick={() => setLeftPanelCollapsed(true)}
+              style={{
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                background: '#fff',
+              }}
+            />
+          </Tooltip>
+        </div>
+      )}
+
+      {leftPanelCollapsed && (
+        <div style={{
+          position: 'fixed',
+          left: 0,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          zIndex: 1000,
+        }}>
+          <Tooltip title="展开左侧面板" placement="right">
+            <Button
+              type="primary"
+              icon={<MenuUnfoldOutlined />}
+              onClick={() => setLeftPanelCollapsed(false)}
+              style={{
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              }}
+            />
+          </Tooltip>
+        </div>
+      )}
+
+      {/* 右侧面板折叠按钮 */}
+      {!rightPanelCollapsed && (
+        <div style={{
+          position: 'fixed',
+          right: 320,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          zIndex: 1000,
+        }}>
+          <Tooltip title="折叠右侧面板" placement="left">
+            <Button
+              type="text"
+              icon={<MenuFoldOutlined style={{ transform: 'rotate(180deg)' }} />}
+              onClick={() => setRightPanelCollapsed(true)}
+              style={{
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                background: '#fff',
+              }}
+            />
+          </Tooltip>
+        </div>
+      )}
+
+      {rightPanelCollapsed && (
+        <div style={{
+          position: 'fixed',
+          right: 0,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          zIndex: 1000,
+        }}>
+          <Tooltip title="展开右侧面板" placement="left">
+            <Button
+              type="primary"
+              icon={<MenuUnfoldOutlined style={{ transform: 'rotate(180deg)' }} />}
+              onClick={() => setRightPanelCollapsed(false)}
+              style={{
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              }}
+            />
+          </Tooltip>
+        </div>
+      )}
+
       {/* 悬浮按钮组 */}
       <div style={{
         position: 'fixed',
         bottom: 24,
-        right: 350,
+        right: rightPanelCollapsed ? 24 : 350,
         zIndex: 1000,
+        transition: 'right 0.3s ease',
       }}>
         <Space direction="vertical">
           <Tooltip title="返回模板管理" placement="left">
@@ -83,13 +174,31 @@ const Designer = () => {
         </Space>
       </div>
 
-      <Sider width={280} theme="light" className="left-panel">
+      <Sider
+        width={280}
+        theme="light"
+        className="left-panel"
+        collapsed={leftPanelCollapsed}
+        collapsedWidth={0}
+        style={{
+          transition: 'all 0.3s ease',
+        }}
+      >
         <AssetPanel />
       </Sider>
       <Content className="center-panel">
         <Canvas />
       </Content>
-      <Sider width={320} theme="light" className="right-panel">
+      <Sider
+        width={320}
+        theme="light"
+        className="right-panel"
+        collapsed={rightPanelCollapsed}
+        collapsedWidth={0}
+        style={{
+          transition: 'all 0.3s ease',
+        }}
+      >
         <PropertyPanel />
       </Sider>
 

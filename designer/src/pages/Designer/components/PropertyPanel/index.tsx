@@ -111,6 +111,7 @@ const PropertyPanel = () => {
         component={selectedComponent}
         onStyleChange={handleStyleChange}
         onPropsChange={handlePropsChange}
+        onLayoutChange={handleLayoutChange}
       />
 
       {/* 表格列管理（仅表格组件显示） */}

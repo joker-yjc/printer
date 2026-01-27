@@ -55,6 +55,11 @@ export interface DataBinding {
   fallback?: string;
 }
 
+// 表格分页配置
+export interface TablePaginationConfig {
+  repeatHeader?: boolean;  // 跨页是否重复表头（默认 true）
+}
+
 export interface ComponentNode {
   id: string;
   type: ComponentType;

@@ -29,14 +29,18 @@ export class TextRenderer implements ComponentRenderer {
     );
 
     // 文本样式
+    const textAlign = style?.textAlign || STYLE_DEFAULT.TEXT_ALIGN;
+    // 将 textAlign 转换为 justifyContent（因为使用了 flex 布局）
+    const justifyContent = textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start';
+
     const textStyles: StyleObject = {
       ...positionStyles,
       fontSize: `${style?.fontSize || STYLE_DEFAULT.FONT_SIZE}px`,
       color: style?.color || STYLE_DEFAULT.TEXT_COLOR,
       fontWeight: style?.fontWeight || STYLE_DEFAULT.FONT_WEIGHT,
-      textAlign: style?.textAlign || STYLE_DEFAULT.TEXT_ALIGN,
       display: 'flex',
       alignItems: 'center',
+      justifyContent,
       overflow: 'visible',
       whiteSpace: 'normal',
       wordBreak: 'break-word',

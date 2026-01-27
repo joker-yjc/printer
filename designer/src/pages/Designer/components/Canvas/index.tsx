@@ -13,6 +13,7 @@ import SaveTemplateModal from './SaveTemplateModal';
 import ComponentPreview from './ComponentPreview';
 import ResizeHandles from './ResizeHandles';
 import AlignmentGuides from './AlignmentGuides';
+import ShortcutHint from './ShortcutHint';
 import type { AlignmentLine } from './AlignmentGuides';
 import { detectAlignment } from './alignmentDetector';
 
@@ -718,6 +719,8 @@ const CanvasArea = () => {
         onQuickPrint={handleQuickPrint}
       />
       <div className={styles['canvas-wrapper']}>
+        {/* 快捷键提示 */}
+        <ShortcutHint />
         <div className={styles['canvas-container']} style={{
           width: `${canvasSize.widthPx + 30}px`,
           height: `${canvasSize.heightPx + 30}px`,

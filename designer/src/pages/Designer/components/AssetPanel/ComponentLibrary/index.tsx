@@ -15,6 +15,8 @@ interface ComponentConfig {
   name: string;
   icon: React.ReactNode;
   category: 'basic' | 'decoration' | 'encoding';
+  description: string; // 组件描述
+  shortcut?: string;   // 快捷键提示
   getDefaultProps: (pageConfig: any) => Partial<ComponentNode>;
 }
 
@@ -28,6 +30,8 @@ const ComponentLibrary = () => {
       name: '文本',
       icon: <FontSizeOutlined />,
       category: 'basic',
+      description: '文本组件，支持数据绑定和格式化',
+      shortcut: '点击或从数据资产拖拽字段',
       getDefaultProps: () => ({
         layout: { mode: 'absolute', xMm: 50, yMm: 50, widthMm: 60, heightMm: 10 },
         style: { fontSize: 14, color: '#262626' },
@@ -39,6 +43,8 @@ const ComponentLibrary = () => {
       name: '表格',
       icon: <TableOutlined />,
       category: 'basic',
+      description: '表格组件，支持数组数据绑定',
+      shortcut: '从数据资产拖拽数组字段生成',
       getDefaultProps: (config) => {
         const pageWidthMm = config.size === 'A4' ? 210 : 148;
         const { top, left, right } = config.marginMm;
@@ -55,12 +61,14 @@ const ComponentLibrary = () => {
       name: '线条',
       icon: <LineOutlined />,
       category: 'decoration',
+      description: '水平或垂直线条，用于装饰和分割',
+      shortcut: '点击插入',
       getDefaultProps: (config) => {
         const pageWidthMm = config.size === 'A4' ? 210 : 148;
         const { left, right } = config.marginMm;
         const availableWidth = pageWidthMm - left - right;
         return {
-          layout: { mode: 'absolute', xMm: left, yMm: 50, widthMm: availableWidth, heightMm: 0 },
+          layout: { mode: 'absolute', xMm: left, yMm: 50, widthMm: availableWidth, heightMm: 5 },
           style: { borderTopWidth: 1, borderTopColor: '#000', borderTopStyle: 'solid' },
           props: { direction: 'horizontal' },
         };
@@ -71,6 +79,8 @@ const ComponentLibrary = () => {
       name: '二维码',
       icon: <QrcodeOutlined />,
       category: 'encoding',
+      description: '二维码组件，支持URL和文本编码',
+      shortcut: '点击插入',
       getDefaultProps: () => ({
         layout: { mode: 'absolute', xMm: 50, yMm: 50, widthMm: 30, heightMm: 30 },
         props: { content: 'https://example.com', size: 30 },
@@ -81,6 +91,8 @@ const ComponentLibrary = () => {
       name: '条形码',
       icon: <BarcodeOutlined />,
       category: 'encoding',
+      description: '条形码组件，支持多种编码格式',
+      shortcut: '点击插入',
       getDefaultProps: () => ({
         layout: { mode: 'absolute', xMm: 50, yMm: 50, widthMm: 60, heightMm: 20 },
         props: { content: '1234567890', format: 'CODE128' },
@@ -123,7 +135,20 @@ const ComponentLibrary = () => {
               </div>
               <Space wrap>
                 {items.map((item) => (
-                  <Tooltip key={item.type} title={item.name}>
+                  <Tooltip
+                    key={item.type}
+                    title={
+                      <div>
+                        <div style={{ fontWeight: 'bold', marginBottom: 4 }}>{item.name}</div>
+                        <div style={{ fontSize: 12 }}>{item.description}</div>
+                        {item.shortcut && (
+                          <div style={{ fontSize: 11, color: '#bfbfbf', marginTop: 4 }}>
+                            {item.shortcut}
+                          </div>
+                        )}
+                      </div>
+                    }
+                  >
                     <Button
                       icon={item.icon}
                       onClick={() => handleInsertComponent(item)}
