@@ -1,34 +1,59 @@
 {
-  "name": "@printer/sdk",
+  "name": "@jcyao/print-sdk",
   "version": "1.0.0",
   "description": "Universal Print SDK - Client-side print solution",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joker-yjc/printer"
+  },
+  "homepage": "https://github.com/joker-yjc/printer#readme",
+  "bugs": {
+    "url": "https://github.com/joker-yjc/printer/issues"
+  },
   "keywords": [
     "print",
     "sdk",
     "client-side",
-    "template"
+    "template",
+    "printer",
+    "printing",
+    "pdf",
+    "browser-print",
+    "template-engine",
+    "qrcode",
+    "barcode",
+    "typescript"
   ],
   "author": "joke_yao",
   "license": "MIT",
   "devDependencies": {
     "@rollup/plugin-typescript": "^11.1.6",
+    "@types/qrcode": "^1.5.6",
     "rollup": "^4.9.6",
     "tslib": "^2.6.2",
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@types/qrcode": "^1.5.6",
     "decimal.js": "^10.6.0",
     "jsbarcode": "^3.12.3",
     "qrcode": "^1.5.4"
-  }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ]
 }

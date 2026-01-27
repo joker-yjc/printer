@@ -3,7 +3,7 @@
  */
 
 import { Input, InputNumber, Space } from 'antd';
-import type { PipeConfig } from '@printer/sdk';
+import type { PipeConfig } from '@jcyao/print-sdk';
 import { DatePipeConfigurator } from './DatePipeConfigurator';
 import { CurrencyPipeConfigurator } from './CurrencyPipeConfigurator';
 import { MoneyPipeConfigurator } from './MoneyPipeConfigurator';

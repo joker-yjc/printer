@@ -4,7 +4,7 @@
  */
 
 import JsBarcode from 'jsbarcode';
-import type { ComponentNode } from '../../../types';
+import type { ComponentNode } from '../../types';
 import type { ComponentRenderer, RenderContext } from '../types';
 import { buildStyleString, buildPositionStyle } from '../utils/styleBuilder';
 import { COMPONENT_DEFAULT_SIZE, BARCODE_CONFIG } from '../constants';

@@ -1,0 +1,24 @@
+# 源代码（只发布编译后的 dist）
+src/
+*.ts
+!*.d.ts
+
+# 配置文件
+tsconfig.json
+rollup.config.js
+
+# 开发依赖
+node_modules/
+
+# 测试文件
+test/
+tests/
+*.test.js
+*.spec.js
+
+# 其他
+.DS_Store
+.vscode/
+.idea/
+*.log
+npm-debug.log*

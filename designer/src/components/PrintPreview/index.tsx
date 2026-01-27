@@ -1,7 +1,7 @@
 import { Modal, Button, Space, message, Select } from 'antd';
 import { LeftOutlined, RightOutlined, PrinterOutlined } from '@ant-design/icons';
 import { useState, useEffect, useRef } from 'react';
-import { createPrintEngine } from '@printer/sdk';
+import { createPrintEngine } from '@jcyao/print-sdk';
 import { useDesignerStore } from '../../store/designer';
 import { mockDataApi } from '../../services/api';
 import type { MockData } from '../../types';

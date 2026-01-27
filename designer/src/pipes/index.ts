@@ -4,7 +4,7 @@
  */
 
 // 从 SDK 导入类型和执行器
-export * from '@printer/sdk';
+export * from '@jcyao/print-sdk';
 
 // 导出本地配置器（UI 组件）
 export * from './configurators';

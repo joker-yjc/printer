@@ -7,7 +7,7 @@ import { Input, Select, Typography, Tag, Button, Tooltip } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
 import styles from './index.module.css';
 import type { ComponentNode, PipeConfig } from '../../../../types';
-import { getAllPipes } from '@printer/sdk';
+import { getAllPipes } from '@jcyao/print-sdk';
 import { getConfigurator } from '../../../../pipes/configurators';
 
 const { Text } = Typography;

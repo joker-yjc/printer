@@ -3,7 +3,7 @@
  */
 
 import { Input, InputNumber, Radio, Space, Checkbox } from 'antd';
-import type { PipeConfig } from '@printer/sdk';
+import type { PipeConfig } from '@jcyao/print-sdk';
 import type { PipeConfigurator } from './index';
 
 export const MoneyPipeConfigurator: PipeConfigurator = {
