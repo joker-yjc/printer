@@ -14,6 +14,8 @@ export default {
       sourcemap: true,
     },
   ],
+  // 标记外部依赖，不打包到 SDK 中
+  external: ["qrcode", "jsbarcode"],
   plugins: [
     typescript({
       tsconfig: "./tsconfig.json",

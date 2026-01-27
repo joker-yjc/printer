@@ -1,10 +1,11 @@
-import { Layout, Button, Tooltip, Space, message } from 'antd';
-import { ArrowLeftOutlined, CodeOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
+import { Layout, Button, Tooltip, Space, message, Tabs } from 'antd';
+import { ArrowLeftOutlined, CodeOutlined, MenuFoldOutlined, MenuUnfoldOutlined, SettingOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import AssetPanel from './components/AssetPanel';
 import Canvas from './components/Canvas';
 import PropertyPanel from './components/PropertyPanel';
+import ComponentTreePanel from './components/ComponentTreePanel';
 import { Drawer, Typography } from 'antd';
 import { useDesignerStore } from '../../store/designer';
 import { templateApi } from '../../services/api';
@@ -199,7 +200,35 @@ const Designer = () => {
           transition: 'all 0.3s ease',
         }}
       >
-        <PropertyPanel />
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <Tabs
+            defaultActiveKey="properties"
+            items={[
+              {
+                key: 'tree',
+                label: (
+                  <span>
+                    <AppstoreOutlined />
+                    组件树
+                  </span>
+                ),
+                children: <ComponentTreePanel />,
+              },
+              {
+                key: 'properties',
+                label: (
+                  <span>
+                    <SettingOutlined />
+                    属性配置
+                  </span>
+                ),
+                children: <PropertyPanel />,
+              },
+            ]}
+            style={{ height: '100%' }}
+            tabBarStyle={{ padding: '0 16px', margin: 0 }}
+          />
+        </div>
       </Sider>
 
       {/* 调试抽屉 */}

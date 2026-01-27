@@ -1,4 +1,5 @@
 import { Modal, Button, Space, message, Select } from 'antd';
+import { LeftOutlined, RightOutlined, PrinterOutlined } from '@ant-design/icons';
 import { useState, useEffect, useRef } from 'react';
 import { createPrintEngine } from '@printer/sdk';
 import { useDesignerStore } from '../../store/designer';
@@ -17,6 +18,8 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
   const [selectedMockDataId, setSelectedMockDataId] = useState<string>();
   const [previewHtml, setPreviewHtml] = useState('');
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // 加载 Mock 数据列表
@@ -26,7 +29,7 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
     }
   }, [open]);
 
-  // 当 previewHtml 变化时，写入 iframe
+  // 当 previewHtml 变化时，写入 iframe 并计算页数
   useEffect(() => {
     if (previewHtml && iframeRef.current) {
       const iframeDoc = iframeRef.current.contentWindow?.document;
@@ -34,9 +37,48 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
         iframeDoc.open();
         iframeDoc.write(previewHtml);
         iframeDoc.close();
+
+        // 等待内容加载完成后计算页数
+        setTimeout(() => {
+          const pages = iframeDoc.querySelectorAll('.print-page');
+          setTotalPages(pages.length);
+          setCurrentPage(1);
+          // 滚动到第一页
+          scrollToPage(1);
+        }, 100);
       }
     }
   }, [previewHtml]);
+
+  // 滚动到指定页面
+  const scrollToPage = (pageNum: number) => {
+    if (!iframeRef.current) return;
+    const iframeDoc = iframeRef.current.contentWindow?.document;
+    if (!iframeDoc) return;
+
+    const targetPage = iframeDoc.querySelector(`.print-page[data-page="${pageNum}"]`);
+    if (targetPage) {
+      targetPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  // 上一页
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      const newPage = currentPage - 1;
+      setCurrentPage(newPage);
+      scrollToPage(newPage);
+    }
+  };
+
+  // 下一页
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      const newPage = currentPage + 1;
+      setCurrentPage(newPage);
+      scrollToPage(newPage);
+    }
+  };
 
   const loadMockData = async () => {
     setLoading(true);
@@ -121,26 +163,58 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
     >
       <div className={styles['print-preview-container']}>
         <div className={styles['preview-controls']}>
-          <Space>
-            <span>选择 Mock 数据：</span>
-            <Select
-              style={{ width: 300 }}
-              value={selectedMockDataId}
-              onChange={setSelectedMockDataId}
-              options={mockDataList.map(item => ({
-                label: item.name,
-                value: item.id,
-              }))}
-              placeholder="请选择 Mock 数据"
-            />
+          <Space size="middle">
+            <Space>
+              <span>选择 Mock 数据：</span>
+              <Select
+                style={{ width: 300 }}
+                value={selectedMockDataId}
+                onChange={setSelectedMockDataId}
+                options={mockDataList.map(item => ({
+                  label: item.name,
+                  value: item.id,
+                }))}
+                placeholder="请选择 Mock 数据"
+              />
+            </Space>
             <Button type="primary" onClick={handleGeneratePreview} loading={loading}>
               生成预览
             </Button>
-            <Button type="primary" onClick={handlePrint} disabled={!previewHtml}>
+            <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint} disabled={!previewHtml}>
               打印
             </Button>
           </Space>
         </div>
+
+        {/* 页码导航栏 */}
+        {previewHtml && totalPages > 0 && (
+          <div className={styles['pagination-bar']}>
+            <Space size="large">
+              <Space>
+                <Button
+                  icon={<LeftOutlined />}
+                  onClick={handlePrevPage}
+                  disabled={currentPage === 1}
+                  size="small"
+                >
+                  上一页
+                </Button>
+                <span className={styles['page-info']}>
+                  第 <span className={styles['current-page']}>{currentPage}</span> 页 / 共 {totalPages} 页
+                </span>
+                <Button
+                  icon={<RightOutlined />}
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                  size="small"
+                  iconPosition="end"
+                >
+                  下一页
+                </Button>
+              </Space>
+            </Space>
+          </div>
+        )}
 
         <div className={styles['preview-content']}>
           {previewHtml ? (

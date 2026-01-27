@@ -11,6 +11,7 @@ import {
   generatePrintHTML,
   getPageSizeFromConfig,
 } from './printEngine/htmlTemplate';
+import { executePipe } from './pipes/registry';
 
 // 导入所有渲染器插件
 import {
@@ -121,7 +122,6 @@ export class PrintEngine {
    */
   private executePipe(value: any, pipe: PipeConfig): any {
     // 使用插件化的管道执行器
-    const { executePipe } = require('./pipes/registry');
     return executePipe(pipe.type, value, pipe.options);
   }
 

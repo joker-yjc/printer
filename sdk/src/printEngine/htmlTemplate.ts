@@ -183,7 +183,7 @@ export function generateBatchPrintStyles(config: PrintStyleConfig): string {
 
   return `
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { margin: 0; padding: 0; }
+    body { margin: 0; padding: 0; background: #f5f5f5; }
     
     @page {
       size: ${pageWidthMm}mm ${pageHeightMm}mm;
@@ -191,9 +191,17 @@ export function generateBatchPrintStyles(config: PrintStyleConfig): string {
     }
     
     @media print {
-      body { margin: 0; padding: 0; }
-      .print-page { margin: 0; page-break-after: always; }
+      body { margin: 0; padding: 0; background: white; }
+      .print-page { margin: 0; page-break-after: always; box-shadow: none !important; }
       .print-page:last-child { page-break-after: auto; }
+    }
+    
+    @media screen {
+      body { padding: 20px 0; }
+      .print-page {
+        margin: 0 auto 20px auto;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
     }
     
     .print-page {
