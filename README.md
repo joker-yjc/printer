@@ -98,11 +98,11 @@
 
 ```typescript
 // SDK 使用示例
-import { init, print } from '@jcyao/print-sdk';
+import { createPrintSDK } from '@jcyao/print-sdk';
 
-init();
+const sdk = createPrintSDK();
 
-print({
+await sdk.print({
   template: templateJson,
   data: orderData
 });
@@ -257,13 +257,13 @@ npm run build
 ### 集成 SDK
 
 ```typescript
-import { init, print } from '@jcyao/print-sdk';
+import { createPrintSDK } from '@jcyao/print-sdk';
 
-// 初始化（全局执行一次）
-init();
+// 创建 SDK 实例
+const sdk = createPrintSDK();
 
-// 打印
-print({
+// 执行打印
+await sdk.print({
   template: {
     pageConfig: { size: 'A4', orientation: 'portrait', marginMm: { ... } },
     components: [ ... ]
@@ -301,12 +301,6 @@ print({
 - 图片懒加载与预加载
 - 打印队列管理
 - 缓存策略优化
-
----
-
-## 🙏 致谢
-
-感谢所有参与项目开发和测试的人员！
 
 ---
 

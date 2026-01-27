@@ -24,13 +24,13 @@ npm install @jcyao/print-sdk
 ## 🚀 快速开始
 
 ```typescript
-import { init, print } from '@jcyao/print-sdk';
+import { createPrintSDK } from '@jcyao/print-sdk';
 
-// 初始化 SDK（全局执行一次）
-init();
+// 创建 SDK 实例（无需配置）
+const sdk = createPrintSDK();
 
 // 打印
-print({
+sdk.print({
   template: {
     pageConfig: {
       size: 'A4',
@@ -71,14 +71,6 @@ print({
 
 ## 📖 API 文档
 
-### `init()`
-
-初始化打印 SDK，全局执行一次。
-
-```typescript
-init();
-```
-
 ### `print(options: PrintOptions)`
 
 执行打印操作。
@@ -92,14 +84,31 @@ interface PrintOptions {
 }
 ```
 
-### `preview(options: PrintOptions): string`
+### `sdk.generateHTML(template, data)`
 
-生成预览 HTML。
+生成预览 HTML（不执行打印）。
 
 ```typescript
-const html = preview({
-  template: myTemplate,
-  data: myData
+const html = await sdk.generateHTML(myTemplate, myData);
+console.log(html);  // 完整的 HTML 字符串
+```
+
+### `sdk.printMultiple(template, dataList, options)`
+
+批量打印（同模板多数据）。
+
+```typescript
+const dataList = [
+  { orderNo: 'ORDER001', ... },
+  { orderNo: 'ORDER002', ... },
+  { orderNo: 'ORDER003', ... },
+];
+
+await sdk.printMultiple(myTemplate, dataList, {
+  preview: true,  // 预览所有
+  onProgress: (progress) => {
+    console.log(`进度: ${progress.completed}/${progress.total}`);
+  }
 });
 ```
 
@@ -190,11 +199,76 @@ const html = preview({
 
 ```typescript
 import type {
-  Template,
+  PrintTemplate,
   ComponentNode,
   TableColumn,
   PipeConfig
 } from '@jcyao/print-sdk';
+```
+
+## 💻 使用示例
+
+### 示例 1：基本打印
+
+```typescript
+import { createPrintSDK } from '@jcyao/print-sdk';
+
+const sdk = createPrintSDK();
+
+// 准备模板和数据
+const template = {
+  pageConfig: {
+    size: 'A4',
+    orientation: 'portrait',
+    marginMm: { top: 10, right: 10, bottom: 10, left: 10 }
+  },
+  components: [
+    {
+      id: 'text-1',
+      type: 'text',
+      layout: { xMm: 20, yMm: 20, widthMm: 170, heightMm: 10 },
+      binding: { path: 'orderNo' },
+      props: { label: '订单号：' }
+    }
+  ]
+};
+
+const data = { orderNo: 'SR202401', customerName: '张三' };
+
+// 直接打印
+await sdk.printDirect(template, data);
+```
+
+### 示例 2：预览后打印
+
+```typescript
+import { createPrintSDK } from '@jcyao/print-sdk';
+
+const sdk = createPrintSDK();
+
+// 预览后打印
+await sdk.printWithPreview(template, data);
+```
+
+### 示例 3：批量打印
+
+```typescript
+import { createPrintSDK } from '@jcyao/print-sdk';
+
+const sdk = createPrintSDK();
+
+const orders = [
+  { orderNo: 'ORDER001', amount: 1000 },
+  { orderNo: 'ORDER002', amount: 2000 },
+  { orderNo: 'ORDER003', amount: 3000 },
+];
+
+await sdk.printMultiple(template, orders, {
+  preview: true,
+  onProgress: (progress) => {
+    console.log(`打印进度: ${progress.completed}/${progress.total}`);
+  }
+});
 ```
 
 ## 📝 License
