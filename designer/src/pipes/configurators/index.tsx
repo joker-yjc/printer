@@ -6,8 +6,9 @@ import { Input, InputNumber, Space } from 'antd';
 import type { PipeConfig } from '@printer/sdk';
 import { DatePipeConfigurator } from './DatePipeConfigurator';
 import { CurrencyPipeConfigurator } from './CurrencyPipeConfigurator';
+import { MoneyPipeConfigurator } from './MoneyPipeConfigurator';
 
-export { DatePipeConfigurator, CurrencyPipeConfigurator };
+export { DatePipeConfigurator, CurrencyPipeConfigurator, MoneyPipeConfigurator };
 
 /**
  * 管道配置器接口（UI层）
@@ -69,6 +70,7 @@ const configuratorRegistry = new Map<string, PipeConfigurator>();
 // 注册配置器
 configuratorRegistry.set('date', DatePipeConfigurator);
 configuratorRegistry.set('currency', CurrencyPipeConfigurator);
+configuratorRegistry.set('money', MoneyPipeConfigurator);
 configuratorRegistry.set('slice', SlicePipeConfigurator);
 configuratorRegistry.set('default', DefaultPipeConfigurator);
 
