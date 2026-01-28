@@ -11,6 +11,7 @@ import {
   generatePrintHTML,
   getPageSizeFromConfig,
 } from './printEngine/htmlTemplate';
+import { waitForImagesLoaded } from './utils/resourceLoader';
 
 /**
  * 打印选项
@@ -64,6 +65,8 @@ export class PrintSDK {
       printWindow.document.write(html);
       printWindow.document.close();
 
+      // 等待所有图片加载完成后再打印
+      await waitForImagesLoaded(printWindow.document);
       printWindow.print();
     } else {
       // 直接打印模式：在隐藏 iframe 中打印
@@ -82,7 +85,9 @@ export class PrintSDK {
       iframeDoc.write(html);
       iframeDoc.close();
 
-      // 二维码和条形码已同步生成为base64图片，无需等待，直接打印
+      // 等待所有图片加载完成后再打印
+      // 注意：二维码和条形码已同步生成为base64，主要等待外部图片资源
+      await waitForImagesLoaded(iframeDoc);
       iframe.contentWindow?.print();
       // 打印完成后移除 iframe
       setTimeout(() => {
@@ -208,7 +213,8 @@ export class PrintSDK {
       printWindow.document.write(fullHTML);
       printWindow.document.close();
 
-      // 二维码和条形码已同步生成为base64图片，无需等待，直接打印
+      // 等待所有图片加载完成后再打印
+      await waitForImagesLoaded(printWindow.document);
       printWindow.print();
     } else {
       // 直接打印模式：使用 iframe
@@ -226,7 +232,8 @@ export class PrintSDK {
       iframeDoc.write(fullHTML);
       iframeDoc.close();
 
-      // 二维码和条形码已同步生成为base64图片，无需等待，直接打印
+      // 等待所有图片加载完成后再打印
+      await waitForImagesLoaded(iframeDoc);
       iframe.contentWindow?.print();
       // 打印完成后移除 iframe
       setTimeout(() => {

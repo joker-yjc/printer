@@ -1,6 +1,6 @@
 {
   "name": "@jcyao/print-sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Universal Print SDK - Client-side print solution",
   "type": "module",
   "main": "dist/index.js",

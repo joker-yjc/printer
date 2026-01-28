@@ -5,9 +5,12 @@ import {
   LineOutlined,
   QrcodeOutlined,
   BarcodeOutlined,
+  BorderOutlined,
+  PictureOutlined,
 } from '@ant-design/icons';
 import { useDesignerStore } from '../../../../../store/designer';
 import type { ComponentNode } from '../../../../../types';
+import React from 'react';
 
 // 组件配置
 interface ComponentConfig {
@@ -31,11 +34,23 @@ const ComponentLibrary = () => {
       icon: <FontSizeOutlined />,
       category: 'basic',
       description: '文本组件，支持数据绑定和格式化',
-      shortcut: '点击或从数据资产拖拽字段',
+      shortcut: '双击快速添加 | 拖拽精确放置',
       getDefaultProps: () => ({
         layout: { mode: 'absolute', xMm: 50, yMm: 50, widthMm: 60, heightMm: 10 },
         style: { fontSize: 14, color: '#262626' },
         props: { text: '文本内容' },
+      }),
+    },
+    {
+      type: 'image',
+      name: '图片',
+      icon: <PictureOutlined />,
+      category: 'basic',
+      description: '图片组件，支持本地和远程图片',
+      shortcut: '双击快速添加 | 拖拽精确放置',
+      getDefaultProps: () => ({
+        layout: { mode: 'absolute', xMm: 50, yMm: 50, widthMm: 60, heightMm: 40 },
+        props: { src: '' },
       }),
     },
     {
@@ -44,7 +59,7 @@ const ComponentLibrary = () => {
       icon: <TableOutlined />,
       category: 'basic',
       description: '表格组件，支持数组数据绑定',
-      shortcut: '从数据资产拖拽数组字段生成',
+      shortcut: '双击快速添加 | 拖拽精确放置',
       getDefaultProps: (config) => {
         const pageWidthMm = config.size === 'A4' ? 210 : 148;
         const { top, left, right } = config.marginMm;
@@ -62,7 +77,7 @@ const ComponentLibrary = () => {
       icon: <LineOutlined />,
       category: 'decoration',
       description: '水平或垂直线条，用于装饰和分割',
-      shortcut: '点击插入',
+      shortcut: '双击快速添加 | 拖拽精确放置',
       getDefaultProps: (config) => {
         const pageWidthMm = config.size === 'A4' ? 210 : 148;
         const { left, right } = config.marginMm;
@@ -80,7 +95,7 @@ const ComponentLibrary = () => {
       icon: <QrcodeOutlined />,
       category: 'encoding',
       description: '二维码组件，支持URL和文本编码',
-      shortcut: '点击插入',
+      shortcut: '双击快速添加 | 拖拽精确放置',
       getDefaultProps: () => ({
         layout: { mode: 'absolute', xMm: 50, yMm: 50, widthMm: 30, heightMm: 30 },
         props: { content: 'https://example.com', size: 30 },
@@ -92,10 +107,22 @@ const ComponentLibrary = () => {
       icon: <BarcodeOutlined />,
       category: 'encoding',
       description: '条形码组件，支持多种编码格式',
-      shortcut: '点击插入',
+      shortcut: '双击快速添加 | 拖拽精确放置',
       getDefaultProps: () => ({
         layout: { mode: 'absolute', xMm: 50, yMm: 50, widthMm: 60, heightMm: 20 },
         props: { content: '1234567890', format: 'CODE128' },
+      }),
+    },
+    {
+      type: 'rect',
+      name: '矩形',
+      icon: <BorderOutlined />,
+      category: 'decoration',
+      description: '矩形边框，用于装饰和突出显示',
+      shortcut: '双击快速添加 | 拖拽精确放置',
+      getDefaultProps: () => ({
+        layout: { mode: 'absolute', xMm: 50, yMm: 50, widthMm: 60, heightMm: 15 },
+        style: { border: '1px solid #000', background: 'transparent' },
       }),
     },
   ];
@@ -107,13 +134,44 @@ const ComponentLibrary = () => {
     { key: 'encoding', label: '编码组件' },
   ];
 
-  // 插入组件
-  const handleInsertComponent = (config: ComponentConfig) => {
+  // 计算画布中心位置
+  const getCanvasCenter = (componentWidth: number, componentHeight: number) => {
+    const pageWidthMm = pageConfig.size === 'A4' ? 210 : 148;
+    const pageHeightMm = pageConfig.size === 'A4' ? 297 : 210;
+
+    // 考虑纸张方向
+    const actualWidth = pageConfig.orientation === 'landscape' ? pageHeightMm : pageWidthMm;
+    const actualHeight = pageConfig.orientation === 'landscape' ? pageWidthMm : pageHeightMm;
+
+    return {
+      xMm: (actualWidth - componentWidth) / 2,
+      yMm: (actualHeight - componentHeight) / 2,
+    };
+  };
+
+  // 插入组件（双击或拖拽）
+  const handleInsertComponent = (config: ComponentConfig, position?: { xMm: number; yMm: number }) => {
     const defaultProps = config.getDefaultProps(pageConfig);
+
+    // 如果指定了位置（拖拽），使用拖拽位置；否则使用画布中心
+    let finalLayout = { ...defaultProps.layout };
+    if (!position) {
+      const centerPos = getCanvasCenter(
+        defaultProps.layout?.widthMm || 60,
+        defaultProps.layout?.heightMm || 10
+      );
+      finalLayout.xMm = centerPos.xMm;
+      finalLayout.yMm = centerPos.yMm;
+    } else {
+      finalLayout.xMm = position.xMm;
+      finalLayout.yMm = position.yMm;
+    }
+
     const newComponent: ComponentNode = {
       id: `comp-${Date.now()}`,
       type: config.type,
       ...defaultProps,
+      layout: finalLayout,
     } as ComponentNode;
 
     addComponent(newComponent);
@@ -151,8 +209,19 @@ const ComponentLibrary = () => {
                   >
                     <Button
                       icon={item.icon}
-                      onClick={() => handleInsertComponent(item)}
+                      draggable
+                      onClick={(e) => {
+                        // 双击检测
+                        if (e.detail === 2) {
+                          handleInsertComponent(item);
+                        }
+                      }}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('componentType', item.type);
+                        e.dataTransfer.effectAllowed = 'copy';
+                      }}
                       size="large"
+                      style={{ cursor: 'grab' }}
                     />
                   </Tooltip>
                 ))}

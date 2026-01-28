@@ -11,7 +11,7 @@ import {
 import { useEffect, useState } from 'react';
 import type { DataNode } from 'antd/es/tree';
 import { schemaApi } from '../../../../../services/api';
-import type { SchemaDictionary, SchemaField } from '../../../../../types';
+import type { SchemaDictionary, SchemaField, ComponentNode } from '../../../../../types';
 import { useDesignerStore } from '../../../../../store/designer';
 import styles from './index.module.css';
 
@@ -21,7 +21,7 @@ const DataAsset = () => {
   const [selectedSchemaId, setSelectedSchemaId] = useState<string>();
   const [treeData, setTreeData] = useState<DataNode[]>([]);
   const [loading, setLoading] = useState(false);
-  const { setTemplateInfo } = useDesignerStore();
+  const { setTemplateInfo, addComponent, selectComponent, pageConfig } = useDesignerStore();
 
   // 加载 Schema 列表
   useEffect(() => {
@@ -189,6 +189,103 @@ const DataAsset = () => {
     return current;
   };
 
+  // 计算画布中心位置
+  const getCanvasCenter = (componentWidth: number, componentHeight: number) => {
+    const pageWidthMm = pageConfig.size === 'A4' ? 210 : 148;
+    const pageHeightMm = pageConfig.size === 'A4' ? 297 : 210;
+
+    const actualWidth = pageConfig.orientation === 'landscape' ? pageHeightMm : pageWidthMm;
+    const actualHeight = pageConfig.orientation === 'landscape' ? pageWidthMm : pageHeightMm;
+
+    return {
+      xMm: (actualWidth - componentWidth) / 2,
+      yMm: (actualHeight - componentHeight) / 2,
+    };
+  };
+
+  // 双击添加字段到画布中心
+  const handleDoubleClick = (fieldPath: string) => {
+    const field = findFieldByPath(fieldPath);
+    if (!field) return;
+
+    // 禁止 object 类型
+    if (field.type === 'object') {
+      message.warning('对象类型不可直接添加');
+      return;
+    }
+
+    // 禁止数组子字段
+    if (isArrayChildField(fieldPath)) {
+      message.warning('数组子字段请通过拖拽添加到表格');
+      return;
+    }
+
+    // 计算中心位置
+    const centerPos = getCanvasCenter(60, 10);
+
+    // 根据字段类型创建组件（与拖拽逻辑保持完全一致）
+    if (field.type === 'array') {
+      // 数组类型：创建表格
+      const pageWidthMm = pageConfig.size === 'A4' ? 210 : 148;
+      const { top, left, right } = pageConfig.marginMm;
+      const availableWidth = pageWidthMm - left - right;
+
+      const columns = (field.children || []).map((child) => ({
+        title: child.label,
+        dataIndex: child.key,
+      }));
+
+      const newComponent: ComponentNode = {
+        id: `comp-${Date.now()}`,
+        type: 'table',
+        layout: {
+          mode: 'absolute',
+          xMm: 0,  // 表格从可用区域最左边开始（与拖拽一致）
+          yMm: Math.max(top, centerPos.yMm),  // 使用 top 边距或中心位置的较大值
+          widthMm: availableWidth,
+          heightMm: 60,
+        },
+        binding: {
+          path: fieldPath,
+        },
+        style: { fontSize: 12 },
+        props: {
+          columns: columns,
+          bordered: true,
+          showHeader: true,
+        },
+      } as ComponentNode;
+
+      addComponent(newComponent);
+      selectComponent(newComponent.id);
+      message.success(`已添加表格组件：${field.label}（${columns.length} 列）`);
+    } else {
+      // 普通字段：创建文本
+      const newComponent: ComponentNode = {
+        id: `comp-${Date.now()}`,
+        type: 'text',
+        layout: {
+          mode: 'absolute',
+          xMm: Math.max(0, centerPos.xMm),
+          yMm: Math.max(0, centerPos.yMm),
+          widthMm: 60,
+          heightMm: 10,
+        },
+        binding: {
+          path: fieldPath,
+        },
+        style: { fontSize: 14, color: '#262626' },
+        props: {
+          label: `${field.label}：`,
+        },
+      } as ComponentNode;
+
+      addComponent(newComponent);
+      selectComponent(newComponent.id);
+      message.success(`已添加组件：${field.label}`);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div className={styles["asset-header"]}>
@@ -208,6 +305,11 @@ const DataAsset = () => {
           defaultExpandAll
           blockNode
           treeData={treeData}
+          onDoubleClick={(e, node) => {
+            if (node.key) {
+              handleDoubleClick(node.key as string);
+            }
+          }}
           draggable={(node) => {
             const field = findFieldByPath(node.key as string);
             if (!field) return false;

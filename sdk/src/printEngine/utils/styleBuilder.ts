@@ -46,7 +46,7 @@ export function buildPositionStyle(
   }
 
   if (heightMm !== undefined) {
-    styles.minHeight = `${heightMm * mmToPx}px`;
+    styles.height = `${heightMm * mmToPx}px`;
   }
 
   return styles;

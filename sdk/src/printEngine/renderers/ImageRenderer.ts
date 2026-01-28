@@ -28,19 +28,16 @@ export class ImageRenderer implements ComponentRenderer {
 
     const containerStyles: StyleObject = {
       ...positionStyles,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
       overflow: 'hidden',
     };
 
     const containerStyleStr = buildStyleString(containerStyles);
 
-    // 图片样式
+    // 图片样式：严格按模板尺寸渲染，避免自适应导致排版错乱
     const imageStyle = `
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: ${style?.objectFit || 'contain'};
+      width: 100%;
+      height: 100%;
+      object-fit: ${style?.objectFit || 'fill'};
     `;
 
     if (imageSrc) {

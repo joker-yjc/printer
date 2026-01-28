@@ -81,6 +81,8 @@ const PropertyPanel = () => {
       qrcode: '二维码',
       barcode: '条形码',
       table: '表格',
+      line: '线条',
+      rect: '矩形',
     };
     return typeMap[type] || type;
   };

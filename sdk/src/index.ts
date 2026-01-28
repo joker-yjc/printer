@@ -13,3 +13,6 @@ export * from './sdk';
 
 // 导出管道系统（供设计器使用）
 export * from './pipes';
+
+// 导出工具函数（供外部使用）
+export { waitForImagesLoaded, waitForPrintResourcesReady } from './utils/resourceLoader';

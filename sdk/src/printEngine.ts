@@ -269,14 +269,121 @@ export class PrintEngine {
   }
 
   /**
-   * 渲染单个页面（直接渲染，不做智能布局）
+   * 渲染页码（根据页面配置）
    */
-  private renderSinglePage(components: ComponentNode[]): string {
-    const componentsHTML = components.map((comp) => {
-      return this.renderComponent(comp);
-    }).join('');
+  private renderPageNumber(pageNumber?: number, totalPages?: number): string {
+    const { page } = this.template;
+    const pageNumberConfig = page.pageNumber;
 
-    return componentsHTML;
+    // 如果未启用页码或缺少页码信息，返回空
+    if (!pageNumberConfig?.enabled || pageNumber === undefined || totalPages === undefined) {
+      return '';
+    }
+
+    console.log(`[PrintEngine] 渲染页码: pageNumber=${pageNumber}, totalPages=${totalPages}`, pageNumberConfig);
+
+    // 格式化页码文本
+    const format = pageNumberConfig.format || 'slash';
+    const prefix = pageNumberConfig.prefix || '';
+    const suffix = pageNumberConfig.suffix || '';
+    const separator = pageNumberConfig.separator || '/';
+
+    let pageText = '';
+    if (format === 'simple') {
+      pageText = `${pageNumber}`;
+    } else if (format === 'text') {
+      pageText = `第${pageNumber}页 共${totalPages}页`;
+    } else {
+      pageText = `${pageNumber}${separator}${totalPages}`;
+    }
+    pageText = `${prefix}${pageText}${suffix}`;
+
+    // 计算位置
+    const { widthMm, heightMm } = this.getPageSize();
+    const { position, offsetX = 0, offsetY = 0, style = {} } = pageNumberConfig;
+    const fontSize = style.fontSize || 12;
+    const color = style.color || '#666';
+    const fontWeight = style.fontWeight || 'normal';
+
+    // 根据 position 计算 x, y 坐标
+    let xMm = 0;
+    let yMm = 0;
+    const pageNumberWidth = 20; // 页码宽度 mm
+    const pageNumberHeight = 6; // 页码高度 mm
+
+    const marginTop = page.marginMm?.top || 0;
+    const marginRight = page.marginMm?.right || 0;
+    const marginBottom = page.marginMm?.bottom || 0;
+    const marginLeft = page.marginMm?.left || 0;
+
+    switch (position) {
+      case 'top-left':
+        xMm = marginLeft;
+        yMm = marginTop;
+        break;
+      case 'top-center':
+        xMm = (widthMm - pageNumberWidth) / 2;
+        yMm = marginTop;
+        break;
+      case 'top-right':
+        xMm = widthMm - marginRight - pageNumberWidth;
+        yMm = marginTop;
+        break;
+      case 'bottom-left':
+        xMm = marginLeft;
+        yMm = heightMm - marginBottom - pageNumberHeight;
+        break;
+      case 'bottom-center':
+        xMm = (widthMm - pageNumberWidth) / 2;
+        yMm = heightMm - marginBottom - pageNumberHeight;
+        break;
+      case 'bottom-right':
+      default:
+        xMm = widthMm - marginRight - pageNumberWidth;
+        yMm = heightMm - marginBottom - pageNumberHeight;
+        break;
+    }
+
+    // 应用偏移
+    xMm += offsetX;
+    yMm += offsetY;
+
+    // 转换为 px
+    const xPx = xMm * this.mmToPx;
+    const yPx = yMm * this.mmToPx;
+    const widthPx = pageNumberWidth * this.mmToPx;
+    const heightPx = pageNumberHeight * this.mmToPx;
+
+    // 生成 HTML
+    const alignStyle = position.includes('left') ? 'left' : position.includes('right') ? 'right' : 'center';
+    const justifyContent = alignStyle === 'left' ? 'flex-start' : alignStyle === 'right' ? 'flex-end' : 'center';
+
+    return `<div style="position: absolute; left: ${xPx}px; top: ${yPx}px; width: ${widthPx}px; height: ${heightPx}px; font-size: ${fontSize}px; color: ${color}; font-weight: ${fontWeight}; display: flex; align-items: center; justify-content: ${justifyContent};">${this.escapeHtml(pageText)}</div>`;
+  }
+
+  /**
+   * HTML 转义
+   */
+  private escapeHtml(text: string): string {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+
+  /**
+   * 渲染单个页面（直接渲染，不做智能布局）
+   * @param components 组件列表
+   * @param pageNumber 当前页码（可选）
+   * @param totalPages 总页数（可选）
+   */
+  private renderSinglePage(components: ComponentNode[], pageNumber?: number, totalPages?: number): string {
+    console.log(`[PrintEngine] renderSinglePage: 页码=${pageNumber}, 总页数=${totalPages}, 组件数=${components.length}`);
+
+    // 渲染所有组件
+    const componentsHTML = components.map(comp => this.renderComponent(comp)).join('');
+
+    // 如果页面配置启用了页码，在固定位置渲染页码
+    const pageNumberHTML = this.renderPageNumber(pageNumber, totalPages);
+
+    return componentsHTML + pageNumberHTML;
   }
 
   /**
@@ -591,11 +698,13 @@ export class PrintEngine {
 
     // 标准页面模式：虚拟分页，生成多个独立的页面
     const pages = this.calculatePages(components);
+    const totalPages = pages.length;
 
     // 渲染每个页面
     const pagesHTML = pages.map((pageComponents, index) => {
-      const pageContent = this.renderSinglePage(pageComponents);
-      return `<div class="print-page" data-page="${index + 1}">${pageContent}</div>`;
+      const pageNumber = index + 1;
+      const pageContent = this.renderSinglePage(pageComponents, pageNumber, totalPages);
+      return `<div class="print-page" data-page="${pageNumber}">${pageContent}</div>`;
     }).join('');
 
     const styles = generatePrintPageStyles({

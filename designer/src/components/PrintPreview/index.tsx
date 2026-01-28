@@ -1,7 +1,7 @@
 import { Modal, Button, Space, message, Select } from 'antd';
 import { LeftOutlined, RightOutlined, PrinterOutlined } from '@ant-design/icons';
 import { useState, useEffect, useRef } from 'react';
-import { createPrintEngine } from '@jcyao/print-sdk';
+import { createPrintEngine, waitForImagesLoaded } from '@jcyao/print-sdk';
 import { useDesignerStore } from '../../store/designer';
 import { mockDataApi } from '../../services/api';
 import type { MockData } from '../../types';
@@ -20,6 +20,8 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+  const [printMode, setPrintMode] = useState<'single' | 'batch'>('single');
+  const [batchCount, setBatchCount] = useState(0); // 批量打印的份数
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // 加载 Mock 数据列表
@@ -111,19 +113,49 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
         message.error('Mock 数据不存在');
         return;
       }
-      console.log(mockData, "mockData");
+
       const template = generateTemplate();
 
-      // ✅ 使用 SDK 的 createPrintEngine
-      const engine = createPrintEngine(
-        { ...template, id: 'preview' } as any,
-        mockData.data
-      );
+      // 判断是单份还是批量打印
+      const isBatchData = Array.isArray(mockData.data);
 
-      const html = engine.generatePrintHTML();
-      setPreviewHtml(html);
+      if (isBatchData) {
+        // 批量打印模式：数据是数组
+        setPrintMode('batch');
+        setBatchCount(mockData.data.length);
 
-      message.success('预览生成成功');
+        // 为每份数据生成 HTML，然后合并
+        const allHtmlPages: string[] = [];
+
+        for (let i = 0; i < mockData.data.length; i++) {
+          const singleData = mockData.data[i];
+          const engine = createPrintEngine(
+            { ...template, id: `preview-${i}` } as any,
+            singleData
+          );
+          const html = engine.generatePrintHTML();
+          allHtmlPages.push(html);
+        }
+
+        // 合并所有页面的 HTML
+        const mergedHtml = mergeBatchPrintHTML(allHtmlPages);
+        setPreviewHtml(mergedHtml);
+
+        message.success(`批量预览生成成功（${mockData.data.length} 份文档）`);
+      } else {
+        // 单份打印模式
+        setPrintMode('single');
+        setBatchCount(0);
+
+        const engine = createPrintEngine(
+          { ...template, id: 'preview' } as any,
+          mockData.data
+        );
+        const html = engine.generatePrintHTML();
+        setPreviewHtml(html);
+
+        message.success('预览生成成功');
+      }
     } catch (error) {
       message.error('生成预览失败');
       console.error(error);
@@ -132,8 +164,44 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
     }
   };
 
+  // 合并批量打印的 HTML
+  const mergeBatchPrintHTML = (htmlPages: string[]): string => {
+    if (htmlPages.length === 0) return '';
+
+    // 提取第一个 HTML 的 head 和 body 结构
+    const firstHtml = htmlPages[0];
+    const headMatch = firstHtml.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
+    const head = headMatch ? headMatch[0] : '<head></head>';
+
+    // 提取所有页面的 body 内容，并在每份文档间添加分隔
+    const allBodiesContent = htmlPages.map((html, index) => {
+      const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+      const bodyContent = bodyMatch ? bodyMatch[1] : '';
+
+      // 在每份文档前添加分隔线（除了第一份）
+      const separator = index > 0 ? `
+        <div style="page-break-before: always; height: 20px; background: linear-gradient(to right, #e0e0e0 50%, transparent 50%); background-size: 20px 2px; background-repeat: repeat-x; background-position: center; margin: 20px 0; position: relative;">
+          <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: white; padding: 0 10px; color: #999; font-size: 12px;">
+            第 ${index + 1} 份文档
+          </div>
+        </div>
+      ` : '';
+
+      return separator + bodyContent;
+    }).join('\n');
+
+    // 组装完整的 HTML
+    return `<!DOCTYPE html>
+<html>
+${head}
+<body>
+${allBodiesContent}
+</body>
+</html>`;
+  };
+
   // 打印
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!previewHtml) {
       message.error('请先生成预览');
       return;
@@ -149,8 +217,15 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
     printWindow.document.write(previewHtml);
     printWindow.document.close();
 
-    // 二维码和条形码已同步生成为base64图片，无需等待，直接打印
-    printWindow.print();
+    // 等待所有图片加载完成后再打印
+    try {
+      await waitForImagesLoaded(printWindow.document);
+      printWindow.print();
+    } catch (error) {
+      console.error('图片加载失败:', error);
+      // 即使图片加载失败，也允许打印
+      printWindow.print();
+    }
   };
 
   return (
@@ -163,15 +238,22 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
     >
       <div className={styles['print-preview-container']}>
         <div className={styles['preview-controls']}>
-          <Space size="middle">
+          <Space size="middle" wrap>
             <Space>
               <span>选择 Mock 数据：</span>
               <Select
                 style={{ width: 300 }}
                 value={selectedMockDataId}
-                onChange={setSelectedMockDataId}
+                onChange={(value) => {
+                  setSelectedMockDataId(value);
+                  // 检查是否为批量数据
+                  const mock = mockDataList.find(m => m.id === value);
+                  if (mock && Array.isArray(mock.data)) {
+                    message.info(`已选择批量数据，包含 ${mock.data.length} 份文档`);
+                  }
+                }}
                 options={mockDataList.map(item => ({
-                  label: item.name,
+                  label: `${item.name} ${Array.isArray(item.data) ? `(批量 ${item.data.length}份)` : ''}`,
                   value: item.id,
                 }))}
                 placeholder="请选择 Mock 数据"
@@ -183,6 +265,11 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
             <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint} disabled={!previewHtml}>
               打印
             </Button>
+            {printMode === 'batch' && batchCount > 0 && (
+              <span style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                📋 批量模式：{batchCount} 份文档
+              </span>
+            )}
           </Space>
         </div>
 

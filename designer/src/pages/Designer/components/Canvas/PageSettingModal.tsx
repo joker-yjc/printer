@@ -1,4 +1,4 @@
-import { Modal, Form, Radio, InputNumber, Space } from 'antd';
+import { Modal, Form, Radio, InputNumber, Space, Switch, Select, Divider } from 'antd';
 import { CONTINUOUS_PAPER_DEFAULT_WIDTH, CONTINUOUS_PAPER_MIN_HEIGHT } from '../../../../constants';
 import type { PageConfig } from '../../../../types';
 
@@ -44,6 +44,25 @@ const PageSettingModal = ({
     if (values.size === 'CONTINUOUS') {
       newConfig.widthMm = values.continuousWidth;
       newConfig.minHeightMm = values.minHeight;
+    }
+
+    // 页码配置
+    if (values.pageNumberEnabled) {
+      newConfig.pageNumber = {
+        enabled: true,
+        position: values.pageNumberPosition || 'bottom-right',
+        format: values.pageNumberFormat || 'slash',
+        prefix: values.pageNumberPrefix || '',
+        suffix: values.pageNumberSuffix || '',
+        separator: values.pageNumberSeparator || '/',
+        offsetX: values.pageNumberOffsetX || 0,
+        offsetY: values.pageNumberOffsetY || 0,
+        style: {
+          fontSize: values.pageNumberFontSize || 12,
+          color: values.pageNumberColor || '#666',
+          fontWeight: values.pageNumberFontWeight || 'normal',
+        },
+      };
     }
 
     onOk(newConfig);
@@ -121,6 +140,62 @@ const PageSettingModal = ({
               <InputNumber min={0} max={50} style={{ width: 80 }} />
             </Form.Item>
           </Space>
+        </Form.Item>
+
+        <Divider />
+
+        {/* 页码配置 */}
+        <Form.Item label="页码显示" name="pageNumberEnabled" valuePropName="checked" initialValue={false}>
+          <Switch />
+        </Form.Item>
+
+        <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.pageNumberEnabled !== currentValues.pageNumberEnabled}>
+          {({ getFieldValue }: any) =>
+            getFieldValue('pageNumberEnabled') ? (
+              <>
+                <Form.Item label="页码位置" name="pageNumberPosition" initialValue="bottom-right">
+                  <Select
+                    options={[
+                      { label: '左上角', value: 'top-left' },
+                      { label: '顶部居中', value: 'top-center' },
+                      { label: '右上角', value: 'top-right' },
+                      { label: '左下角', value: 'bottom-left' },
+                      { label: '底部居中', value: 'bottom-center' },
+                      { label: '右下角（默认）', value: 'bottom-right' },
+                    ]}
+                  />
+                </Form.Item>
+
+                <Form.Item label="页码格式" name="pageNumberFormat" initialValue="slash">
+                  <Radio.Group>
+                    <Radio value="slash">1/3</Radio>
+                    <Radio value="text">第1页 共3页</Radio>
+                    <Radio value="simple">1</Radio>
+                  </Radio.Group>
+                </Form.Item>
+
+                <Form.Item label="页码样式">
+                  <Space>
+                    <Form.Item label="字号" name="pageNumberFontSize" initialValue={12} noStyle>
+                      <InputNumber min={8} max={24} style={{ width: 80 }} addonAfter="px" />
+                    </Form.Item>
+                    <Form.Item label="颜色" name="pageNumberColor" initialValue="#666666" noStyle>
+                      <input type="color" style={{ width: 50, height: 32 }} />
+                    </Form.Item>
+                    <Form.Item label="字重" name="pageNumberFontWeight" initialValue="normal" noStyle>
+                      <Select
+                        style={{ width: 80 }}
+                        options={[
+                          { label: '正常', value: 'normal' },
+                          { label: '加粗', value: 'bold' },
+                        ]}
+                      />
+                    </Form.Item>
+                  </Space>
+                </Form.Item>
+              </>
+            ) : null
+          }
         </Form.Item>
       </Form>
     </Modal>

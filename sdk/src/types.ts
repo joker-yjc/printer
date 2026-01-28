@@ -27,6 +27,24 @@ export interface SchemaDictionary {
   description?: string;
 }
 
+// 页码配置（页面级）
+export interface PageNumberConfig {
+  enabled: boolean;                          // 是否显示页码
+  position: 'bottom-center' | 'bottom-right' | 'bottom-left'
+  | 'top-center' | 'top-right' | 'top-left';  // 位置
+  format?: 'simple' | 'text' | 'slash';     // 格式：默认 'slash'
+  prefix?: string;                           // 前缀
+  suffix?: string;                           // 后缀
+  separator?: string;                        // 分隔符（slash模式下默认为 "/"）
+  offsetX?: number;                          // X 偏移 (mm)
+  offsetY?: number;                          // Y 偏移 (mm)
+  style?: {
+    fontSize?: number;                       // 字体大小
+    color?: string;                          // 颜色
+    fontWeight?: 'normal' | 'bold';          // 字重
+  };
+}
+
 // 模板相关类型定义
 export interface PageConfig {
   size: 'A4' | 'A5' | 'CUSTOM' | 'CONTINUOUS';
@@ -40,6 +58,7 @@ export interface PageConfig {
     bottom: number;
     left: number;
   };
+  pageNumber?: PageNumberConfig;  // 页码配置
 }
 
 export type ComponentType = 'text' | 'image' | 'rect' | 'container' | 'table' | 'line' | 'qrcode' | 'barcode';
@@ -83,6 +102,17 @@ export interface TableSummaryStyle {
   backgroundColor?: string;  // 背景色
   fontWeight?: string;       // 字重
   fontSize?: number;         // 字号
+}
+
+// 页码组件 props 类型
+export interface PageNumberProps {
+  format?: 'simple' | 'text' | 'slash';  // 页码格式：simple=1 2 3, text=第1页 共3页, slash=1/3
+  align?: 'left' | 'center' | 'right';   // 对齐方式
+  prefix?: string;                        // 前缀文字
+  suffix?: string;                        // 后缀文字
+  separator?: string;                     // 分隔符（slash模式下默认为 "/"）
+  _currentPage?: number;                  // 当前页码（内部使用）
+  _totalPages?: number;                   // 总页数（内部使用）
 }
 
 // 表格组件 props 类型

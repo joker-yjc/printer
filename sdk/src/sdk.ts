@@ -52,8 +52,11 @@ export type {
   DataBinding,
   PipeConfig,
   PageConfig,
+  PageNumberConfig,
   ComponentType,
   SchemaField,
   SchemaDictionary,
   MockData,
+  TableProps,
+  TableColumn,
 } from './types';

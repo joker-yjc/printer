@@ -9,3 +9,4 @@ export { RectRenderer } from './RectRenderer';
 export { LineRenderer } from './LineRenderer';
 export { QRCodeRenderer } from './QRCodeRenderer';
 export { BarcodeRenderer } from './BarcodeRenderer';
+export { PageNumberRenderer } from './PageNumberRenderer';

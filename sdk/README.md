@@ -5,6 +5,14 @@
 
 通用打印 SDK - 客户端打印解决方案
 
+**当前版本**: v1.0.1
+
+## 🆕 v1.0.1 新增功能
+
+- ⭐ **页码功能**：支持6种位置、3种格式、自定义样式（pageConfig.pageNumber）
+- ⭐ **批量打印预览**：支持多份文档一次性预览和打印
+- ⭐ **PageNumberRenderer**：新增页码渲染器插件
+
 ## ✨ 特性
 
 - 🎨 **可视化模板设计** - 拖拽式设计打印模板
@@ -120,8 +128,7 @@ await sdk.printMultiple(myTemplate, dataList, {
 - **二维码组件** - 自动生成二维码
 - **条形码组件** - 多种条形码格式
 - **线条组件** - 实线/虚线装饰
-- **矩形组件** - 边框装饰
-- **页码组件** - 自动分页页码
+- **矩形组件** - 边框装饰、背景色块
 
 ## 🔄 数据管道
 
@@ -191,6 +198,95 @@ await sdk.printMultiple(myTemplate, dataList, {
     summaryLabel: '合计'
   }
 }
+```
+
+## 🔢 页码功能配置 ⭐ **v1.0.1 新增**
+
+页码功能通过页面配置实现，而非作为组件添加：
+
+### 基础配置
+
+```typescript
+{
+  pageConfig: {
+    size: 'A4',
+    orientation: 'portrait',
+    marginMm: { top: 10, right: 10, bottom: 10, left: 10 },
+    
+    // 页码配置
+    pageNumber: {
+      enabled: true,
+      position: 'bottom-center',  // 6种位置
+      format: 'slash',            // 3种格式
+      offsetX: 0,                 // 横向偏移 (mm)
+      offsetY: 0,                 // 纵向偏移 (mm)
+      prefix: '',                 // 前缀
+      suffix: '',                 // 后缀
+      style: {
+        fontSize: 12,
+        color: '#666',
+        fontWeight: 'normal'
+      }
+    }
+  },
+  components: [...]
+}
+```
+
+### 位置选项 (position)
+
+- `top-left` - 左上角
+- `top-center` - 上中
+- `top-right` - 右上角
+- `bottom-left` - 左下角
+- `bottom-center` - 下中 (默认)
+- `bottom-right` - 右下角
+
+### 格式选项 (format)
+
+1. **`simple`** - 简单格式
+   ```
+   显示：1  2  3
+   ```
+
+2. **`slash`** - 斜线格式 (默认)
+   ```
+   显示：1/3  2/3  3/3
+   ```
+
+3. **`text`** - 文字格式
+   ```
+   显示：第1页 共3页  第2页 共3页
+   ```
+
+### 完整示例
+
+```typescript
+const template = {
+  pageConfig: {
+    size: 'A4',
+    orientation: 'portrait',
+    marginMm: { top: 10, right: 10, bottom: 10, left: 10 },
+    pageNumber: {
+      enabled: true,
+      position: 'bottom-right',
+      format: 'text',
+      offsetX: -5,              // 向左偏移 5mm
+      offsetY: -3,              // 向上偏移 3mm
+      prefix: '页码：',
+      suffix: '',
+      style: {
+        fontSize: 10,
+        color: '#999',
+        fontWeight: 'bold'
+      }
+    }
+  },
+  components: [...]
+};
+
+await sdk.print({ template, data });
+// 打印输出：右下角显示 "页码：第1页 共3页"
 ```
 
 ## 🔧 类型定义

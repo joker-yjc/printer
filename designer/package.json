@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
-    "@jcyao/print-sdk": "^1.0.0",
+    "@jcyao/print-sdk": "^1.0.1",
     "@monaco-editor/react": "^4.7.0",
     "@types/bwip-js": "^3.2.3",
     "@types/qrcode-generator": "^0.0.16",

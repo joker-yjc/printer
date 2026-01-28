@@ -196,13 +196,6 @@ const CanvasArea = () => {
     e.preventDefault();
     setDragOver(false);
 
-    const fieldPath = e.dataTransfer.getData('fieldPath');
-    const fieldTitle = e.dataTransfer.getData('fieldTitle');
-    const fieldType = e.dataTransfer.getData('fieldType');
-    const fieldChildren = e.dataTransfer.getData('fieldChildren');
-
-    if (!fieldPath) return;
-
     // 计算相对于画布的坐标
     const canvas = e.currentTarget as HTMLElement;
     const rect = canvas.getBoundingClientRect();
@@ -212,6 +205,97 @@ const CanvasArea = () => {
     // 应用网格吸附
     const xMm = snapToGrid(Math.max(0, rawXMm));
     const yMm = snapToGrid(Math.max(0, rawYMm));
+
+    // 检查是组件拖拽还是数据资产拖拽
+    const componentType = e.dataTransfer.getData('componentType');
+
+    if (componentType) {
+      // 组件库拖拽：根据类型创建组件
+      let defaultProps: any;
+      let componentName = '';
+
+      switch (componentType) {
+        case 'text':
+          componentName = '文本';
+          defaultProps = {
+            layout: { mode: 'absolute' as const, xMm, yMm, widthMm: 60, heightMm: 10 },
+            style: { fontSize: 14, color: '#262626' },
+            props: { text: '文本内容' },
+          };
+          break;
+        case 'image':
+          componentName = '图片';
+          defaultProps = {
+            layout: { mode: 'absolute' as const, xMm, yMm, widthMm: 60, heightMm: 40 },
+            props: { src: '' },
+          };
+          break;
+        case 'table':
+          componentName = '表格';
+          const pageWidthMm = pageConfig.size === 'A4' ? 210 : 148;
+          const { top, left, right } = pageConfig.marginMm;
+          const availableWidth = pageWidthMm - left - right;
+          defaultProps = {
+            layout: { mode: 'absolute' as const, xMm, yMm, widthMm: availableWidth, heightMm: 60 },
+            style: { fontSize: 12 },
+            props: { columns: [], bordered: true, showHeader: true },
+          };
+          break;
+        case 'line':
+          componentName = '线条';
+          const pageW = pageConfig.size === 'A4' ? 210 : 148;
+          const { left: l, right: r } = pageConfig.marginMm;
+          const availW = pageW - l - r;
+          defaultProps = {
+            layout: { mode: 'absolute' as const, xMm: l, yMm, widthMm: availW, heightMm: 5 },
+            style: { borderTopWidth: 1, borderTopColor: '#000', borderTopStyle: 'solid' },
+            props: { direction: 'horizontal' },
+          };
+          break;
+        case 'qrcode':
+          componentName = '二维码';
+          defaultProps = {
+            layout: { mode: 'absolute' as const, xMm, yMm, widthMm: 30, heightMm: 30 },
+            props: { content: 'https://example.com', size: 30 },
+          };
+          break;
+        case 'barcode':
+          componentName = '条形码';
+          defaultProps = {
+            layout: { mode: 'absolute' as const, xMm, yMm, widthMm: 60, heightMm: 20 },
+            props: { content: '1234567890', format: 'CODE128' },
+          };
+          break;
+        case 'rect':
+          componentName = '矩形';
+          defaultProps = {
+            layout: { mode: 'absolute' as const, xMm, yMm, widthMm: 60, heightMm: 15 },
+            style: { border: '1px solid #000', background: 'transparent' },
+          };
+          break;
+        default:
+          return;
+      }
+
+      const newComponent: ComponentNode = {
+        id: `comp-${Date.now()}`,
+        type: componentType as any,
+        ...defaultProps,
+      } as ComponentNode;
+
+      addComponent(newComponent);
+      selectComponent(newComponent.id);
+      message.success(`已添加${componentName}组件`);
+      return;
+    }
+
+    // 数据资产拖拽
+    const fieldPath = e.dataTransfer.getData('fieldPath');
+    const fieldTitle = e.dataTransfer.getData('fieldTitle');
+    const fieldType = e.dataTransfer.getData('fieldType');
+    const fieldChildren = e.dataTransfer.getData('fieldChildren');
+
+    if (!fieldPath) return;
 
     // 计算可用区域（扣除边距）
     let pageWidthMm: number;
@@ -622,37 +706,25 @@ const CanvasArea = () => {
       marginRight: pageConfig.marginMm.right,
       marginBottom: pageConfig.marginMm.bottom,
       marginLeft: pageConfig.marginMm.left,
+      // 页码配置
+      pageNumberEnabled: pageConfig.pageNumber?.enabled || false,
+      pageNumberPosition: pageConfig.pageNumber?.position || 'bottom-right',
+      pageNumberFormat: pageConfig.pageNumber?.format || 'slash',
+      pageNumberPrefix: pageConfig.pageNumber?.prefix || '',
+      pageNumberSuffix: pageConfig.pageNumber?.suffix || '',
+      pageNumberSeparator: pageConfig.pageNumber?.separator || '/',
+      pageNumberOffsetX: pageConfig.pageNumber?.offsetX || 0,
+      pageNumberOffsetY: pageConfig.pageNumber?.offsetY || 0,
+      pageNumberFontSize: pageConfig.pageNumber?.style?.fontSize || 12,
+      pageNumberColor: pageConfig.pageNumber?.style?.color || '#666666',
+      pageNumberFontWeight: pageConfig.pageNumber?.style?.fontWeight || 'normal',
     });
     setCustomSizeEnabled(pageConfig.size === 'CUSTOM');
     setContinuousPaperEnabled(pageConfig.size === 'CONTINUOUS');
     setPageSettingOpen(true);
   };
 
-  const handlePageSettingSave = () => {
-    const values = pageForm.getFieldsValue();
-    const newConfig: PageConfig = {
-      size: values.size,
-      orientation: values.size === 'CONTINUOUS' ? 'portrait' : values.orientation,
-      marginMm: {
-        top: values.marginTop,
-        right: values.marginRight,
-        bottom: values.marginBottom,
-        left: values.marginLeft,
-      },
-    };
-
-    // 如果是自定义尺寸，添加宽高
-    if (values.size === 'CUSTOM') {
-      newConfig.widthMm = values.customWidth;
-      newConfig.heightMm = values.customHeight;
-    }
-
-    // 如果是连续纸，添加宽度和最小高度
-    if (values.size === 'CONTINUOUS') {
-      newConfig.widthMm = values.continuousWidth;
-      newConfig.minHeightMm = values.minHeight;
-    }
-
+  const handlePageSettingSave = (newConfig: PageConfig) => {
     setPageConfig(newConfig);
     setPageSettingOpen(false);
     message.success('页面设置已保存');
@@ -767,6 +839,87 @@ const CanvasArea = () => {
                 }}
               />
             </div>
+
+            {/* 页码位置可视化 */}
+            {pageConfig.pageNumber?.enabled && (() => {
+              const position = pageConfig.pageNumber.position;
+              const offsetX = (pageConfig.pageNumber.offsetX || 0) * 3.78;
+              const offsetY = (pageConfig.pageNumber.offsetY || 0) * 3.78;
+              const margin = 10 * 3.78; // 默认边距 10mm
+
+              let left = 0, top = 0;
+
+              // 根据位置计算坐标
+              if (position === 'top-left') {
+                left = pageConfig.marginMm.left * 3.78 + margin;
+                top = pageConfig.marginMm.top * 3.78 + margin;
+              } else if (position === 'top-center') {
+                left = canvasSize.widthPx / 2;
+                top = pageConfig.marginMm.top * 3.78 + margin;
+              } else if (position === 'top-right') {
+                left = canvasSize.widthPx - pageConfig.marginMm.right * 3.78 - margin;
+                top = pageConfig.marginMm.top * 3.78 + margin;
+              } else if (position === 'bottom-left') {
+                left = pageConfig.marginMm.left * 3.78 + margin;
+                top = canvasSize.heightPx - pageConfig.marginMm.bottom * 3.78 - margin;
+              } else if (position === 'bottom-center') {
+                left = canvasSize.widthPx / 2;
+                top = canvasSize.heightPx - pageConfig.marginMm.bottom * 3.78 - margin;
+              } else { // bottom-right
+                left = canvasSize.widthPx - pageConfig.marginMm.right * 3.78 - margin;
+                top = canvasSize.heightPx - pageConfig.marginMm.bottom * 3.78 - margin;
+              }
+
+              // 应用偏移
+              left += offsetX;
+              top += offsetY;
+
+              // 格式化示例文本
+              const format = pageConfig.pageNumber.format || 'slash';
+              let exampleText = '';
+              if (format === 'simple') {
+                exampleText = '1';
+              } else if (format === 'text') {
+                exampleText = '第1页 共3页';
+              } else {
+                exampleText = '1/3';
+              }
+
+              const prefix = pageConfig.pageNumber.prefix || '';
+              const suffix = pageConfig.pageNumber.suffix || '';
+              exampleText = `${prefix}${exampleText}${suffix}`;
+
+              return (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${left}px`,
+                    top: `${top}px`,
+                    transform: position.includes('center') ? 'translateX(-50%)' : 'none',
+                    pointerEvents: 'none',
+                    padding: '4px 8px',
+                    backgroundColor: 'rgba(24, 144, 255, 0.1)',
+                    border: '1px dashed rgba(24, 144, 255, 0.5)',
+                    borderRadius: '2px',
+                    fontSize: `${(pageConfig.pageNumber.style?.fontSize || 12) * 0.8}px`,
+                    color: pageConfig.pageNumber.style?.color || '#666',
+                    fontWeight: pageConfig.pageNumber.style?.fontWeight || 'normal',
+                    whiteSpace: 'nowrap',
+                    zIndex: 1000,
+                  }}
+                >
+                  {exampleText}
+                  <div style={{
+                    fontSize: '10px',
+                    color: '#1890ff',
+                    marginTop: '2px',
+                    fontWeight: 'normal',
+                  }}>
+                    页码预览
+                  </div>
+                </div>
+              );
+            })()}
             {components.map((comp) => {
               const baseStyle: React.CSSProperties = {
                 position: 'absolute',

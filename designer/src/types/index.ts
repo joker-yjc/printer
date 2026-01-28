@@ -27,6 +27,24 @@ export interface SchemaDictionary {
   description?: string;
 }
 
+// 页码配置（页面级）
+export interface PageNumberConfig {
+  enabled: boolean;                          // 是否显示页码
+  position: 'bottom-center' | 'bottom-right' | 'bottom-left'
+  | 'top-center' | 'top-right' | 'top-left';  // 位置
+  format?: 'simple' | 'text' | 'slash';     // 格式：默认 'slash'
+  prefix?: string;                           // 前缀
+  suffix?: string;                           // 后缀
+  separator?: string;                        // 分隔符（slash模式下默认为 "/"）
+  offsetX?: number;                          // X 偏移 (mm)
+  offsetY?: number;                          // Y 偏移 (mm)
+  style?: {
+    fontSize?: number;                       // 字体大小
+    color?: string;                          // 颜色
+    fontWeight?: 'normal' | 'bold';          // 字重
+  };
+}
+
 // 模板相关类型定义
 export interface PageConfig {
   size: 'A4' | 'A5' | 'CUSTOM' | 'CONTINUOUS';
@@ -40,6 +58,7 @@ export interface PageConfig {
     bottom: number;
     left: number;
   };
+  pageNumber?: PageNumberConfig;  // 页码配置
 }
 
 export type ComponentType = 'text' | 'image' | 'rect' | 'container' | 'table' | 'line' | 'qrcode' | 'barcode';

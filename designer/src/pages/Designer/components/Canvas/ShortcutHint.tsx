@@ -1,14 +1,33 @@
 /**
  * 快捷键提示组件
  * 显示在画布顶部，提供常用操作的快捷键说明
+ * 关闭后此次会话不再显示
  */
 
 import { Space, Tag, Tooltip } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+const STORAGE_KEY = 'shortcut-hint-closed';
 
 const ShortcutHint = () => {
-  const [visible, setVisible] = useState(true);
+  // 从 sessionStorage 读取初始状态（会话级别）
+  const [visible, setVisible] = useState(() => {
+    const closed = sessionStorage.getItem(STORAGE_KEY);
+    return closed !== 'true'; // 如果没有关闭记录，默认显示
+  });
+
+  // 关闭时保存到 sessionStorage
+  const handleClose = () => {
+    setVisible(false);
+    sessionStorage.setItem(STORAGE_KEY, 'true');
+  };
+
+  // 打开时清除记录
+  const handleOpen = () => {
+    setVisible(true);
+    sessionStorage.removeItem(STORAGE_KEY);
+  };
 
   if (!visible) {
     return (
@@ -23,7 +42,7 @@ const ShortcutHint = () => {
         <Tooltip title="显示快捷键提示">
           <InfoCircleOutlined
             style={{ fontSize: 18, color: '#1890ff', cursor: 'pointer' }}
-            onClick={() => setVisible(true)}
+            onClick={handleOpen}
           />
         </Tooltip>
       </div>
@@ -54,7 +73,7 @@ const ShortcutHint = () => {
         <Tag
           color="default"
           style={{ cursor: 'pointer' }}
-          onClick={() => setVisible(false)}
+          onClick={handleClose}
         >
           ✕ 隐藏
         </Tag>
