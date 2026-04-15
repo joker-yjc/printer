@@ -53,8 +53,8 @@ export const TABLE_DEFAULT = {
   HEADER_HEIGHT: 10,
   /** 数据行最小高度（mm） */
   MIN_ROW_HEIGHT: 8,
-  /** 行高计算系数（考虑文本换行） */
-  ROW_HEIGHT_FACTOR: 1.3,
+  /** 行高计算系数（用于 min-height，实际高度由内容撑开） */
+  ROW_HEIGHT_FACTOR: 1.0,
 } as const;
 
 /**

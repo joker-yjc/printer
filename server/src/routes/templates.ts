@@ -1014,6 +1014,72 @@ const templates: PrintTemplate[] = [
         props: {}
       }
     ]
+  },
+  // 复现模板：跨页后新页面第一个组件负gap问题
+  {
+    id: 'template-bug-negative-gap',
+    name: '负gap复现模板',
+    version: '1.0',
+    description: '用于复现跨页后新页面第一个组件负gap导致位置异常的问题',
+    schemaId: 'schema-demo-sales',
+    page: {
+      size: 'A4',
+      orientation: 'portrait',
+      marginMm: { top: 10, right: 10, bottom: 10, left: 10 }
+    },
+    layoutMode: 'absolute',
+    components: [
+      // 组件A：从页面顶部开始，高度100mm
+      {
+        id: 'component-a',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 10, yMm: 10, widthMm: 180, heightMm: 100 },
+        style: { fontSize: 14 },
+        binding: { fallback: '组件A：高度100mm' },
+        props: { text: '组件A：高度100mm' }
+      },
+      // 组件B：与组件A重叠（负gap）
+      // 设计位置：yMm=90，组件A底部=10+100=110
+      // gap = 90 - 110 = -20mm（负gap，表示重叠20mm）
+      {
+        id: 'component-b',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 10, yMm: 90, widthMm: 180, heightMm: 30 },
+        style: { fontSize: 14, fontWeight: 'bold', color: '#ff0000', backgroundColor: '#ffffcc' },
+        binding: { fallback: '组件B（与A重叠20mm）' },
+        props: { text: '组件B：与A重叠20mm' }
+      },
+      // 组件C：设计位置在页面底部附近，会导致换页
+      // 设计位置：yMm=240，组件B底部=90+30=120
+      // gap = 240 - 120 = 120mm（很大的正gap）
+      // 但组件C高度50mm，yMm=240，底部=290mm
+      // A4可用高度约277mm，所以组件C会换页
+      // 换页后，组件C成为新页面第一个组件
+      // 此时组件C的gap=120mm，是正数，不会有问题
+      // 
+      // 要复现负gap问题，需要让组件C与组件B有负gap
+      // 修改：组件C的yMm=110（与B底部平齐，gap=-10mm）
+      // 但这样C和B会重叠，且C高度50，底部=160
+      // 不会换页...
+      //
+      // 正确的设计：让组件C在页面外，强制换页，且与B有负gap
+      // 组件B底部=120，组件C yMm=100（在B上方20mm，负gap）
+      // 但C高度80mm，底部=180，不会换页
+      //
+      // 再修改：组件C高度200mm，yMm=100
+      // 底部=300mm > 277mm，会换页！
+      // gap = 100 - 120 = -20mm（负gap）
+      // 换页后，组件C成为新页面第一个组件，应用-20mm的gap
+      // 位置 = marginTop(10) + (-20) = -10mm（页面顶部之外！）
+      {
+        id: 'component-c',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 10, yMm: 100, widthMm: 180, heightMm: 200 },
+        style: { fontSize: 14, color: '#0000ff', backgroundColor: '#ccffcc' },
+        binding: { fallback: '组件C（与B负gap，会换页）' },
+        props: { text: '组件C：与B有-20mm的gap，换页后会成为新页面第一个组件。如果看到这句话位置异常或消失，说明bug存在。' }
+      }
+    ]
   }
 ];
 

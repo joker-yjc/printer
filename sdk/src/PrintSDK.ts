@@ -14,6 +14,34 @@ import {
 import { waitForImagesLoaded } from './utils/resourceLoader';
 
 /**
+ * ✅ 使用 DOMParser 提取 HTML body 内容（比正则更健壮）
+ * @param html 完整的 HTML 字符串
+ * @returns body 内的内容，如果解析失败返回 null
+ */
+function extractBodyContent(html: string): string | null {
+  try {
+    // 使用 DOMParser 解析 HTML
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // 获取 body 内容
+    const bodyContent = doc.body?.innerHTML?.trim();
+
+    if (!bodyContent) {
+      console.warn('[PrintSDK] 无法提取 body 内容');
+      return null;
+    }
+
+    return bodyContent;
+  } catch (error) {
+    console.error('[PrintSDK] 解析 HTML 失败:', error);
+    // 兜底：使用正则提取
+    const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    return bodyMatch?.[1]?.trim() || null;
+  }
+}
+
+/**
  * 打印选项
  */
 export interface PrintOptions {
@@ -61,7 +89,7 @@ export class PrintSDK {
         throw new Error('Failed to open print window. Please check browser settings.');
       }
 
-      const html = engine.generatePrintHTML();
+      const html = await engine.generatePrintHTML();
       printWindow.document.write(html);
       printWindow.document.close();
 
@@ -76,7 +104,7 @@ export class PrintSDK {
       iframe.style.left = '-9999px';
       document.body.appendChild(iframe);
 
-      const html = engine.generatePrintHTML();
+      const html = await engine.generatePrintHTML();
       const iframeDoc = iframe.contentWindow?.document;
       if (!iframeDoc) {
         throw new Error('Failed to access iframe document');
@@ -88,11 +116,29 @@ export class PrintSDK {
       // 等待所有图片加载完成后再打印
       // 注意：二维码和条形码已同步生成为base64，主要等待外部图片资源
       await waitForImagesLoaded(iframeDoc);
+
+      // ✅ 监听打印完成事件后再移除 iframe
+      const cleanup = () => {
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe);
+        }
+      };
+
+      // 优先使用 afterprint 事件（现代浏览器支持）
+      if (iframe.contentWindow) {
+        iframe.contentWindow.addEventListener('afterprint', cleanup, { once: true });
+      }
+
+      // 触发打印
       iframe.contentWindow?.print();
-      // 打印完成后移除 iframe
+
+      // 兜底：如果 afterprint 事件未触发（如用户取消打印），5秒后清理
       setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 1000);
+        if (iframe.parentNode) {
+          console.warn('[PrintSDK] afterprint 事件未触发，执行兜底清理');
+          cleanup();
+        }
+      }, 5000);
     }
   }
 
@@ -122,7 +168,7 @@ export class PrintSDK {
    */
   async generateHTML(template: PrintTemplate, data: any): Promise<string> {
     const engine = createPrintEngine(template, data);
-    return engine.generatePrintHTML();
+    return await engine.generatePrintHTML();
   }
 
   /**
@@ -164,12 +210,12 @@ export class PrintSDK {
 
       try {
         const engine = createPrintEngine(template, data);
-        const html = engine.generatePrintHTML();
+        const html = await engine.generatePrintHTML();
 
-        // 提取 <body> 标签中的内容（即所有 .print-page）
-        const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-        if (bodyMatch && bodyMatch[1]) {
-          allPagesHTML.push(bodyMatch[1].trim());
+        // ✅ 提取 <body> 标签中的内容（使用 DOMParser 代替正则，更健壮）
+        const bodyContent = extractBodyContent(html);
+        if (bodyContent) {
+          allPagesHTML.push(bodyContent);
         }
 
         progress.completed++;

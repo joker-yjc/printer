@@ -133,7 +133,7 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
             { ...template, id: `preview-${i}` } as any,
             singleData
           );
-          const html = engine.generatePrintHTML();
+          const html = await engine.generatePrintHTML();
           allHtmlPages.push(html);
         }
 
@@ -151,7 +151,7 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
           { ...template, id: 'preview' } as any,
           mockData.data
         );
-        const html = engine.generatePrintHTML();
+        const html = await engine.generatePrintHTML();
         setPreviewHtml(html);
 
         message.success('预览生成成功');

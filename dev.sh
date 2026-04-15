@@ -49,7 +49,7 @@ mkdir -p logs
 # 启动 server
 echo -e "${GREEN}▶ 启动后端服务 (http://localhost:3000)${NC}"
 cd server
-npm run dev > ../logs/server.log 2>&1 &
+nohup npm run dev > ../logs/server.log 2>&1 &
 SERVER_PID=$!
 echo "Server PID: $SERVER_PID" > ../logs/server.pid
 cd ..
@@ -61,7 +61,7 @@ sleep 3
 # 启动 designer
 echo -e "${GREEN}▶ 启动前端设计器 (http://localhost:5173)${NC}"
 cd designer
-npm run dev > ../logs/designer.log 2>&1 &
+nohup npm run dev > ../logs/designer.log 2>&1 &
 DESIGNER_PID=$!
 echo "Designer PID: $DESIGNER_PID" > ../logs/designer.pid
 cd ..
