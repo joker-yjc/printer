@@ -3,9 +3,10 @@ import type { SchemaDictionary, PrintTemplate, MockData } from '../types';
 
 /**
  * 后端 API 基础地址
- * 默认指向本地开发服务器 http://localhost:3000/api
+ * 开发环境：使用 Vite 集成的 Mock API（同源，无需指定域名）
+ * 生产环境：可通过环境变量 VITE_API_BASE_URL 配置
  */
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 /**
  * Axios 实例配置

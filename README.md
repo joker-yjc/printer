@@ -206,6 +206,7 @@ await sdk.print({
 │   └── package.json        # v1.0.0
 │
 ├── designer/               # 可视化设计器
+│   ├── mock/              # Mock API 服务（集成到 Vite）
 │   ├── src/
 │   │   ├── pages/
 │   │   │   └── Designer/
@@ -221,13 +222,6 @@ await sdk.print({
 │   │   └── services/           # API 服务
 │   └── package.json            # v1.0.0
 │
-├── service/                # 模板管理服务（Node.js）
-│   ├── src/
-│   │   ├── routes/         # REST API 路由
-│   │   ├── storage/        # 数据存储（内存）
-│   │   └── index.ts        # 服务入口
-│   └── package.json
-│
 └── docs/                   # 文档
     ├── 技术架构文档.md     # 架构设计文档
     └── 需求文档.md         # 产品需求文档 
@@ -240,8 +234,7 @@ await sdk.print({
 ### 代码量统计
 
 - **SDK 源码**：约 3,500 行 TypeScript
-- **Designer 源码**：约 8,000 行 TypeScript + React
-- **Service 源码**：约 500 行 TypeScript + Express
+- **Designer 源码**：约 9,000 行 TypeScript + React
 
 ### 组件数量
 
@@ -264,25 +257,17 @@ await sdk.print({
 
 ## 🚀 快速开始
 
-### 1. 启动模板管理服务
-
-```bash
-cd service
-npm install
-npm start
-# 服务运行在 http://localhost:3000
-```
-
-### 2. 启动设计器
+### 1. 启动设计器
 
 ```bash
 cd designer
 npm install
 npm run dev
 # 设计器运行在 http://localhost:5173
+# Mock API 已集成，无需单独启动后端
 ```
 
-### 3. 构建 SDK
+### 2. 构建 SDK
 
 ```bash
 cd sdk
