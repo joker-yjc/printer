@@ -2,6 +2,41 @@
 
 所有版本的变更记录都列在这里，遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 规范。
 
+## [1.1.2] - 2026-05-07
+
+### 🐛 问题修复
+
+| 问题 | 修复内容 |
+|------|----------|
+| 打印内容偏左 | `@media print` 中 `.print-page` 的 `margin` 未完全覆盖，导致 `auto` margin 在打印时产生偏移 |
+| 批量打印无边距 | `generateBatchPrintStyles` 未设置 `.print-page` 的 `padding`，导致边距功能失效 |
+
+### 🔧 修复详情
+
+#### 1. 打印样式 `@media print` 增强
+
+- `body` 样式增加 `!important` 标记，确保打印时完全重置 `margin`、`padding`、`background`
+- `.print-page` 的 `margin-bottom: 0 !important` 改为 `margin: 0 !important`，完全覆盖所有方向的 `auto` margin
+- `.print-page` 的 `box-shadow` 增加 `!important` 标记
+
+**影响范围**：`generatePrintPageStyles`、`generateBatchPrintStyles`
+
+#### 2. 批量打印边距修复
+
+- `generateBatchPrintStyles` 的 `.print-page` 基础样式增加 `padding: ${marginTop}mm ${marginRight}mm ${marginBottom}mm ${marginLeft}mm`
+- 确保批量打印时页面边距功能正常生效
+
+---
+
+## [1.1.1] - 2026-01-22
+
+### ✨ 新增功能
+
+- **表格嵌套对象数据支持**：表格打印支持嵌套对象格式的数据源（如 `{ a: { b: 1 } }`），数据绑定时可通过路径（如 `a.b`）正确解析
+- **服务架构简化**：移除独立 server 服务，改用 Vite mock 集成，降低开发和部署复杂度
+
+---
+
 ## [1.1.0] - 2026-04-15
 
 ### 🎯 重大改进

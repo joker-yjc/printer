@@ -238,6 +238,10 @@ export class PrintSDK {
     const styles = generateBatchPrintStyles({
       pageWidthMm,
       pageHeightMm,
+      marginTop: page.marginMm?.top ?? 0,
+      marginRight: page.marginMm?.right ?? 0,
+      marginBottom: page.marginMm?.bottom ?? 0,
+      marginLeft: page.marginMm?.left ?? 0,
       isContinuous: page.size === 'CONTINUOUS',
       minHeightMm: page.minHeightMm,
     });

@@ -134,8 +134,9 @@ export function generatePrintPageStyles(config: PrintStyleConfig): string {
 
     @media print {
       body {
-        background: white;
-        padding: 0;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
       }
 
       @page {
@@ -144,9 +145,9 @@ export function generatePrintPageStyles(config: PrintStyleConfig): string {
       }
 
       .print-page {
+        margin: 0 !important;
+        box-shadow: none !important;
         page-break-after: always;
-        margin-bottom: 0 !important;
-        box-shadow: none;  /* 移除阴影 */
       }
 
       .print-page:last-child {
@@ -177,6 +178,10 @@ export function generateBatchPrintStyles(config: PrintStyleConfig): string {
   const {
     pageWidthMm,
     pageHeightMm,
+    marginTop = 0,
+    marginRight = 0,
+    marginBottom = 0,
+    marginLeft = 0,
     isContinuous = false,
     minHeightMm = 100,
   } = config;
@@ -191,8 +196,8 @@ export function generateBatchPrintStyles(config: PrintStyleConfig): string {
     }
     
     @media print {
-      body { margin: 0; padding: 0; background: white; }
-      .print-page { margin: 0; page-break-after: always; box-shadow: none !important; }
+      body { margin: 0 !important; padding: 0 !important; background: white !important; }
+      .print-page { margin: 0 !important; page-break-after: always; box-shadow: none !important; }
       .print-page:last-child { page-break-after: auto; }
     }
     
@@ -203,7 +208,7 @@ export function generateBatchPrintStyles(config: PrintStyleConfig): string {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       }
     }
-    
+
     .print-page {
       width: ${pageWidthMm}mm;
       height: ${isContinuous ? 'auto' : pageHeightMm + 'mm'};
@@ -211,6 +216,7 @@ export function generateBatchPrintStyles(config: PrintStyleConfig): string {
       background: white;
       position: relative;
       box-sizing: border-box;
+      padding: ${marginTop}mm ${marginRight}mm ${marginBottom}mm ${marginLeft}mm;
     }
 
     ${generateComponentStyles()}
