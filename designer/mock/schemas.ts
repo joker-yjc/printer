@@ -83,5 +83,64 @@ export const defaultSchemas: SchemaDictionary[] = [
         { key: 'reviewer', label: '审核人', type: 'string' }
       ]
     }
+  },
+  {
+    id: 'schema-demo-order-nested',
+    name: '采购订单（嵌套对象）',
+    rootType: 'object',
+    version: '1.0',
+    description: '演示表格列使用嵌套路径（如 product.name）的 Schema',
+    root: {
+      key: 'root',
+      label: '采购订单',
+      type: 'object',
+      children: [
+        { key: 'title', label: '标题', type: 'string' },
+        { key: 'orderNo', label: '订单编号', type: 'string' },
+        { key: 'orderDate', label: '订单日期', type: 'date', format: 'date' },
+        {
+          key: 'supplier',
+          label: '供应商信息',
+          type: 'object',
+          children: [
+            { key: 'name', label: '供应商名称', type: 'string' },
+            { key: 'contact', label: '联系人', type: 'string' },
+            { key: 'phone', label: '联系电话', type: 'string' }
+          ]
+        },
+        {
+          key: 'items',
+          label: '采购明细',
+          type: 'array',
+          description: '每行包含嵌套的商品对象，测试 dataIndex 为 product.name 的场景',
+          children: [
+            { key: 'no', label: '序号', type: 'number' },
+            {
+              key: 'product',
+              label: '商品信息',
+              type: 'object',
+              children: [
+                { key: 'name', label: '商品名称', type: 'string' },
+                { key: 'code', label: '商品编码', type: 'string' },
+                { key: 'category', label: '分类', type: 'string' }
+              ]
+            },
+            { key: 'quantity', label: '数量', type: 'number' },
+            { key: 'price', label: '单价', type: 'number' },
+            { key: 'amount', label: '金额', type: 'number' }
+          ]
+        },
+        {
+          key: 'summary',
+          label: '汇总',
+          type: 'object',
+          children: [
+            { key: 'totalAmount', label: '总金额', type: 'number' },
+            { key: 'finalAmount', label: '实付金额', type: 'number' }
+          ]
+        },
+        { key: 'remarks', label: '备注', type: 'string' }
+      ]
+    }
   }
 ];

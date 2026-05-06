@@ -364,5 +364,60 @@ export const defaultMockData: MockData[] = [
         reviewer: '马军'
       }
     ]
+  },
+  {
+    id: 'mock-nested-order-001',
+    name: '采购订单 - 嵌套对象演示',
+    schemaId: 'schema-demo-order-nested',
+    description: '演示表格列使用嵌套路径（如 product.name）的数据，每行 items 中包含嵌套的 product 对象',
+    data: {
+      title: '采购订单',
+      orderNo: 'PO202401150001',
+      orderDate: '2024-01-15',
+      supplier: {
+        name: '深圳华芯电子科技有限公司',
+        contact: '李工',
+        phone: '0755-86001234'
+      },
+      items: [
+        {
+          no: 1,
+          product: { name: 'STM32F407 微控制器', code: 'MCU-001', category: '芯片' },
+          quantity: 500,
+          price: 28.50,
+          amount: 14250.00
+        },
+        {
+          no: 2,
+          product: { name: '0.96寸 OLED 显示屏', code: 'DSP-012', category: '显示屏' },
+          quantity: 200,
+          price: 15.80,
+          amount: 3160.00
+        },
+        {
+          no: 3,
+          product: { name: 'ESP32-WROOM-32D 模组', code: 'MOD-007', category: '模组' },
+          quantity: 300,
+          price: 22.00,
+          amount: 6600.00
+        },
+        {
+          no: 4,
+          product: { name: 'Type-C USB 连接器', code: 'CON-033', category: '连接器' },
+          quantity: 1000,
+          price: 1.20,
+          amount: 1200.00
+        },
+        {
+          no: 5,
+          product: { name: 'LM2596 降压模块', code: 'MOD-021', category: '模组' },
+          quantity: 150,
+          price: 6.50,
+          amount: 975.00
+        }
+      ],
+      summary: { totalAmount: 26185.00, finalAmount: 26185.00 },
+      remarks: '嵌套对象路径测试：表格列使用 product.name、product.code、product.category 等 dataIndex'
+    }
   }
 ];

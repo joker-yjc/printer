@@ -1026,5 +1026,115 @@ export const defaultTemplates: PrintTemplate[] = [
         props: { text: '组件C：与B有-20mm的gap，换页后会成为新页面第一个组件。如果看到这句话位置异常或消失，说明bug存在。' }
       }
     ]
+  },
+  // 示例模板：采购订单（嵌套对象路径演示）
+  {
+    "name": "采购订单模板（嵌套路径）",
+    "version": "1.0.0",
+    "schemaId": "schema-demo-order-nested",
+    "page": {
+      "size": "A4",
+      "orientation": "portrait",
+      "marginMm": {
+        "top": 10,
+        "right": 10,
+        "bottom": 10,
+        "left": 10
+      }
+    },
+    "layoutMode": "absolute",
+    "components": [
+      {
+        "id": "title",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 60, "yMm": 10, "widthMm": 80, "heightMm": 10 },
+        "style": { "fontSize": 18, "fontWeight": "bold", "textAlign": "center" },
+        "binding": { "path": "title", "fallback": "采购订单" },
+        "props": {}
+      },
+      {
+        "id": "orderNo",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 25, "widthMm": 80, "heightMm": 6 },
+        "style": { "fontSize": 11 },
+        "binding": { "path": "orderNo", "fallback": "PO-" },
+        "props": { "label": "订单编号：" }
+      },
+      {
+        "id": "orderDate",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 110, "yMm": 25, "widthMm": 80, "heightMm": 6 },
+        "style": { "fontSize": 11, "textAlign": "right" },
+        "binding": {
+          "path": "orderDate",
+          "pipes": [{ "type": "date", "options": { "format": "YYYY-MM-DD" } }],
+          "fallback": "2024-01-15"
+        },
+        "props": { "label": "日期：" }
+      },
+      {
+        "id": "supplierTitle",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 35, "widthMm": 40, "heightMm": 6 },
+        "style": { "fontSize": 12, "fontWeight": "bold" },
+        "binding": { "fallback": "供应商信息" },
+        "props": { "text": "供应商信息" }
+      },
+      {
+        "id": "supplierName",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 42, "widthMm": 80, "heightMm": 6 },
+        "style": { "fontSize": 11 },
+        "binding": { "path": "supplier.name", "fallback": "供应商名称" },
+        "props": { "label": "名称：" }
+      },
+      {
+        "id": "supplierPhone",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 100, "yMm": 42, "widthMm": 80, "heightMm": 6 },
+        "style": { "fontSize": 11 },
+        "binding": { "path": "supplier.phone", "fallback": "138****0000" },
+        "props": { "label": "电话：" }
+      },
+      {
+        "id": "line1",
+        "type": "line",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 50, "widthMm": 180, "heightMm": 2 },
+        "style": { "borderTopWidth": 1, "borderTopStyle": "solid", "borderTopColor": "#000000" },
+        "props": { "direction": "horizontal" }
+      },
+      {
+        "id": "itemsTable",
+        "type": "table",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 55, "widthMm": 180, "heightMm": 80 },
+        "style": { "fontSize": 10, "textAlign": "center" },
+        "binding": { "path": "items" },
+        "props": {
+          "bordered": true,
+          "showHeader": true,
+          "columns": [
+            { "dataIndex": "no", "title": "序号", "width": 30 },
+            { "dataIndex": "product.code", "title": "商品编码", "width": 40 },
+            { "dataIndex": "product.name", "title": "商品名称", "width": 60 },
+            { "dataIndex": "product.category", "title": "分类", "width": 30 },
+            { "dataIndex": "quantity", "title": "数量", "width": 30 },
+            { "dataIndex": "price", "title": "单价", "width": 30 },
+            { "dataIndex": "amount", "title": "金额", "width": 30, "summary": { "type": "sum", "precision": 2, "prefix": "\uFFE5" } }
+          ],
+          "showSummary": true,
+          "summaryMode": "total",
+          "summaryLabel": "合计"
+        }
+      },
+      {
+        "id": "remarks",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 140, "widthMm": 180, "heightMm": 10 },
+        "style": { "fontSize": 10 },
+        "binding": { "path": "remarks", "fallback": "" },
+        "props": { "label": "备注：" }
+      }
+    ],
+    "id": "template-demo-nested-order"
   }
 ];

@@ -8,6 +8,24 @@ import type { ComponentRenderer, RenderContext, StyleObject } from '../types';
 import { buildStyleString, buildPositionStyle } from '../utils/styleBuilder';
 import { COMPONENT_DEFAULT_SIZE, TABLE_DEFAULT, TABLE_STYLE_DEFAULT, STYLE_DEFAULT } from '../constants';
 
+/**
+ * 根据数据路径从对象中取值
+ * 支持嵌套路径，如：'product.name' => obj.product.name
+ * @param obj 数据对象
+ * @param path 属性路径，支持点号分隔的嵌套路径
+ * @returns 属性值，路径不存在时返回 undefined
+ */
+function getByPath(obj: any, path: string): any {
+  if (!obj || !path) return undefined;
+  const keys = path.split('.');
+  let value = obj;
+  for (const key of keys) {
+    if (value === null || value === undefined) return undefined;
+    value = value[key];
+  }
+  return value;
+}
+
 export class TableRenderer implements ComponentRenderer {
   readonly type = 'table';
 
@@ -138,7 +156,7 @@ export class TableRenderer implements ComponentRenderer {
         .map((row: any) => {
           const cells = visibleColumns
             .map((col: any) => {
-              const value = row[col.dataIndex] || '';
+              const value = getByPath(row, col.dataIndex) ?? '';
               // 使用百分比宽度，min-height 允许内容换行时自然扩展
               return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} text-align: ${textAlign}; width: ${colWidthPercent}%; min-height: ${rowHeightPx}px; box-sizing: border-box;">${value}</td>`;
             })
@@ -239,7 +257,7 @@ export class TableRenderer implements ComponentRenderer {
 
     const values = data
       .map(row => {
-        const val = row[column.dataIndex];
+        const val = getByPath(row, column.dataIndex);
         // 尝试转换为数字，失败则返回 null
         const num = Number(val);
         return isNaN(num) ? null : num;
