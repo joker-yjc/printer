@@ -18,6 +18,7 @@ import {
   Row,
   Col,
   Statistic,
+  Spin,
 } from 'antd';
 import {
   PlusOutlined,
@@ -598,6 +599,11 @@ const SchemaManagement = () => {
                             language="json"
                             value={jsonValue}
                             onChange={(value: string | undefined) => setJsonValue(value || '')}
+                            loading={
+                              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Spin tip="编辑器加载中..." />
+                              </div>
+                            }
                             options={{
                               minimap: { enabled: false },
                               scrollBeyondLastLine: false,
@@ -625,6 +631,11 @@ const SchemaManagement = () => {
                             language="json"
                             value={mockJsonValue}
                             onChange={(value: string | undefined) => setMockJsonValue(value || '')}
+                            loading={
+                              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Spin tip="编辑器加载中..." />
+                              </div>
+                            }
                             options={{
                               minimap: { enabled: false },
                               scrollBeyondLastLine: false,

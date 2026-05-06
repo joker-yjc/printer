@@ -13,6 +13,7 @@ import {
   Tabs,
   Alert,
   Upload,
+  Spin,
 } from 'antd';
 import {
   PlusOutlined,
@@ -366,6 +367,11 @@ const MockDataManagement = () => {
                           language="json"
                           value={jsonValue}
                           onChange={(value: string | undefined) => setJsonValue(value || '')}
+                          loading={
+                            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Spin tip="编辑器加载中..." />
+                            </div>
+                          }
                           options={{
                             minimap: { enabled: false },
                             scrollBeyondLastLine: false,
