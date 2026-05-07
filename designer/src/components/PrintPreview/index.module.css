@@ -68,3 +68,32 @@
 .preview-empty p {
   text-align: center;
 }
+
+/* 多模板模式 */
+.template-group-list {
+  width: 100%;
+}
+
+.template-group-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.group-index {
+  font-weight: 600;
+  color: #1890ff;
+  min-width: 28px;
+  font-size: 13px;
+}
+
+.group-template-select {
+  flex: 1;
+  min-width: 180px;
+}
+
+.group-data-select {
+  flex: 1;
+  min-width: 180px;
+}
