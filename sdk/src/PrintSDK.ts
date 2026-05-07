@@ -68,6 +68,35 @@ export interface BatchPrintProgress {
   currentIndex: number;  // 当前处理的索引（-1 表示未开始/已结束）
 }
 
+/**
+ * 模板 + 数据组
+ */
+export interface PrintTemplateGroup {
+  template: PrintTemplate;
+  dataList: any[];
+}
+
+/**
+ * 多模板打印选项
+ */
+export interface MultiTemplatePrintOptions {
+  preview?: boolean;
+  onProgress?: (progress: MultiTemplatePrintProgress) => void;
+}
+
+/**
+ * 多模板打印进度
+ */
+export interface MultiTemplatePrintProgress {
+  totalGroups: number;
+  completedGroups: number;
+  totalDataItems: number;
+  completedDataItems: number;
+  failed: number;
+  currentGroupIndex: number;
+  currentDataIndex: number;
+}
+
 export class PrintSDK {
   // 无需配置和缓存，完全解耦
 
@@ -289,6 +318,151 @@ export class PrintSDK {
       setTimeout(() => {
         document.body.removeChild(iframe);
       }, 1000);
+    }
+  }
+
+  /**
+   * 多模板批量打印
+   * 支持多个模板各自绑定数据列表，一次打印确认
+   *
+   * 注意：所有模板需使用相同纸张尺寸，混合尺寸暂不支持
+   * @param groups 模板+数据组列表
+   * @param options 打印选项
+   */
+  async printMultiTemplate(
+    groups: PrintTemplateGroup[],
+    options: MultiTemplatePrintOptions = {}
+  ): Promise<void> {
+    const { preview = false, onProgress } = options;
+
+    if (!groups || groups.length === 0) {
+      console.warn('[PrintSDK] printMultiTemplate: groups 为空，跳过打印');
+      return;
+    }
+
+    const totalDataItems = groups.reduce((sum, g) => sum + g.dataList.length, 0);
+
+    const progress: MultiTemplatePrintProgress = {
+      totalGroups: groups.length,
+      completedGroups: 0,
+      totalDataItems,
+      completedDataItems: 0,
+      failed: 0,
+      currentGroupIndex: 0,
+      currentDataIndex: -1,
+    };
+
+    onProgress?.(progress);
+
+    const allPagesHTML: string[] = [];
+
+    for (let groupIdx = 0; groupIdx < groups.length; groupIdx++) {
+      const group = groups[groupIdx];
+      progress.currentGroupIndex = groupIdx;
+      progress.currentDataIndex = -1;
+      onProgress?.(progress);
+
+      for (let dataIdx = 0; dataIdx < group.dataList.length; dataIdx++) {
+        const data = group.dataList[dataIdx];
+        progress.currentDataIndex = dataIdx;
+        onProgress?.(progress);
+
+        try {
+          const engine = createPrintEngine(group.template, data);
+          const html = await engine.generatePrintHTML();
+
+          const bodyContent = extractBodyContent(html);
+          if (bodyContent) {
+            allPagesHTML.push(bodyContent);
+          }
+
+          progress.completedDataItems++;
+          onProgress?.(progress);
+        } catch (error) {
+          progress.failed++;
+          progress.completedDataItems++;
+          onProgress?.(progress);
+          console.error(
+            `[PrintSDK] 处理失败: groupIndex=${groupIdx}, dataIndex=${dataIdx}`,
+            error
+          );
+        }
+      }
+
+      progress.completedGroups++;
+      onProgress?.(progress);
+    }
+
+    progress.currentGroupIndex = -1;
+    progress.currentDataIndex = -1;
+    onProgress?.(progress);
+
+    const { page } = groups[0].template;
+
+    const { widthMm: pageWidthMm, heightMm: pageHeightMm } = getPageSizeFromConfig(page);
+
+    const styles = generateBatchPrintStyles({
+      pageWidthMm,
+      pageHeightMm,
+      marginTop: page.marginMm?.top ?? 0,
+      marginRight: page.marginMm?.right ?? 0,
+      marginBottom: page.marginMm?.bottom ?? 0,
+      marginLeft: page.marginMm?.left ?? 0,
+      isContinuous: page.size === 'CONTINUOUS',
+      minHeightMm: page.minHeightMm,
+    });
+
+    const fullHTML = generatePrintHTML({
+      title: '多模板批量打印',
+      styles,
+      bodyContent: allPagesHTML.join('\n'),
+    });
+
+    if (preview) {
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        throw new Error('Failed to open print window');
+      }
+      printWindow.document.write(fullHTML);
+      printWindow.document.close();
+
+      await waitForImagesLoaded(printWindow.document);
+      printWindow.print();
+    } else {
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.top = '-9999px';
+      iframe.style.left = '-9999px';
+      document.body.appendChild(iframe);
+
+      const iframeDoc = iframe.contentWindow?.document;
+      if (!iframeDoc) {
+        throw new Error('Failed to access iframe document');
+      }
+
+      iframeDoc.write(fullHTML);
+      iframeDoc.close();
+
+      await waitForImagesLoaded(iframeDoc);
+
+      const cleanup = () => {
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe);
+        }
+      };
+
+      if (iframe.contentWindow) {
+        iframe.contentWindow.addEventListener('afterprint', cleanup, { once: true });
+      }
+
+      iframe.contentWindow?.print();
+
+      setTimeout(() => {
+        if (iframe.parentNode) {
+          console.warn('[PrintSDK] afterprint 事件未触发，执行兜底清理');
+          cleanup();
+        }
+      }, 5000);
     }
   }
 }
