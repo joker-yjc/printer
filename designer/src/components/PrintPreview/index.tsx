@@ -310,24 +310,28 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
     const headMatch = firstHtml.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
     const head = headMatch ? headMatch[0] : '<head></head>';
 
-    const allBodiesContent = htmlPages.map((html, index) => {
-      const bodyContent = extractBodyContent(html);
-      const separator = index > 0 ? `
-        <div style="page-break-before: always; height: 20px; background: linear-gradient(to right, #e0e0e0 50%, transparent 50%); background-size: 20px 2px; background-repeat: repeat-x; background-position: center; margin: 20px 0; position: relative;">
-          <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: white; padding: 0 10px; color: #999; font-size: 12px;">
-            第 ${index + 1} 份文档
-          </div>
-        </div>
-      ` : '';
-
-      return separator + bodyContent;
+    const allBodiesContent = htmlPages.map((html) => {
+      return extractBodyContent(html);
     }).join('\n');
+
+    /** 对合并后的 .print-page 重新全局编号 data-page */
+    const renumberBodyContent = (bodyHtml: string): string => {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(`<body>${bodyHtml}</body>`, 'text/html');
+      const pages = doc.querySelectorAll('.print-page');
+      pages.forEach((page, i) => {
+        page.setAttribute('data-page', String(i + 1));
+      });
+      return doc.body?.innerHTML || bodyHtml;
+    };
+
+    const numberedBody = renumberBodyContent(allBodiesContent);
 
     return `<!DOCTYPE html>
 <html>
 ${head}
 <body>
-${allBodiesContent}
+${numberedBody}
 </body>
 </html>`;
   };
