@@ -2,6 +2,21 @@
 
 所有版本的变更记录都列在这里，遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 规范。
 
+## [1.1.3] - 2026-05-07
+
+### ✨ 新增功能
+
+- **多模板批量打印**：新增 `printMultiTemplate` 方法，支持一次打印操作中组合多个不同模板及各自对应的数据列表（一客一模板场景）。接受 `PrintTemplateGroup[]` 参数，每个 group 包含一个 `template` 和 `dataList`，内部复用现有引擎渲染和拼接逻辑。
+- **设计器多模板模式**：打印预览弹窗新增「多模板模式」切换，可自由组合已保存模板和当前画布模板，为每个模板选择对应的 Mock 数据进行混合打印预览和打印。
+
+**影响范围**：`sdk/src/PrintSDK.ts`（新增方法）、`sdk/src/sdk.ts`（导出新类型）、`designer/src/components/PrintPreview/`（新增多模板 UI）
+
+### ⚠️ 已知限制
+
+- 多模板打印要求所有模板使用相同纸张尺寸，混合纸张尺寸暂不支持
+
+---
+
 ## [1.1.2] - 2026-05-07
 
 ### 🐛 问题修复
