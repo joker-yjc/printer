@@ -11,6 +11,10 @@
 | 打印内容偏左 | `@media print` 中 `.print-page` 的 `margin` 未完全覆盖，导致 `auto` margin 在打印时产生偏移 |
 | 批量打印无边距 | `generateBatchPrintStyles` 未设置 `.print-page` 的 `padding`，导致边距功能失效 |
 
+### ✨ 新增功能
+
+- **多模板批量打印**：新增 `printMultiTemplate` 方法，支持一次打印操作中组合多个不同模板及各自对应的数据列表（一客一模板场景）
+
 ### 🔧 修复详情
 
 #### 1. 打印样式 `@media print` 增强
