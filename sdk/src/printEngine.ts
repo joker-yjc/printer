@@ -9,7 +9,6 @@ import { MM_TO_PX, TABLE_DEFAULT, COMPONENT_DEFAULT_SIZE } from './printEngine/c
 import {
   generatePrintPageStyles,
   generatePrintHTML,
-  getPageSizeFromConfig,
 } from './printEngine/htmlTemplate';
 import { executePipe } from './pipes/registry';
 
