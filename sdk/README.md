@@ -150,8 +150,7 @@ await sdk.printMultiTemplate([
   preview: true,
   onProgress: (progress) => {
     console.log(
-      `组: ${progress.completedGroups}/${progress.totalGroups}, ` +
-      `数据: ${progress.completedDataItems}/${progress.totalDataItems}`
+      `组: ${progress.completedGroups}/${progress.totalGroups}, 数据: ${progress.completedDataItems}/${progress.totalDataItems}`
     );
   }
 });
@@ -160,6 +159,11 @@ await sdk.printMultiTemplate([
 **参数：**
 
 ```typescript
+interface PrintTemplateGroup {
+  template: PrintTemplate;
+  dataList: any[];
+}
+
 interface MultiTemplatePrintOptions {
   preview?: boolean;
   onProgress?: (progress: MultiTemplatePrintProgress) => void;
