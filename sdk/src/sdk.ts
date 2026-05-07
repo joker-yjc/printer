@@ -9,6 +9,9 @@ export type {
   PrintOptions,
   BatchPrintOptions,
   BatchPrintProgress,
+  PrintTemplateGroup,
+  MultiTemplatePrintOptions,
+  MultiTemplatePrintProgress,
 } from './PrintSDK';
 
 // 导出打印引擎
