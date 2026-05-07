@@ -138,6 +138,46 @@ await sdk.printMultiple(myTemplate, dataList, {
 });
 ```
 
+### `sdk.printMultiTemplate(groups, options)`
+
+多模板批量打印（多模板 + 各自对应的数据列表）。
+
+```typescript
+await sdk.printMultiTemplate([
+  { template: templateA, dataList: [dataA1, dataA2] },
+  { template: templateB, dataList: [dataB1] },
+], {
+  preview: true,
+  onProgress: (progress) => {
+    console.log(
+      `组: ${progress.completedGroups}/${progress.totalGroups}, ` +
+      `数据: ${progress.completedDataItems}/${progress.totalDataItems}`
+    );
+  }
+});
+```
+
+**参数：**
+
+```typescript
+interface MultiTemplatePrintOptions {
+  preview?: boolean;
+  onProgress?: (progress: MultiTemplatePrintProgress) => void;
+}
+
+interface MultiTemplatePrintProgress {
+  totalGroups: number;          // 模板组总数
+  completedGroups: number;      // 已完成组数
+  totalDataItems: number;       // 总数据条目
+  completedDataItems: number;   // 已完成数据条目
+  failed: number;               // 失败条目数
+  currentGroupIndex: number;    // 当前处理组索引
+  currentDataIndex: number;     // 当前处理数据索引
+}
+```
+
+> ⚠️ **已知限制**：所有模板必须使用相同的纸张尺寸和边距设置。混合纸张尺寸暂不支持。
+
 ## 🎨 支持的组件
 
 - **文本组件** - 显示文本内容，支持标签和数据绑定
