@@ -1,5 +1,5 @@
 import { Layout, Button, Tooltip, Space, message, Tabs } from 'antd';
-import { ArrowLeftOutlined, CodeOutlined, MenuFoldOutlined, MenuUnfoldOutlined, SettingOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CodeOutlined, MenuFoldOutlined, MenuUnfoldOutlined, SettingOutlined, AppstoreOutlined, ZoomInOutlined, ZoomOutOutlined, FullscreenOutlined } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import AssetPanel from './components/AssetPanel';
@@ -21,7 +21,7 @@ const Designer = () => {
   const [, setLoading] = useState(false);
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
-  const { generateTemplate, components, templateName, schemaId, loadTemplate } = useDesignerStore();
+  const { generateTemplate, components, templateName, schemaId, loadTemplate, zoomLevel, zoomInAction, zoomOutAction, resetZoom } = useDesignerStore();
 
   // 加载 URL 参数中的模板
   useEffect(() => {
@@ -150,6 +150,89 @@ const Designer = () => {
         transition: 'right 0.3s ease',
       }}>
         <Space direction="vertical">
+          {/* 缩放控件 */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 2,
+            background: 'rgba(255, 255, 255, 0.92)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid #e8e8e8',
+            borderRadius: 6,
+            padding: 4,
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+          }}>
+            <Tooltip title="放大 (Ctrl++)" placement="left">
+              <span
+                onClick={zoomInAction}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 28,
+                  height: 28,
+                  borderRadius: 4,
+                  fontSize: 14,
+                  color: '#595959',
+                  cursor: zoomLevel >= 200 ? 'not-allowed' : 'pointer',
+                  opacity: zoomLevel >= 200 ? 0.4 : 0.7,
+                  transition: 'opacity 0.15s, background 0.15s',
+                  userSelect: 'none',
+                }}
+              >
+                <ZoomInOutlined />
+              </span>
+            </Tooltip>
+            <span style={{
+              fontSize: 11,
+              color: '#8c8c8c',
+              padding: '2px 0',
+              userSelect: 'none',
+            }}>{zoomLevel}%</span>
+            <Tooltip title="缩小 (Ctrl+-)" placement="left">
+              <span
+                onClick={zoomOutAction}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 28,
+                  height: 28,
+                  borderRadius: 4,
+                  fontSize: 14,
+                  color: '#595959',
+                  cursor: zoomLevel <= 25 ? 'not-allowed' : 'pointer',
+                  opacity: zoomLevel <= 25 ? 0.4 : 0.7,
+                  transition: 'opacity 0.15s, background 0.15s',
+                  userSelect: 'none',
+                }}
+              >
+                <ZoomOutOutlined />
+              </span>
+            </Tooltip>
+            <Tooltip title="重置 (Ctrl+0)" placement="left">
+              <span
+                onClick={resetZoom}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 28,
+                  height: 28,
+                  borderRadius: 4,
+                  fontSize: 14,
+                  color: '#595959',
+                  cursor: 'pointer',
+                  opacity: zoomLevel === 100 ? 0.4 : 0.7,
+                  transition: 'opacity 0.15s, background 0.15s',
+                  userSelect: 'none',
+                }}
+              >
+                <FullscreenOutlined />
+              </span>
+            </Tooltip>
+          </div>
           <Tooltip title="返回模板管理" placement="left">
             <Button
               type="primary"

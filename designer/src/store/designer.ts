@@ -51,6 +51,13 @@ interface DesignerStore {
   toggleGrid: () => void;
   setGridSize: (size: number) => void;
 
+  // 缩放设置
+  zoomLevel: number;
+  setZoom: (level: number) => void;
+  zoomInAction: () => void;
+  zoomOutAction: () => void;
+  resetZoom: () => void;
+
   // 对齐工具
   alignComponents: (direction: 'left' | 'right' | 'top' | 'bottom' | 'centerH' | 'centerV') => void;
   distributeComponents: (direction: 'horizontal' | 'vertical') => void;
@@ -233,6 +240,13 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
   gridSize: 5, // 5mm
   toggleGrid: () => set((state) => ({ gridEnabled: !state.gridEnabled })),
   setGridSize: (size) => set({ gridSize: size }),
+
+  // 缩放设置
+  zoomLevel: 100,
+  setZoom: (level) => set({ zoomLevel: Math.max(25, Math.min(200, level)) }),
+  zoomInAction: () => set((state) => ({ zoomLevel: Math.min(200, state.zoomLevel + 25) })),
+  zoomOutAction: () => set((state) => ({ zoomLevel: Math.max(25, state.zoomLevel - 25) })),
+  resetZoom: () => set({ zoomLevel: 100 }),
 
   // 层级管理
   bringToFront: (id) => {

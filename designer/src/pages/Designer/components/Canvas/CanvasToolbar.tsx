@@ -54,10 +54,6 @@ const CanvasToolbar = ({
   return (
     <div className={styles.toolbar}>
       <Space>
-        <Button onClick={onNew}>重置</Button>
-        <Button onClick={onSave}>保存</Button>
-      </Space>
-      <Space>
         <Tooltip title="撤销 (Ctrl+Z)">
           <Button
             icon={<UndoOutlined />}
@@ -157,6 +153,10 @@ const CanvasToolbar = ({
       </Space>
       <Space>
         <Button type="primary" onClick={onQuickPrint}>测试打印</Button>
+      </Space>
+      <Space>
+        <Button onClick={onSave} type='primary'>保存</Button>
+        <Button onClick={onNew}>重置</Button>
       </Space>
     </div>
   );

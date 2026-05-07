@@ -1,5 +1,6 @@
 import { message, Modal, Form, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
+
 import { useState, useEffect } from 'react';
 import styles from './index.module.css';
 import { useDesignerStore } from '../../../../store/designer';
@@ -7,6 +8,7 @@ import type { ComponentNode, PageConfig } from '../../../../types';
 import PrintPreview from '../../../../components/PrintPreview';
 import { CONTINUOUS_PAPER_MIN_HEIGHT, CONTINUOUS_PAPER_DEFAULT_WIDTH } from '../../../../constants';
 import { snapToGrid as gridSnapToGrid } from '../../../../utils/grid';
+import { pxToMm } from '../../../../utils/zoom';
 import CanvasToolbar from './CanvasToolbar';
 import PageSettingModal from './PageSettingModal';
 import SaveTemplateModal from './SaveTemplateModal';
@@ -47,6 +49,7 @@ const CanvasArea = () => {
     sendToBack,
     bringForward,
     sendBackward,
+    zoomLevel,
   } = useDesignerStore();
   const [dragOver, setDragOver] = useState(false);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
@@ -154,6 +157,24 @@ const CanvasArea = () => {
           message.success('已克隆组件');
         }
       }
+      // 缩放：Ctrl + = 或 Ctrl + + 放大
+      if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+') && !isEditableElement) {
+        e.preventDefault();
+        const { zoomInAction: doZoomIn } = useDesignerStore.getState();
+        doZoomIn();
+      }
+      // 缩放：Ctrl + - 缩小
+      if ((e.ctrlKey || e.metaKey) && e.key === '-' && !isEditableElement) {
+        e.preventDefault();
+        const { zoomOutAction: doZoomOut } = useDesignerStore.getState();
+        doZoomOut();
+      }
+      // 缩放：Ctrl + 0 重置
+      if ((e.ctrlKey || e.metaKey) && e.key === '0' && !isEditableElement) {
+        e.preventDefault();
+        const { resetZoom: doResetZoom } = useDesignerStore.getState();
+        doResetZoom();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -199,8 +220,8 @@ const CanvasArea = () => {
     // 计算相对于画布的坐标
     const canvas = e.currentTarget as HTMLElement;
     const rect = canvas.getBoundingClientRect();
-    const rawXMm = (e.clientX - rect.left - 30) / 3.78;
-    const rawYMm = (e.clientY - rect.top - 30) / 3.78;
+    const rawXMm = pxToMm(e.clientX - rect.left - 30, zoomLevel);
+    const rawYMm = pxToMm(e.clientY - rect.top - 30, zoomLevel);
 
     // 应用网格吸附
     const xMm = snapToGrid(Math.max(0, rawXMm));
@@ -219,7 +240,7 @@ const CanvasArea = () => {
           componentName = '文本';
           defaultProps = {
             layout: { mode: 'absolute' as const, xMm, yMm, widthMm: 60, heightMm: 10 },
-            style: { fontSize: 14, color: '#262626' },
+            style: { fontSize: 14, color: '#262626', fontWeight: 'normal' },
             props: { text: '文本内容' },
           };
           break;
@@ -436,8 +457,8 @@ const CanvasArea = () => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!draggingComponentId) return;
 
-      const deltaX = (e.clientX - dragStartPos.x) / 3.78;
-      const deltaY = (e.clientY - dragStartPos.y) / 3.78;
+      const deltaX = pxToMm(e.clientX - dragStartPos.x, zoomLevel);
+      const deltaY = pxToMm(e.clientY - dragStartPos.y, zoomLevel);
 
       const rawXMm = dragStartLayout.xMm + deltaX;
       const rawYMm = dragStartLayout.yMm + deltaY;
@@ -477,7 +498,7 @@ const CanvasArea = () => {
           };
 
           // 检测对齐
-          const alignment = detectAlignment(tempComp, components, 3.78);
+          const alignment = detectAlignment(tempComp, components, 3.78, zoomLevel);
           setAlignmentLines(alignment.lines);
 
           // 应用对齐吸附（优先级高于网格吸附）
@@ -794,8 +815,8 @@ const CanvasArea = () => {
         {/* 快捷键提示 */}
         <ShortcutHint />
         <div className={styles['canvas-container']} style={{
-          width: `${canvasSize.widthPx + 30}px`,
-          height: `${canvasSize.heightPx + 30}px`,
+          width: `${(canvasSize.widthPx * zoomLevel / 100) + 30}px`,
+          height: `${(canvasSize.heightPx * zoomLevel / 100) + 30}px`,
         }}>
           <div className={styles['ruler-horizontal']} />
           <div className={styles['ruler-vertical']} />
@@ -804,6 +825,8 @@ const CanvasArea = () => {
             style={{
               width: `${canvasSize.widthPx}px`,
               height: `${canvasSize.heightPx}px`,
+              transform: `scale(${zoomLevel / 100})`,
+              transformOrigin: 'top left',
             }}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -956,6 +979,7 @@ const CanvasArea = () => {
                         pageWidth={getPageSize().width}
                         pageHeight={getPageSize().height}
                         snapToGrid={snapToGrid}
+                        zoomLevel={zoomLevel}
                       />
                     )}
                   </div>

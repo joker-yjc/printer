@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import type { ComponentNode } from '../../../../types';
+import { pxToMm } from '../../../../utils/zoom';
 import styles from './ResizeHandles.module.css';
 
 interface ResizeHandlesProps {
@@ -13,13 +14,14 @@ interface ResizeHandlesProps {
   pageWidth: number;  // 页面宽度（mm）
   pageHeight: number; // 页面高度（mm）
   snapToGrid?: (value: number) => number; // 网格吸附函数
+  zoomLevel?: number; // 缩放级别（百分比）
 }
 
 type ResizeDirection =
   | 'n' | 's' | 'e' | 'w'       // 上下左右
   | 'nw' | 'ne' | 'sw' | 'se';  // 四个角
 
-const ResizeHandles = ({ component, onResize, pageWidth, pageHeight, snapToGrid }: ResizeHandlesProps) => {
+const ResizeHandles = ({ component, onResize, pageWidth, pageHeight, snapToGrid, zoomLevel = 100 }: ResizeHandlesProps) => {
   const [resizing, setResizing] = useState<ResizeDirection | null>(null);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [startLayout, setStartLayout] = useState({
@@ -51,8 +53,8 @@ const ResizeHandles = ({ component, onResize, pageWidth, pageHeight, snapToGrid 
     const handleMouseMove = (e: MouseEvent) => {
       const deltaXPx = e.clientX - startPos.x;
       const deltaYPx = e.clientY - startPos.y;
-      const deltaXMm = deltaXPx / 3.78;
-      const deltaYMm = deltaYPx / 3.78;
+      const deltaXMm = pxToMm(deltaXPx, zoomLevel);
+      const deltaYMm = pxToMm(deltaYPx, zoomLevel);
 
       let newLayout = { ...startLayout };
 

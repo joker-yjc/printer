@@ -59,6 +59,18 @@ export const TextStylePlugin: StylePlugin = {
           </Space.Compact>
         </div>
         <div className={styles["property-item"]}>
+          <Text className={styles["property-label"]}>字重</Text>
+          <Select
+            style={{ width: '100%' }}
+            value={component.style?.fontWeight || 'normal'}
+            onChange={(val) => onStyleChange('fontWeight', val)}
+            options={[
+              { value: 'normal', label: '常规' },
+              { value: 'bold', label: '加粗' },
+            ]}
+          />
+        </div>
+        <div className={styles["property-item"]}>
           <Text className={styles["property-label"]}>对齐方式</Text>
           <Select
             style={{ width: '100%' }}

@@ -3,15 +3,17 @@
   flex-direction: column;
   height: 100%;
   background: #fafafa;
+  position: relative;
 }
 
 .toolbar {
-  height: 56px;
+  min-height: 56px;
   background: white;
   border-bottom: 1px solid #f0f0f0;
   display: flex;
   align-items: center;
-  padding: 0 16px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
   gap: 16px;
 }
 
@@ -59,8 +61,8 @@
 }
 
 .page-content.grid-enabled {
-  background-image: linear-gradient(to right, #f0f0f0 1px, transparent 1px),
-    linear-gradient(to bottom, #f0f0f0 1px, transparent 1px);
+  background-image:
+    linear-gradient(to right, #f0f0f0 1px, transparent 1px), linear-gradient(to bottom, #f0f0f0 1px, transparent 1px);
   background-size: 18.9px 18.9px; /* 5mm * 3.78 = 18.9px */
   background-position: 0 0;
 }
