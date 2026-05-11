@@ -61,3 +61,4 @@ registerExecutor(Executors.UppercasePipe);
 registerExecutor(Executors.LowercasePipe);
 registerExecutor(Executors.SlicePipe);
 registerExecutor(Executors.DefaultPipe);
+registerExecutor(Executors.ChineseNumberPipe);
