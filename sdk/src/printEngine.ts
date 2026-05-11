@@ -778,7 +778,6 @@ export class PrintEngine {
       const rowHeightsForThisPage = remainingRowHeights.slice(0, rowsCanFit);
       remainingData = remainingData.slice(rowsCanFit);
       remainingRowHeights = remainingRowHeights.slice(rowsCanFit);
-      consumedRowCount += rowsCanFit;
 
       // 判断是否为最后一页（用于合计行）
       const isLastPage = remainingData.length === 0;
@@ -806,6 +805,7 @@ export class PrintEngine {
       };
 
       workingPage.push(tableFragment);
+      consumedRowCount += rowsCanFit;
 
       // 计算合计行高度（如果启用合计功能）
       const showSummary = tableComponent.props?.showSummary === true;
