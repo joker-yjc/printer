@@ -728,6 +728,7 @@ export class PrintEngine {
     }
 
     let remainingData = [...tableData];
+    let consumedRowCount = 0;
     let remainingRowHeights = [...rowHeights];
     let workingPage = [...currentPage];
     let workingPageHeight = currentPageHeight;
@@ -777,6 +778,7 @@ export class PrintEngine {
       const rowHeightsForThisPage = remainingRowHeights.slice(0, rowsCanFit);
       remainingData = remainingData.slice(rowsCanFit);
       remainingRowHeights = remainingRowHeights.slice(rowsCanFit);
+      consumedRowCount += rowsCanFit;
 
       // 判断是否为最后一页（用于合计行）
       const isLastPage = remainingData.length === 0;
@@ -798,6 +800,7 @@ export class PrintEngine {
           _showHeader: needHeader,
           _isLastPage: isLastPage,
           _totalData: tableData,
+          _startRowIndex: consumedRowCount,
           _rowHeights: rowHeightsForThisPage // 传递实际行高到渲染器
         }
       };
