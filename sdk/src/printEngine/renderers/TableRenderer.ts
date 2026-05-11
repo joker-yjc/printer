@@ -47,6 +47,17 @@ export class TableRenderer implements ComponentRenderer {
     const allColumns = props?.columns || [];
     const visibleColumns = allColumns.filter((col: any) => !col.hidden);
 
+    const showRowNumber = props?.showRowNumber === true;
+    const rowNumberColumn: TableColumn = {
+      dataIndex: '__row_number__',
+      title: props?.rowNumberLabel || '序号',
+      align: 'center',
+    };
+
+    const displayColumns = showRowNumber
+      ? [rowNumberColumn, ...visibleColumns]
+      : visibleColumns;
+
     // 支持分页传入的 _showHeader 标记，优先于 props.showHeader
     const explicitShowHeader = props && typeof (props as any)._showHeader === 'boolean'
       ? (props as any)._showHeader
@@ -127,7 +138,7 @@ export class TableRenderer implements ComponentRenderer {
     const textAlign = style?.textAlign || 'left'; // 对齐方式
 
     // ✅ 计算均分列宽（简化方案：按列数均分表格宽度）
-    const colCount = visibleColumns.length || 1;
+    const colCount = displayColumns.length || 1;
     const colWidthPercent = (100 / colCount).toFixed(2);
 
     // ✅ 计算表头和数据行的高度（mm 转 px）
@@ -137,8 +148,8 @@ export class TableRenderer implements ComponentRenderer {
 
     // 渲染表头
     let headerHtml = '';
-    if (showHeader && visibleColumns.length > 0) {
-      const headerCells = visibleColumns
+    if (showHeader && displayColumns.length > 0) {
+      const headerCells = displayColumns
         .map((col: any) => {
           const title = col.title || col.dataIndex;
           // 使用百分比宽度实现均分，min-height 允许自然扩展
@@ -151,23 +162,26 @@ export class TableRenderer implements ComponentRenderer {
 
     // 渲染表体
     let bodyHtml = '';
-    if (tableData.length > 0 && visibleColumns.length > 0) {
+    if (tableData.length > 0 && displayColumns.length > 0) {
+      const startRowIndex = props?._startRowIndex ?? 0;
       const rows = tableData
-        .map((row: any) => {
-          const cells = visibleColumns
+        .map((row: any, rowIndex: number) => {
+          const cells = displayColumns
             .map((col: any) => {
+              if (col.dataIndex === '__row_number__') {
+                const rowNumber = startRowIndex + rowIndex + 1;
+                return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} text-align: center; width: ${colWidthPercent}%; min-height: ${rowHeightPx}px; box-sizing: border-box;">${rowNumber}</td>`;
+              }
               const value = getByPath(row, col.dataIndex) ?? '';
-              // 使用百分比宽度，min-height 允许内容换行时自然扩展
               return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} text-align: ${textAlign}; width: ${colWidthPercent}%; min-height: ${rowHeightPx}px; box-sizing: border-box;">${value}</td>`;
             })
             .join('');
-          // 行使用 min-height 而非固定 height
           return `<tr style="min-height: ${rowHeightPx}px;">${cells}</tr>`;
         })
         .join('');
       bodyHtml = `<tbody>${rows}</tbody>`;
     } else {
-      const colspan = visibleColumns.length || 1;
+      const colspan = displayColumns.length || 1;
       bodyHtml = `<tbody><tr style="min-height: ${rowHeightPx}px;"><td colspan="${colspan}" style="${cellBorder} ${cellPadding} text-align: center; color: #999; min-height: ${rowHeightPx}px; box-sizing: border-box;">暂无数据</td></tr></tbody>`;
     }
 
@@ -188,7 +202,7 @@ export class TableRenderer implements ComponentRenderer {
       : tableData;
 
     const summaryHtml = shouldShowSummary
-      ? this.renderSummary(summaryData, visibleColumns, props as TableProps, cellBorder, cellPadding, cellTextStyle, rowHeightPx, textAlign, colWidthPercent)
+      ? this.renderSummary(summaryData, displayColumns, props as TableProps, cellBorder, cellPadding, cellTextStyle, rowHeightPx, textAlign, colWidthPercent)
       : '';
 
     return `<table class="print-table" style="${tableStyleStr}">${headerHtml}${bodyHtml}${summaryHtml}</table>`;
@@ -216,14 +230,16 @@ export class TableRenderer implements ComponentRenderer {
     const fontWeight = summaryStyle.fontWeight || 'bold';
     const fontSize = summaryStyle.fontSize;
 
-    const cells = columns.map((col, index) => {
+    const firstDataColumn = columns.find((col) => col.dataIndex !== '__row_number__');
+
+    const cells = columns.map((col) => {
       let content = '';
 
-      if (index === 0) {
-        // 首列显示合计标签
+      if (col.dataIndex === '__row_number__') {
+        content = '';
+      } else if (col === firstDataColumn) {
         content = summaryLabel;
       } else if (col.summary) {
-        // 有合计配置的列，计算合计值
         content = this.calculateSummary(data, col);
       }
 
