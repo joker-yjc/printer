@@ -5,19 +5,19 @@
 
 import type { PipeExecutor } from '../types';
 
+const digits = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
+const units = ['', '拾', '佰', '仟'];
+const bigUnits = ['', '万', '亿'];
+
 /**
- * 将数字转换为中文大写形式
- * @param n - 待转换的数字
+ * 将整数转换为中文大写形式
+ * @param n - 待转换的整数（非负）
  * @returns 中文大写数字字符串
  */
-function toChineseUppercase(n: number): string {
+export function toChineseUppercaseInteger(n: number): string {
   if (n === 0) return '零';
 
-  const digits = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
-  const units = ['', '拾', '佰', '仟'];
-  const bigUnits = ['', '万', '亿'];
-
-  const str = String(Math.floor(n));
+  const str = String(n);
   const len = str.length;
 
   if (len > 9) return String(n);
@@ -61,6 +61,41 @@ function toChineseUppercase(n: number): string {
   return result;
 }
 
+/**
+ * 将数字（含小数）转换为中文大写形式
+ * 小数部分逐位读出，例如 3.14 → 叁点壹肆
+ * @param n - 待转换的数字
+ * @returns 中文大写数字字符串
+ */
+function toChineseUppercase(n: number): string {
+  if (n === 0) return '零';
+  if (n < 0) return '负' + toChineseUppercase(-n);
+
+  const str = String(n);
+  const dotIndex = str.indexOf('.');
+
+  let intPart: number;
+  let decPart = '';
+
+  if (dotIndex >= 0) {
+    intPart = parseInt(str.slice(0, dotIndex), 10);
+    decPart = str.slice(dotIndex + 1);
+  } else {
+    intPart = n;
+  }
+
+  let result = toChineseUppercaseInteger(intPart);
+
+  if (decPart) {
+    result += '点';
+    for (const ch of decPart) {
+      result += digits[parseInt(ch, 10)];
+    }
+  }
+
+  return result;
+}
+
 export const ChineseNumberPipe: PipeExecutor = {
   type: 'chineseNumber',
   label: '中文大写数字',
@@ -86,6 +121,10 @@ export const ChineseNumberPipe: PipeExecutor = {
       const formatted = toChineseUppercase(num) + unit;
 
       if (mode === 'both') {
+        const separator = options?.separator;
+        if (separator !== undefined) {
+          return `${value}${separator}${formatted}`;
+        }
         return `${value}（${formatted}）`;
       }
 

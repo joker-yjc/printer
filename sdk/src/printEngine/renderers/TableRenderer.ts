@@ -114,7 +114,6 @@ export class TableRenderer implements ComponentRenderer {
       console.warn(`[TableRenderer] 表格宽度过小 (${tableWidthMm.toFixed(2)}mm)，强制设置为最小宽度 10mm`);
       tableWidthMm = 10;
     }
-    console.log(tableWidthMm, "tableWidthMm");
     // 表格定位样式（使用 xMm 偏移）
     const positionStyles = buildPositionStyle(
       xMm, // 使用提取的 xMm
@@ -326,13 +325,12 @@ export class TableRenderer implements ComponentRenderer {
 
       let finalResult = `${prefix}${formatted}${suffix}`;
 
-      if (summary.chineseFormat) {
-        const { mode, unit } = summary.chineseFormat;
-        const chinesePipe = getExecutor('chineseNumber');
-        const chineseText = chinesePipe
-          ? chinesePipe.execute(Number(formatted), { mode, unit })
-          : formatted;
-        finalResult = `${finalResult}（${chineseText}）`;
+      if (summary.pipe) {
+        const executor = getExecutor(summary.pipe.type);
+
+        if (executor) {
+          finalResult = executor.execute(Number(formatted), summary.pipe.options) || '';
+        }
       }
 
       return finalResult;

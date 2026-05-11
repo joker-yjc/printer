@@ -3,10 +3,12 @@
  * 负责表格组件的列配置
  */
 
-import { Checkbox, Button, Space, Input, Typography, Collapse, Select, InputNumber, Radio } from 'antd';
-import { ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { Checkbox, Button, Space, Input, Typography, Collapse, Select, InputNumber, Radio, Tag } from 'antd';
+import { ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined, PlusOutlined, CloseOutlined } from '@ant-design/icons';
 import styles from './index.module.css';
 import type { ComponentNode, TableColumnSummary } from '../../../../types';
+import { getAllPipes } from '@jcyao/print-sdk';
+import { getConfigurator } from '../../../../pipes/configurators';
 
 const { Text } = Typography;
 
@@ -75,6 +77,14 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
       <div className={styles["property-list"]}>
         <div className={styles["property-item"]}>
           <Checkbox
+            checked={component.props?.showRowNumber === true}
+            onChange={(e) => onPropsChange('showRowNumber', e.target.checked)}
+          >
+            显示序号列
+          </Checkbox>
+        </div>
+        <div className={styles["property-item"]}>
+          <Checkbox
             checked={component.props?.showHeader !== false}
             onChange={(e) => onPropsChange('showHeader', e.target.checked)}
           >
@@ -121,14 +131,6 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
             </div>
           </>
         )}
-        <div className={styles["property-item"]}>
-          <Checkbox
-            checked={component.props?.showRowNumber === true}
-            onChange={(e) => onPropsChange('showRowNumber', e.target.checked)}
-          >
-            显示序号列
-          </Checkbox>
-        </div>
         {component.props?.showRowNumber && (
           <div className={styles["property-item"]}>
             <Text className={styles["property-label"]}>序号列标题</Text>
@@ -267,81 +269,92 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                                     />
                                   </div>
                                   <div>
-                                    <Text type="secondary" style={{ fontSize: 12 }}>前缀/后缀</Text>
-                                    <Space.Compact style={{ width: '100%', marginTop: 4 }}>
-                                      <Input
+                                    <Text type="secondary" style={{ fontSize: 12 }}>管道转换</Text>
+                                    {col.summary?.pipe ? (
+                                      <div style={{ marginTop: 4, border: '1px solid #d9d9d9', borderRadius: 4, padding: 8, background: '#fafafa' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                          <Tag color="blue">{col.summary.pipe.type}</Tag>
+                                          <Button
+                                            type="text"
+                                            size="small"
+                                            danger
+                                            icon={<CloseOutlined />}
+                                            onClick={() => {
+                                              handleColumnSummaryChange(index, {
+                                                ...col.summary!,
+                                                pipe: undefined,
+                                              });
+                                            }}
+                                          />
+                                        </div>
+                                        {(() => {
+                                          const configurator = getConfigurator(col.summary.pipe.type);
+                                          if (configurator) {
+                                            return configurator.renderConfig(
+                                              col.summary.pipe,
+                                              (option: string, value: any) => {
+                                                handleColumnSummaryChange(index, {
+                                                  ...col.summary!,
+                                                  pipe: {
+                                                    type: col.summary!.pipe!.type,
+                                                    options: {
+                                                      ...col.summary!.pipe!.options,
+                                                      [option]: value,
+                                                    },
+                                                  },
+                                                });
+                                              },
+                                            );
+                                          }
+                                          return null;
+                                        })()}
+                                      </div>
+                                    ) : (
+                                      <Select
                                         size="small"
-                                        placeholder="前缀（如￥）"
-                                        value={col.summary?.prefix || ''}
-                                        onChange={(e) => {
+                                        style={{ width: '100%', marginTop: 4 }}
+                                        placeholder="添加管道转换（可选）"
+                                        value={null}
+                                        onChange={(value: string) => {
                                           handleColumnSummaryChange(index, {
                                             ...col.summary!,
-                                            prefix: e.target.value,
+                                            pipe: { type: value, options: {} },
                                           });
                                         }}
+                                        options={getAllPipes().filter((p) => p.value === 'money' || p.value === 'chineseNumber')}
                                       />
-                                      <Input
-                                        size="small"
-                                        placeholder="后缀（如元）"
-                                        value={col.summary?.suffix || ''}
-                                        onChange={(e) => {
-                                          handleColumnSummaryChange(index, {
-                                            ...col.summary!,
-                                            suffix: e.target.value,
-                                          });
-                                        }}
-                                      />
-                                    </Space.Compact>
+                                    )}
                                   </div>
-                                  <div style={{ marginTop: 8 }}>
-                                    <Text type="secondary" style={{ fontSize: 12 }}>中文大写</Text>
-                                    <Select
-                                      size="small"
-                                      style={{ width: '100%', marginTop: 4 }}
-                                      placeholder="不启用"
-                                      allowClear
-                                      value={col.summary?.chineseFormat?.mode || undefined}
-                                      onChange={(value) => {
-                                        if (!value) {
-                                          handleColumnSummaryChange(index, {
-                                            ...col.summary!,
-                                            chineseFormat: undefined,
-                                          });
-                                        } else {
-                                          handleColumnSummaryChange(index, {
-                                            ...col.summary!,
-                                            chineseFormat: {
-                                              mode: value,
-                                              unit: col.summary?.chineseFormat?.unit,
-                                            },
-                                          });
-                                        }
-                                      }}
-                                      options={[
-                                        { label: '仅大写', value: 'uppercase' },
-                                        { label: '原值+大写', value: 'both' },
-                                      ]}
-                                    />
-                                  </div>
-                                  {col.summary?.chineseFormat && (
-                                    <div style={{ marginTop: 8 }}>
-                                      <Text type="secondary" style={{ fontSize: 12 }}>大写后缀单位</Text>
-                                      <Input
-                                        size="small"
-                                        style={{ marginTop: 4 }}
-                                        placeholder="如：元"
-                                        value={col.summary?.chineseFormat?.unit || ''}
-                                        onChange={(e) => {
-                                          handleColumnSummaryChange(index, {
-                                            ...col.summary!,
-                                            chineseFormat: {
-                                              ...col.summary!.chineseFormat!,
-                                              unit: e.target.value,
-                                            },
-                                          });
-                                        }}
-                                      />
-                                    </div>
+                                  {!col.summary?.pipe && (
+                                    <>
+                                      <div>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>前缀/后缀</Text>
+                                        <Space.Compact style={{ width: '100%', marginTop: 4 }}>
+                                          <Input
+                                            size="small"
+                                            placeholder="前缀（如￥）"
+                                            value={col.summary?.prefix || ''}
+                                            onChange={(e) => {
+                                              handleColumnSummaryChange(index, {
+                                                ...col.summary!,
+                                                prefix: e.target.value,
+                                              });
+                                            }}
+                                          />
+                                          <Input
+                                            size="small"
+                                            placeholder="后缀（如元）"
+                                            value={col.summary?.suffix || ''}
+                                            onChange={(e) => {
+                                              handleColumnSummaryChange(index, {
+                                                ...col.summary!,
+                                                suffix: e.target.value,
+                                              });
+                                            }}
+                                          />
+                                     </Space.Compact>
+                                   </div>
+                                 </>
                                   )}
                                 </>
                               )}

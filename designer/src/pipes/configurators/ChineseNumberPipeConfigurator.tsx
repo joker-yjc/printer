@@ -12,6 +12,8 @@ export const ChineseNumberPipeConfigurator: PipeConfigurator = {
   type: 'chineseNumber',
 
   renderConfig(config: PipeConfig, onChange: (option: string, value: any) => void) {
+    const mode = config.options?.mode || 'uppercase';
+
     return (
       <Space direction="vertical" size="small" style={{ width: '100%' }}>
         <div>
@@ -19,14 +21,26 @@ export const ChineseNumberPipeConfigurator: PipeConfigurator = {
           <Select
             size="small"
             style={{ width: '100%', marginTop: 4 }}
-            value={config.options?.mode || 'uppercase'}
+            value={mode}
             onChange={(value) => onChange('mode', value)}
             options={[
-              { label: '仅大写（壹仟元）', value: 'uppercase' },
-              { label: '原值+大写（1000（壹仟元））', value: 'both' },
+              { label: '仅大写（壹仟）', value: 'uppercase' },
+              { label: '原值+大写（1000（壹仟））', value: 'both' },
             ]}
           />
         </div>
+        {mode === 'both' && (
+          <div>
+            <Text type="secondary" style={{ fontSize: 12 }}>连接符</Text>
+            <Input
+              size="small"
+              style={{ marginTop: 4 }}
+              placeholder="留空则使用默认括号"
+              value={config.options?.separator || ''}
+              onChange={(e) => onChange('separator', e.target.value || undefined)}
+            />
+          </div>
+        )}
         <div>
           <Text type="secondary" style={{ fontSize: 12 }}>后缀单位</Text>
           <Input

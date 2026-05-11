@@ -79,24 +79,14 @@ export interface TablePaginationConfig {
   repeatHeader?: boolean;  // 跨页是否重复表头（默认 true）
 }
 
-/**
- * 中文大写数字格式化选项
- */
-export interface ChineseNumberOptions {
-  /** 输出模式：uppercase=仅大写，both=原始值(大写) */
-  mode: 'uppercase' | 'both';
-  /** 后缀单位，如"元" */
-  unit?: string;
-}
-
 // 表格列合计配置
 export interface TableColumnSummary {
   type: 'sum' | 'avg' | 'max' | 'min' | 'count';  // 聚合类型
   precision?: number;   // 小数位数，默认 2
   prefix?: string;      // 前缀，如 "￥"
   suffix?: string;      // 后缀，如 "元"
-  /** 中文大写数字格式化 */
-  chineseFormat?: ChineseNumberOptions;
+  /** 管道配置，用于对合计值进行转换（如中文大写） */
+  pipe?: PipeConfig;
 }
 
 // 表格列定义
