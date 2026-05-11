@@ -2,6 +2,37 @@
 
 所有版本的变更记录都列在这里，遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 规范。
 
+## [1.2.0] - 2026-05-11
+
+### ✨ 新增功能
+
+- **ChineseNumberPipe 增强**
+  - 支持小数转换（如 `3.14` → `叁点壹肆`）
+  - 支持负数（如 `-5` → `负伍`）
+  - `both` 模式支持自定义连接符（如 `separator: ' 大写：'` 输出 `1000 大写：壹仟`）
+- **MoneyPipe 中文大写金额**
+  - 新增 `format: 'chineseUppercase'`，遵循会计规范输出金额大写（如 `壹佰贰拾叁元肆角伍分`）
+  - 正确处理元、角、分、整，零位补位
+  - 支持 `uppercaseMode: 'both'` 同时显示数字和中文大写
+  - 支持自定义连接符
+- **表格合计字段接入管道系统**
+  - `TableColumnSummary.pipe` 字段，可挂接任意管道对合计值做格式化
+  - 合计行支持 `ChineseNumberPipe`（中文数字大写）、`MoneyPipe`（中文金额大写）等
+  - 设计器合计配置面板增加管道选择器和配置 UI
+
+### 🔧 破坏性变更
+
+- **移除 `ChineseNumberOptions` 接口**：原 `chineseFormat` 字段被 `TableColumnSummary.pipe` 替代，已有模板需将 `chineseFormat` 改为 `pipe` 配置
+- **表格合计中文大写迁移**：不再通过 `summary.chineseFormat` 配置，改用 `summary.pipe: { type: 'chineseNumber', options: {...} }` 或 `summary.pipe: { type: 'money', options: { format: 'chineseUppercase', ...} }`
+
+### 🧹 清理
+
+- 移除 `TableRenderer` 中残留的调试日志
+
+**影响范围**：`sdk/src/pipes/executors/ChineseNumberPipe.ts`、`sdk/src/pipes/executors/MoneyPipe.ts`、`sdk/src/printEngine/renderers/TableRenderer.ts`、`sdk/src/types.ts`、`designer/src/types/index.ts`、`designer/src/pages/Designer/components/PropertyPanel/TableColumnSection.tsx`、`designer/src/pipes/configurators/`
+
+---
+
 ## [1.1.3] - 2026-05-07
 
 ### ✨ 新增功能

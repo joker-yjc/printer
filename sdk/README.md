@@ -5,7 +5,13 @@
 
 通用打印 SDK - 客户端打印解决方案
 
-**当前版本**: v1.1.3
+**当前版本**: v1.2.0
+
+## 🆕 v1.2.0 新增功能
+
+- ✨ **ChineseNumberPipe 增强**：支持小数转换（`3.14` → `叁点壹肆`）、负数、自定义连接符
+- ✨ **MoneyPipe 中文大写金额**：新增 `chineseUppercase` 格式，支持会计规范金额大写（`壹佰贰拾叁元肆角伍分`）
+- ✨ **表格合计管道化**：合计字段通过 `summary.pipe` 接入管道系统
 
 ## 🆕 v1.1.3 新增功能
 
@@ -199,11 +205,12 @@ interface MultiTemplatePrintProgress {
 
 ## 🔄 数据管道
 
-支持 6 种内置管道：
+支持 8 种内置管道：
 
 - **date** - 日期格式化 (`YYYY-MM-DD HH:mm:ss`)
 - **currency** - 货币格式化 (`¥9999.00`)
-- **money** - 金额转换（分↔元、千分位）
+- **money** - 金额转换（分↔元、千分位、中文大写金额）
+- **chineseNumber** - 中文大写数字（`壹仟`、`叁点壹肆`，支持小数）
 - **uppercase/lowercase** - 大小写转换
 - **slice** - 字符串截取
 - **default** - 默认值处理
@@ -223,10 +230,47 @@ interface MultiTemplatePrintProgress {
           symbol: '¥',
           separator: true     // 千分位分隔
         }
+      },
+      {
+        type: 'chineseNumber',
+        options: {
+          mode: 'both',       // 同时显示数字和大写
+          separator: ' 大写：',
+          unit: '元'
+        }
       }
     ]
   }
 }
+```
+
+### MoneyPipe 中文大写金额
+
+```typescript
+{
+  type: 'money',
+  options: {
+    mode: 'fenToYuan',
+    format: 'chineseUppercase',     // 中文大写金额
+    uppercaseMode: 'both',          // 同时显示数字和大写
+    separator: '  大写：'           // 自定义连接符
+  }
+}
+// 输出：123.45  大写：壹佰贰拾叁元肆角伍分
+```
+
+### ChineseNumberPipe 通用大写
+
+```typescript
+{
+  type: 'chineseNumber',
+  options: {
+    mode: 'both',
+    separator: ' 大写：',
+    unit: ''
+  }
+}
+// 输入 3.14 → 输出 3.14 大写：叁点壹肆
 ```
 
 ## 📊 表格高级功能
@@ -256,7 +300,15 @@ interface MultiTemplatePrintProgress {
         summary: {
           type: 'sum',      // sum, avg, max, min, count
           precision: 2,
-          prefix: '¥'
+          prefix: '¥',
+          // 通过管道格式化合计值
+          pipe: {
+            type: 'money',
+            options: {
+              mode: 'none',
+              format: 'chineseUppercase',
+            }
+          }
         }
       }
     ],
@@ -266,6 +318,14 @@ interface MultiTemplatePrintProgress {
   }
 }
 ```
+
+**合计管道配置示例：**
+
+| 效果 | pipe 配置 |
+|------|-----------|
+| 中文数字大写 + 原值 | `{ type: 'chineseNumber', options: { mode: 'both', separator: ' 大写：', unit: '元' } }` |
+| 中文金额大写 | `{ type: 'money', options: { mode: 'none', format: 'chineseUppercase' } }` |
+| 金额大写 + 原值 | `{ type: 'money', options: { mode: 'none', format: 'chineseUppercase', uppercaseMode: 'both', separator: '  大写：' } }` |
 
 ## 🔢 页码功能配置 ⭐ **v1.0.1 新增**
 
