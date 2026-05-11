@@ -42,11 +42,16 @@ function toChineseUppercase(n: number): string {
       result += digits[digit] + units[smallUnitIndex];
     }
 
-    if (smallUnitIndex === 0 && digit === 0) {
-      const groupStart = i - (pos % 4);
-      const groupEnd = i;
-      const group = str.slice(groupStart, groupEnd + 1);
-      if (group.split('').some((c: string) => c !== '0')) {
+    if (smallUnitIndex === 0 && bigUnitIndex > 0) {
+      const groupStart = Math.max(0, i - 3);
+      let hasNonZero = false;
+      for (let j = groupStart; j <= i; j++) {
+        if (str[j] !== '0') {
+          hasNonZero = true;
+          break;
+        }
+      }
+      if (hasNonZero) {
         result += bigUnits[bigUnitIndex];
         needZero = false;
       }
