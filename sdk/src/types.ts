@@ -79,12 +79,24 @@ export interface TablePaginationConfig {
   repeatHeader?: boolean;  // 跨页是否重复表头（默认 true）
 }
 
+/**
+ * 中文大写数字格式化选项
+ */
+export interface ChineseNumberOptions {
+  /** 输出模式：uppercase=仅大写，both=原始值(大写) */
+  mode: 'uppercase' | 'both';
+  /** 后缀单位，如"元" */
+  unit?: string;
+}
+
 // 表格列合计配置
 export interface TableColumnSummary {
   type: 'sum' | 'avg' | 'max' | 'min' | 'count';  // 聚合类型
   precision?: number;   // 小数位数，默认 2
   prefix?: string;      // 前缀，如 "￥"
   suffix?: string;      // 后缀，如 "元"
+  /** 中文大写数字格式化 */
+  chineseFormat?: ChineseNumberOptions;
 }
 
 // 表格列定义
@@ -125,10 +137,16 @@ export interface TableProps {
   summaryMode?: 'page' | 'total';   // 合计模式：page=每页合计，total=仅最后一页合计（默认）
   summaryLabel?: string;            // 合计行首列标签，默认 "合计"
   summaryStyle?: TableSummaryStyle; // 合计行样式
+  /** 是否显示序号列 */
+  showRowNumber?: boolean;
+  /** 序号列标题，默认"序号" */
+  rowNumberLabel?: string;
   _pageData?: any[];                // 分页数据（内部使用）
   _showHeader?: boolean;            // 是否显示表头（内部使用）
   _isLastPage?: boolean;            // 是否为最后一页（内部使用）
   _totalData?: any[];               // 全量数据（内部使用，用于总计模式）
+  /** 当前页起始行号（内部使用，由分页引擎注入） */
+  _startRowIndex?: number;
 }
 
 export interface ComponentNode {
