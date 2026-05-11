@@ -7,6 +7,7 @@ import type { ComponentNode, TableColumn, TableProps } from '../../types';
 import type { ComponentRenderer, RenderContext, StyleObject } from '../types';
 import { buildStyleString, buildPositionStyle } from '../utils/styleBuilder';
 import { COMPONENT_DEFAULT_SIZE, TABLE_DEFAULT, TABLE_STYLE_DEFAULT, STYLE_DEFAULT } from '../constants';
+import { getExecutor } from '../../pipes/registry';
 
 /**
  * 根据数据路径从对象中取值
@@ -323,7 +324,18 @@ export class TableRenderer implements ComponentRenderer {
       const prefix = summary.prefix || '';
       const suffix = summary.suffix || '';
 
-      return `${prefix}${formatted}${suffix}`;
+      let finalResult = `${prefix}${formatted}${suffix}`;
+
+      if (summary.chineseFormat) {
+        const { mode, unit } = summary.chineseFormat;
+        const chinesePipe = getExecutor('chineseNumber');
+        const chineseText = chinesePipe
+          ? chinesePipe.execute(Number(formatted), { mode, unit })
+          : formatted;
+        finalResult = `${finalResult}（${chineseText}）`;
+      }
+
+      return finalResult;
     } catch (formatError) {
       console.error('[TableRenderer] 格式化合计结果失败:', formatError);
       return '-';
