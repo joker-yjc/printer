@@ -121,6 +121,25 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
             </div>
           </>
         )}
+        <div className={styles["property-item"]}>
+          <Checkbox
+            checked={component.props?.showRowNumber === true}
+            onChange={(e) => onPropsChange('showRowNumber', e.target.checked)}
+          >
+            显示序号列
+          </Checkbox>
+        </div>
+        {component.props?.showRowNumber && (
+          <div className={styles["property-item"]}>
+            <Text className={styles["property-label"]}>序号列标题</Text>
+            <Input
+              size="small"
+              placeholder="默认：序号"
+              value={component.props?.rowNumberLabel || ''}
+              onChange={(e) => onPropsChange('rowNumberLabel', e.target.value)}
+            />
+          </div>
+        )}
         <div className={styles["property-item"]} style={{ marginTop: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <Text className={styles["property-label"]}>列配置</Text>
@@ -274,6 +293,56 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                                       />
                                     </Space.Compact>
                                   </div>
+                                  <div style={{ marginTop: 8 }}>
+                                    <Text type="secondary" style={{ fontSize: 12 }}>中文大写</Text>
+                                    <Select
+                                      size="small"
+                                      style={{ width: '100%', marginTop: 4 }}
+                                      placeholder="不启用"
+                                      allowClear
+                                      value={col.summary?.chineseFormat?.mode || undefined}
+                                      onChange={(value) => {
+                                        if (!value) {
+                                          handleColumnSummaryChange(index, {
+                                            ...col.summary!,
+                                            chineseFormat: undefined,
+                                          });
+                                        } else {
+                                          handleColumnSummaryChange(index, {
+                                            ...col.summary!,
+                                            chineseFormat: {
+                                              mode: value,
+                                              unit: col.summary?.chineseFormat?.unit,
+                                            },
+                                          });
+                                        }
+                                      }}
+                                      options={[
+                                        { label: '仅大写', value: 'uppercase' },
+                                        { label: '原值+大写', value: 'both' },
+                                      ]}
+                                    />
+                                  </div>
+                                  {col.summary?.chineseFormat && (
+                                    <div style={{ marginTop: 8 }}>
+                                      <Text type="secondary" style={{ fontSize: 12 }}>大写后缀单位</Text>
+                                      <Input
+                                        size="small"
+                                        style={{ marginTop: 4 }}
+                                        placeholder="如：元"
+                                        value={col.summary?.chineseFormat?.unit || ''}
+                                        onChange={(e) => {
+                                          handleColumnSummaryChange(index, {
+                                            ...col.summary!,
+                                            chineseFormat: {
+                                              ...col.summary!.chineseFormat!,
+                                              unit: e.target.value,
+                                            },
+                                          });
+                                        }}
+                                      />
+                                    </div>
+                                  )}
                                 </>
                               )}
                             </Space>

@@ -162,6 +162,16 @@ export interface TablePaginationConfig {
 }
 
 /**
+ * 中文大写数字格式化选项
+ */
+export interface ChineseNumberOptions {
+  /** 输出模式：uppercase=仅大写，both=原始值(大写) */
+  mode: 'uppercase' | 'both';
+  /** 后缀单位，如"元" */
+  unit?: string;
+}
+
+/**
  * 表格列合计配置
  * 定义表格列的合计计算方式
  */
@@ -174,6 +184,8 @@ export interface TableColumnSummary {
   prefix?: string;
   /** 后缀，如 "元" */
   suffix?: string;
+  /** 中文大写数字格式化 */
+  chineseFormat?: ChineseNumberOptions;
 }
 
 /**
@@ -229,6 +241,10 @@ export interface TableProps {
   summaryLabel?: string;
   /** 合计行样式 */
   summaryStyle?: TableSummaryStyle;
+  /** 是否显示序号列 */
+  showRowNumber?: boolean;
+  /** 序号列标题，默认"序号" */
+  rowNumberLabel?: string;
   /** 当前页数据（SDK 内部使用） */
   _pageData?: any[];
   /** 是否显示表头（SDK 内部使用，用于控制跨页表头） */
@@ -237,6 +253,8 @@ export interface TableProps {
   _isLastPage?: boolean;
   /** 全量数据（SDK 内部使用，用于总计模式） */
   _totalData?: any[];
+  /** 当前页起始行号（SDK 内部使用） */
+  _startRowIndex?: number;
 }
 
 /**

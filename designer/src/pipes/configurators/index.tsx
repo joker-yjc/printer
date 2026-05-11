@@ -7,8 +7,9 @@ import type { PipeConfig } from '@jcyao/print-sdk';
 import { DatePipeConfigurator } from './DatePipeConfigurator';
 import { CurrencyPipeConfigurator } from './CurrencyPipeConfigurator';
 import { MoneyPipeConfigurator } from './MoneyPipeConfigurator';
+import { ChineseNumberPipeConfigurator } from './ChineseNumberPipeConfigurator';
 
-export { DatePipeConfigurator, CurrencyPipeConfigurator, MoneyPipeConfigurator };
+export { DatePipeConfigurator, CurrencyPipeConfigurator, MoneyPipeConfigurator, ChineseNumberPipeConfigurator };
 
 /**
  * 管道配置器接口（UI层）
@@ -73,6 +74,7 @@ configuratorRegistry.set('currency', CurrencyPipeConfigurator);
 configuratorRegistry.set('money', MoneyPipeConfigurator);
 configuratorRegistry.set('slice', SlicePipeConfigurator);
 configuratorRegistry.set('default', DefaultPipeConfigurator);
+configuratorRegistry.set('chineseNumber', ChineseNumberPipeConfigurator);
 
 /**
  * 获取管道配置器
