@@ -162,6 +162,7 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
       pageConfig: template.page,
       components: template.components,
       selectedComponentId: null,
+      zoomLevel: 100,
     });
   },
 
