@@ -5,16 +5,18 @@ import path from 'path'
 import { mockServerPlugin } from './mock/server'
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     monaco({ local: true }),
     mockServerPlugin(),  // Mock API 服务插件
   ],
   resolve: {
-    alias: {
-      // 本地 SDK 路径映射，用于开发和调试
-      '@jcyao/print-sdk': path.resolve(__dirname, '../sdk/src/index.ts'),
-    },
+    alias: mode === 'production'
+      ? undefined  // 生产构建使用 npm 包
+      : {
+          // 本地开发使用当前目录下的 SDK 源码
+          '@jcyao/print-sdk': path.resolve(__dirname, '../sdk/src/index.ts'),
+        },
   },
-})
+}))
