@@ -106,11 +106,31 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
     onPropsChange('summaryExtraRows', newRows);
   };
 
-  /** 获取所有有合计配置的列，用于 sourceColumn 下拉 */
-  const getSummaryColumns = () => {
+  /** 获取所有列，用于 sourceColumn 下拉 */
+  const getAllColumns = () => {
     return (component.props?.columns || [])
-      .filter((col: any) => col.summary?.type)
+      .filter((col: any) => !col.hidden)
       .map((col: any) => ({ label: `${col.title}（${col.dataIndex}）`, value: col.dataIndex }));
+  };
+
+  /** sourceColumn 变更时，自动为该列创建合计配置（如果没有） */
+  const handleSourceColumnChange = (rowIndex: number, itemIndex: number, dataIndex: string | undefined) => {
+    // 更新 sourceColumn
+    handleExtraRowItemChange(rowIndex, itemIndex, 'sourceColumn', dataIndex);
+
+    // 如果选中了列且该列没有合计配置，自动创建默认 sum 配置
+    if (dataIndex) {
+      const columns = component.props?.columns || [];
+      const colIndex = columns.findIndex((col: any) => col.dataIndex === dataIndex);
+      if (colIndex >= 0 && !columns[colIndex].summary?.type) {
+        const newColumns = [...columns];
+        newColumns[colIndex] = {
+          ...newColumns[colIndex],
+          summary: { type: 'sum', precision: 2 },
+        };
+        onPropsChange('columns', newColumns);
+      }
+    }
   };
 
   // 仅在表格组件且有列配置时显示
@@ -252,8 +272,8 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                                   placeholder="引用合计列（可选）"
                                   allowClear
                                   value={item.sourceColumn || undefined}
-                                  onChange={(val) => handleExtraRowItemChange(rowIndex, itemIndex, 'sourceColumn', val)}
-                                  options={getSummaryColumns()}
+                                  onChange={(val) => handleSourceColumnChange(rowIndex, itemIndex, val)}
+                                  options={getAllColumns()}
                                 />
                                 <Select
                                   size="small"
