@@ -1,1 +1,9 @@
-{}
+{
+  "name": "printer",
+  "private": true,
+  "scripts": {
+    "start": "cd designer && npm run dev",
+    "build:sdk": "cd sdk && npm run build",
+    "build:designer": "cd designer && npm run build"
+  }
+}
