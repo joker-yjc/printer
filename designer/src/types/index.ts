@@ -145,7 +145,7 @@ export interface PipeConfig {
  */
 export interface DataBinding {
   /** 数据路径（支持点号路径，如 'user.name'） */
-  path: string;
+  path?: string;
   /** 数据管道列表（用于格式转换） */
   pipes?: PipeConfig[];
   /** 数据缺失时的回退值 */

@@ -1,5 +1,16 @@
 import axios from 'axios';
 import type { SchemaDictionary, PrintTemplate, MockData } from '../types';
+import {
+  schemaApi as mockSchemaApi,
+  templateApi as mockTemplateApi,
+  mockDataApi as mockMockDataApi,
+} from './mockApi';
+
+/**
+ * 是否启用前端 Mock 模式
+ * 构建演示站点时设置 VITE_USE_MOCK=true，所有 API 将在前端内存中处理
+ */
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 /**
  * 后端 API 基础地址
@@ -20,10 +31,10 @@ const apiClient = axios.create({
 });
 
 /**
- * Schema 字典管理 API
+ * Schema 字典管理 API（真实后端）
  * 用于管理数据模型的字段定义，包括字段名称、类型、枚举值等元数据
  */
-export const schemaApi = {
+const realSchemaApi = {
   list: async (name?: string): Promise<SchemaDictionary[]> => {
     const response = await apiClient.get('/schemas', { params: { name } });
     return response.data;
@@ -50,10 +61,10 @@ export const schemaApi = {
 };
 
 /**
- * 打印模板管理 API
+ * 打印模板管理 API（真实后端）
  * 用于管理打印模板（包含页面配置、组件列表、布局信息等）
  */
-export const templateApi = {
+const realTemplateApi = {
   list: async (params?: { name?: string; schemaId?: string }): Promise<PrintTemplate[]> => {
     const response = await apiClient.get('/templates', { params });
     return response.data;
@@ -80,10 +91,10 @@ export const templateApi = {
 };
 
 /**
- * Mock 数据管理 API
+ * Mock 数据管理 API（真实后端）
  * 用于管理测试数据，支持按 Schema 或模板关联数据
  */
-export const mockDataApi = {
+const realMockDataApi = {
   list: async (params?: {
     name?: string;
     schemaId?: string;
@@ -112,3 +123,11 @@ export const mockDataApi = {
     await apiClient.delete(`/mock-data/${id}`);
   },
 };
+
+/**
+ * 根据环境变量导出对应的 API 实现
+ * USE_MOCK=true 时走前端内存 Mock，否则走真实 HTTP 请求
+ */
+export const schemaApi = USE_MOCK ? mockSchemaApi : realSchemaApi;
+export const templateApi = USE_MOCK ? mockTemplateApi : realTemplateApi;
+export const mockDataApi = USE_MOCK ? mockMockDataApi : realMockDataApi;

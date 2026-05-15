@@ -3,19 +3,7 @@
  * 从 Express server 迁移，提供完整的 CRUD API 支持
  */
 import type { Connect } from 'vite';
-import type { SchemaDictionary, PrintTemplate, MockData } from './types';
-import { defaultSchemas } from './schemas';
-import { defaultTemplates } from './templates';
-import { defaultMockData } from './mockData';
-
-/** 生成 UUID */
-function uuid(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
+import { mockStore } from '../src/services/mockStore';
 
 /** 解析 JSON 请求体 */
 function parseBody<T>(req: any): Promise<T> {
@@ -47,11 +35,6 @@ function sendJson(res: any, data: any, status = 200) {
 
 /** 创建 Mock 中间件 */
 export function createMockMiddleware(): Connect.NextHandleFunction {
-  // 内存数据存储（从默认数据初始化）
-  let schemas: SchemaDictionary[] = [...defaultSchemas];
-  let templates: PrintTemplate[] = [...defaultTemplates];
-  let mockDataStore: MockData[] = [...defaultMockData];
-
   return async (req, res, next) => {
     const url = req.url || '';
     const method = req.method || 'GET';
@@ -78,51 +61,32 @@ export function createMockMiddleware(): Connect.NextHandleFunction {
     try {
       // ==================== Schemas API ====================
       if (resource === 'schemas') {
-        // GET /api/schemas - 列表查询
         if (method === 'GET' && !id) {
-          let result = schemas;
-          if (query.name) {
-            result = result.filter((s) => s.name.includes(query.name as string));
-          }
-          return sendJson(res, result);
+          return sendJson(res, mockStore.listSchemas(query.name as string | undefined));
         }
 
-        // GET /api/schemas/:id - 获取单个
         if (method === 'GET' && id) {
-          const schema = schemas.find((s) => s.id === id);
+          const schema = mockStore.getSchema(id);
           if (!schema) {
             return sendJson(res, { code: 'NOT_FOUND', message: 'Schema not found' }, 404);
           }
           return sendJson(res, schema);
         }
 
-        // POST /api/schemas - 创建
         if (method === 'POST' && !id) {
-          const body = await parseBody<SchemaDictionary>(req);
-          const newId = body.id || uuid();
-          const schema: SchemaDictionary = { ...body, id: newId };
-          schemas.push(schema);
+          const body = await parseBody(req);
+          const schema = mockStore.createSchema(body);
           return sendJson(res, schema, 201);
         }
 
-        // PUT /api/schemas/:id - 更新
         if (method === 'PUT' && id) {
-          const index = schemas.findIndex((s) => s.id === id);
-          if (index === -1) {
-            return sendJson(res, { code: 'NOT_FOUND', message: 'Schema not found' }, 404);
-          }
-          const body = await parseBody<SchemaDictionary>(req);
-          schemas[index] = { ...body, id };
-          return sendJson(res, schemas[index]);
+          const body = await parseBody(req);
+          const schema = mockStore.updateSchema(id, body);
+          return sendJson(res, schema);
         }
 
-        // DELETE /api/schemas/:id - 删除
         if (method === 'DELETE' && id) {
-          const index = schemas.findIndex((s) => s.id === id);
-          if (index === -1) {
-            return sendJson(res, { code: 'NOT_FOUND', message: 'Schema not found' }, 404);
-          }
-          schemas.splice(index, 1);
+          mockStore.deleteSchema(id);
           res.statusCode = 204;
           res.end();
           return;
@@ -131,54 +95,35 @@ export function createMockMiddleware(): Connect.NextHandleFunction {
 
       // ==================== Templates API ====================
       if (resource === 'templates') {
-        // GET /api/templates - 列表查询
         if (method === 'GET' && !id) {
-          let result = templates;
-          if (query.name) {
-            result = result.filter((t) => t.name.includes(query.name as string));
-          }
-          if (query.schemaId) {
-            result = result.filter((t) => t.schemaId === query.schemaId);
-          }
-          return sendJson(res, result);
+          return sendJson(res, mockStore.listTemplates({
+            name: query.name as string | undefined,
+            schemaId: query.schemaId as string | undefined,
+          }));
         }
 
-        // GET /api/templates/:id - 获取单个
         if (method === 'GET' && id) {
-          const template = templates.find((t) => t.id === id);
+          const template = mockStore.getTemplate(id);
           if (!template) {
             return sendJson(res, { code: 'NOT_FOUND', message: 'Template not found' }, 404);
           }
           return sendJson(res, template);
         }
 
-        // POST /api/templates - 创建
         if (method === 'POST' && !id) {
-          const body = await parseBody<PrintTemplate>(req);
-          const newId = body.id || uuid();
-          const template: PrintTemplate = { ...body, id: newId };
-          templates.push(template);
+          const body = await parseBody(req);
+          const template = mockStore.createTemplate(body);
           return sendJson(res, template, 201);
         }
 
-        // PUT /api/templates/:id - 更新
         if (method === 'PUT' && id) {
-          const index = templates.findIndex((t) => t.id === id);
-          if (index === -1) {
-            return sendJson(res, { code: 'NOT_FOUND', message: 'Template not found' }, 404);
-          }
-          const body = await parseBody<PrintTemplate>(req);
-          templates[index] = { ...body, id };
-          return sendJson(res, templates[index]);
+          const body = await parseBody(req);
+          const template = mockStore.updateTemplate(id, body);
+          return sendJson(res, template);
         }
 
-        // DELETE /api/templates/:id - 删除
         if (method === 'DELETE' && id) {
-          const index = templates.findIndex((t) => t.id === id);
-          if (index === -1) {
-            return sendJson(res, { code: 'NOT_FOUND', message: 'Template not found' }, 404);
-          }
-          templates.splice(index, 1);
+          mockStore.deleteTemplate(id);
           res.statusCode = 204;
           res.end();
           return;
@@ -187,57 +132,36 @@ export function createMockMiddleware(): Connect.NextHandleFunction {
 
       // ==================== Mock Data API ====================
       if (resource === 'mock-data') {
-        // GET /api/mock-data - 列表查询
         if (method === 'GET' && !id) {
-          let result = mockDataStore;
-          if (query.name) {
-            result = result.filter((m) => m.name.includes(query.name as string));
-          }
-          if (query.schemaId) {
-            result = result.filter((m) => m.schemaId === query.schemaId);
-          }
-          if (query.templateId) {
-            result = result.filter((m) => m.templateId === query.templateId);
-          }
-          return sendJson(res, result);
+          return sendJson(res, mockStore.listMockData({
+            name: query.name as string | undefined,
+            schemaId: query.schemaId as string | undefined,
+            templateId: query.templateId as string | undefined,
+          }));
         }
 
-        // GET /api/mock-data/:id - 获取单个
         if (method === 'GET' && id) {
-          const mock = mockDataStore.find((m) => m.id === id);
+          const mock = mockStore.getMockData(id);
           if (!mock) {
             return sendJson(res, { code: 'NOT_FOUND', message: 'Mock data not found' }, 404);
           }
           return sendJson(res, mock);
         }
 
-        // POST /api/mock-data - 创建
         if (method === 'POST' && !id) {
-          const body = await parseBody<MockData>(req);
-          const newId = body.id || uuid();
-          const mock: MockData = { ...body, id: newId };
-          mockDataStore.push(mock);
+          const body = await parseBody(req);
+          const mock = mockStore.createMockData(body);
           return sendJson(res, mock, 201);
         }
 
-        // PUT /api/mock-data/:id - 更新
         if (method === 'PUT' && id) {
-          const index = mockDataStore.findIndex((m) => m.id === id);
-          if (index === -1) {
-            return sendJson(res, { code: 'NOT_FOUND', message: 'Mock data not found' }, 404);
-          }
-          const body = await parseBody<MockData>(req);
-          mockDataStore[index] = { ...body, id };
-          return sendJson(res, mockDataStore[index]);
+          const body = await parseBody(req);
+          const mock = mockStore.updateMockData(id, body);
+          return sendJson(res, mock);
         }
 
-        // DELETE /api/mock-data/:id - 删除
         if (method === 'DELETE' && id) {
-          const index = mockDataStore.findIndex((m) => m.id === id);
-          if (index === -1) {
-            return sendJson(res, { code: 'NOT_FOUND', message: 'Mock data not found' }, 404);
-          }
-          mockDataStore.splice(index, 1);
+          mockStore.deleteMockData(id);
           res.statusCode = 204;
           res.end();
           return;
@@ -248,7 +172,8 @@ export function createMockMiddleware(): Connect.NextHandleFunction {
       return next();
     } catch (error) {
       console.error('[Mock Server] Error:', error);
-      sendJson(res, { code: 'INTERNAL_ERROR', message: 'Internal server error' }, 500);
+      const message = error instanceof Error ? error.message : 'Internal server error';
+      sendJson(res, { code: 'INTERNAL_ERROR', message }, 500);
     }
   };
 }
