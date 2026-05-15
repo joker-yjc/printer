@@ -275,21 +275,57 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                                   onChange={(val) => handleSourceColumnChange(rowIndex, itemIndex, val)}
                                   options={getAllColumns()}
                                 />
-                                <Select
-                                  size="small"
-                                  style={{ width: '100%' }}
-                                  placeholder="添加管道转换（可选）"
-                                  allowClear
-                                  value={item.pipes?.[0]?.type || undefined}
-                                  onChange={(val) => {
-                                    if (!val) {
-                                      handleExtraRowItemChange(rowIndex, itemIndex, 'pipes', undefined);
-                                    } else {
-                                      handleExtraRowItemChange(rowIndex, itemIndex, 'pipes', [{ type: val, options: {} }]);
-                                    }
-                                  }}
-                                  options={getAllPipes().filter((p) => p.value === 'chineseNumber' || p.value === 'money')}
-                                />
+                                <div>
+                                  <Text type="secondary" style={{ fontSize: 12 }}>管道转换</Text>
+                                  {item.pipes?.[0] ? (
+                                    <div style={{ marginTop: 4, border: '1px solid #d9d9d9', borderRadius: 4, padding: 8, background: '#fafafa' }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                        <Tag color="blue">{item.pipes[0].type}</Tag>
+                                        <Button
+                                          type="text"
+                                          size="small"
+                                          danger
+                                          icon={<CloseOutlined />}
+                                          onClick={() => handleExtraRowItemChange(rowIndex, itemIndex, 'pipes', undefined)}
+                                        />
+                                      </div>
+                                      {(() => {
+                                        const configurator = getConfigurator(item.pipes[0].type);
+                                        if (configurator) {
+                                          return configurator.renderConfig(
+                                            item.pipes[0],
+                                            (option: string, value: any) => {
+                                              const newRows = [...extraRows];
+                                              const items = [...newRows[rowIndex].items];
+                                              const currentPipe = items[itemIndex].pipes?.[0];
+                                              if (currentPipe) {
+                                                items[itemIndex] = {
+                                                  ...items[itemIndex],
+                                                  pipes: [{
+                                                    type: currentPipe.type,
+                                                    options: { ...currentPipe.options, [option]: value },
+                                                  }],
+                                                };
+                                                newRows[rowIndex] = { ...newRows[rowIndex], items };
+                                                onPropsChange('summaryExtraRows', newRows);
+                                              }
+                                            },
+                                          );
+                                        }
+                                        return null;
+                                      })()}
+                                    </div>
+                                  ) : (
+                                    <Select
+                                      size="small"
+                                      style={{ width: '100%', marginTop: 4 }}
+                                      placeholder="添加管道转换（可选）"
+                                      value={null}
+                                      onChange={(val: string) => handleExtraRowItemChange(rowIndex, itemIndex, 'pipes', [{ type: val, options: {} }])}
+                                      options={getAllPipes().filter((p) => p.value === 'chineseNumber' || p.value === 'money')}
+                                    />
+                                  )}
+                                </div>
                               </Space>
                             </div>
                           ))}

@@ -308,11 +308,6 @@ export const defaultTemplates: PrintTemplate[] = [
           "showHeader": true,
           "columns": [
             {
-              "dataIndex": "no",
-              "title": "序号",
-              "width": 30
-            },
-            {
               "dataIndex": "name",
               "title": "商品名称",
               "width": 60
