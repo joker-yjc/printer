@@ -3,7 +3,7 @@
  */
 
 import Decimal from 'decimal.js';
-import type { ComponentNode, TableColumn, TableProps } from '../../types';
+import type { ComponentNode, TableColumn, TableProps, SummaryExtraRow } from '../../types';
 import type { ComponentRenderer, RenderContext, StyleObject } from '../types';
 import { buildStyleString, buildPositionStyle } from '../utils/styleBuilder';
 import { COMPONENT_DEFAULT_SIZE, TABLE_DEFAULT, TABLE_STYLE_DEFAULT, STYLE_DEFAULT } from '../constants';
@@ -259,7 +259,13 @@ export class TableRenderer implements ComponentRenderer {
       return `<td style="${cellStyle}">${content}</td>`;
     }).join('');
 
-    return `<tfoot><tr style="min-height: ${rowHeightPx}px;">${cells}</tr></tfoot>`;
+    const summaryRow = `<tfoot><tr style="min-height: ${rowHeightPx}px;">${cells}</tr></tfoot>`;
+
+    const extraRowsHtml = this.renderSummaryExtraRows(
+      data, columns, props, cellBorder, cellPadding, cellTextStyle, rowHeightPx, columns.length
+    );
+
+    return summaryRow + extraRowsHtml;
   }
 
   /**
@@ -338,6 +344,115 @@ export class TableRenderer implements ComponentRenderer {
       console.error('[TableRenderer] 格式化合计结果失败:', formatError);
       return '-';
     }
+  }
+
+  /**
+   * 获取列合计的原始数值（用于额外行管道处理）
+   */
+  private getColumnSummaryRawValue(data: any[], column: TableColumn): number | null {
+    if (!data.length || !column.summary) return null;
+
+    const values = data
+      .map(row => {
+        const val = getByPath(row, column.dataIndex);
+        const num = Number(val);
+        return isNaN(num) ? null : num;
+      })
+      .filter(val => val !== null) as number[];
+
+    if (!values.length) return null;
+
+    const { summary } = column;
+    let result: Decimal;
+
+    try {
+      switch (summary.type) {
+        case 'sum':
+          result = values.reduce((sum, val) => sum.plus(val), new Decimal(0));
+          break;
+        case 'avg':
+          result = values.reduce((sum, val) => sum.plus(val), new Decimal(0)).dividedBy(values.length);
+          break;
+        case 'max':
+          result = Decimal.max(...values.map(v => new Decimal(v)));
+          break;
+        case 'min':
+          result = Decimal.min(...values.map(v => new Decimal(v)));
+          break;
+        case 'count':
+          result = new Decimal(values.length);
+          break;
+        default:
+          return null;
+      }
+      return result.toNumber();
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * 渲染合计额外行
+   */
+  private renderSummaryExtraRows(
+    data: any[],
+    columns: TableColumn[],
+    props: TableProps,
+    cellBorder: string,
+    cellPadding: string,
+    cellTextStyle: string,
+    rowHeightPx: number,
+    colCount: number
+  ): string {
+    const extraRows = props.summaryExtraRows;
+    if (!extraRows || extraRows.length === 0) return '';
+
+    const summaryStyle = props.summaryStyle || {};
+    const defaultBgColor = summaryStyle.backgroundColor || '#f5f5f5';
+    const defaultFontWeight = summaryStyle.fontWeight || 'bold';
+
+    return extraRows.map((row: SummaryExtraRow) => {
+      const bgColor = row.backgroundColor || defaultBgColor;
+      const fontWeight = row.fontWeight || defaultFontWeight;
+      const align = row.align || 'left';
+
+      const content = (row.items || []).map(item => {
+        let text = item.label || '';
+
+        if (item.sourceColumn) {
+          const col = columns.find(c => c.dataIndex === item.sourceColumn);
+          if (col) {
+            let value: any = this.getColumnSummaryRawValue(data, col);
+            if (item.pipes && value !== null) {
+              for (const pipe of item.pipes) {
+                const executor = getExecutor(pipe.type);
+                if (executor) {
+                  value = executor.execute(value, pipe.options);
+                }
+              }
+            }
+            if (value !== null && value !== undefined) {
+              text += String(value);
+            }
+          }
+        }
+
+        return text;
+      }).join('');
+
+      const cellStyle = `
+        ${cellBorder}
+        ${cellPadding}
+        ${cellTextStyle}
+        text-align: ${align};
+        min-height: ${rowHeightPx}px;
+        box-sizing: border-box;
+        background: ${bgColor};
+        font-weight: ${fontWeight};
+      `.trim().replace(/\s+/g, ' ');
+
+      return `<tr style="min-height: ${rowHeightPx}px;"><td colspan="${colCount}" style="${cellStyle}">${content}</td></tr>`;
+    }).join('');
   }
 
   calculateHeight(component: ComponentNode, context: RenderContext): number {

@@ -1118,7 +1118,21 @@ export const defaultTemplates: PrintTemplate[] = [
           ],
           "showSummary": true,
           "summaryMode": "total",
-          "summaryLabel": "合计"
+          "summaryLabel": "合计",
+          "summaryExtraRows": [
+            {
+              "items": [
+                {
+                  "label": "金额大写：",
+                  "sourceColumn": "amount",
+                  "pipes": [
+                    { "type": "chineseNumber", "options": { "mode": "uppercase", "unit": "元整" } }
+                  ]
+                }
+              ],
+              "align": "left"
+            }
+          ]
         }
       },
       {

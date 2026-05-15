@@ -137,6 +137,30 @@ export interface TableProps {
   _totalData?: any[];               // 全量数据（内部使用，用于总计模式）
   /** 当前页起始行号（内部使用，由分页引擎注入） */
   _startRowIndex?: number;
+  /** 合计额外行配置 */
+  summaryExtraRows?: SummaryExtraRow[];
+}
+
+// 合计额外行数据项
+export interface SummaryExtraRowItem {
+  /** 静态前缀文字 */
+  label?: string;
+  /** 引用列的合计值（dataIndex） */
+  sourceColumn?: string;
+  /** 对该合计值应用的管道 */
+  pipes?: PipeConfig[];
+}
+
+// 合计额外行配置
+export interface SummaryExtraRow {
+  /** 行内数据项，内容按顺序拼接 */
+  items: SummaryExtraRowItem[];
+  /** 背景色 */
+  backgroundColor?: string;
+  /** 字重 */
+  fontWeight?: string;
+  /** 对齐方式，默认 left */
+  align?: 'left' | 'center' | 'right';
 }
 
 export interface ComponentNode {
