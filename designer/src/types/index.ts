@@ -211,6 +211,34 @@ export interface TableSummaryStyle {
 }
 
 /**
+ * 表格合计额外行数据项
+ * 定义额外行中每个单元格的内容来源和格式化方式
+ */
+export interface SummaryExtraRowItem {
+  /** 静态前缀文字，如"金额大写：" */
+  label?: string;
+  /** 引用列的合计值（dataIndex），不填则只显示 label */
+  sourceColumn?: string;
+  /** 对该合计值应用的管道（独立隔离） */
+  pipes?: PipeConfig[];
+}
+
+/**
+ * 表格合计额外行配置
+ * 在合计行下方显示额外信息行（如大写金额、签名区等）
+ */
+export interface SummaryExtraRow {
+  /** 行内的多个数据项，内容按顺序拼接显示 */
+  items: SummaryExtraRowItem[];
+  /** 背景色，不填则继承 summaryStyle.backgroundColor */
+  backgroundColor?: string;
+  /** 字重，不填则继承 summaryStyle.fontWeight */
+  fontWeight?: string;
+  /** 对齐方式，默认 left */
+  align?: 'left' | 'center' | 'right';
+}
+
+/**
  * 表格组件属性
  * 定义表格组件的所有配置选项
  */
@@ -245,6 +273,8 @@ export interface TableProps {
   _totalData?: any[];
   /** 当前页起始行号（SDK 内部使用） */
   _startRowIndex?: number;
+  /** 合计额外行配置：在合计行下方显示的额外信息行 */
+  summaryExtraRows?: SummaryExtraRow[];
 }
 
 /**
