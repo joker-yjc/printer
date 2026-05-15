@@ -395,6 +395,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                       size="small"
                       ghost
                       style={{ marginTop: 4 }}
+                      defaultActiveKey={col.summary?.type ? ['summary'] : []}
                       items={[
                         {
                           key: 'summary',
