@@ -12,6 +12,8 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
   const bordered = component.props?.bordered !== false;
   const showHeader = component.props?.showHeader !== false;
   const visibleColumns = columns.filter((col: any) => !col.hidden);
+  const showRowNumber = component.props?.showRowNumber === true;
+  const rowNumberLabel = component.props?.rowNumberLabel || '序号';
   const tableTextAlign = component.style?.textAlign || 'left';
 
   return (
@@ -24,6 +26,17 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
       {showHeader && visibleColumns.length > 0 && (
         <thead>
           <tr>
+            {showRowNumber && (
+              <th style={{
+                border: bordered ? '1px solid #d9d9d9' : 'none',
+                padding: '8px',
+                background: '#fafafa',
+                fontWeight: 600,
+                textAlign: 'center',
+              }}>
+                {rowNumberLabel}
+              </th>
+            )}
             {visibleColumns.map((col: any, idx: number) => (
               <th key={idx} style={{
                 border: bordered ? '1px solid #d9d9d9' : 'none',
@@ -40,7 +53,7 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
       )}
       <tbody>
         <tr>
-          <td colSpan={visibleColumns.length || 1} style={{
+          <td colSpan={(showRowNumber ? visibleColumns.length + 1 : visibleColumns.length) || 1} style={{
             border: bordered ? '1px solid #d9d9d9' : 'none',
             padding: '8px',
             textAlign: 'center',
