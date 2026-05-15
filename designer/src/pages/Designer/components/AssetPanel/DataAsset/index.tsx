@@ -305,7 +305,7 @@ const DataAsset = () => {
           defaultExpandAll
           blockNode
           treeData={treeData}
-          onDoubleClick={(e, node) => {
+          onDoubleClick={(_e, node) => {
             if (node.key) {
               handleDoubleClick(node.key as string);
             }

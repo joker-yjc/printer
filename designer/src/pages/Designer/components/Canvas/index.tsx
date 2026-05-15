@@ -254,7 +254,7 @@ const CanvasArea = () => {
         case 'table':
           componentName = '表格';
           const pageWidthMm = pageConfig.size === 'A4' ? 210 : 148;
-          const { top, left, right } = pageConfig.marginMm;
+          const { left, right } = pageConfig.marginMm;
           const availableWidth = pageWidthMm - left - right;
           defaultProps = {
             layout: { mode: 'absolute' as const, xMm, yMm, widthMm: availableWidth, heightMm: 60 },
