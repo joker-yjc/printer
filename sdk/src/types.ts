@@ -69,7 +69,7 @@ export interface PipeConfig {
 }
 
 export interface DataBinding {
-  path: string;
+  path?: string;
   pipes?: PipeConfig[];
   fallback?: string;
 }

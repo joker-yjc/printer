@@ -74,38 +74,38 @@ export class TableRenderer implements ComponentRenderer {
       // 优先使用用户设置的宽度
       tableWidthMm = layout.widthMm;
 
-      // 检查是否会溢出（xMm + widthMm 不能超过可用宽度）
+      // 检查是否会溢出（xMm + widthMm 不能超过右页边距）
       if (context.pageInfo) {
-        const availableWidth = context.pageInfo.widthMm - context.pageInfo.marginMm.left - context.pageInfo.marginMm.right;
-        const totalOccupied = xMm + tableWidthMm;
+        const maxRightEdge = context.pageInfo.widthMm - context.pageInfo.marginMm.right;
+        const tableRightEdge = xMm + tableWidthMm;
 
-        if (totalOccupied > availableWidth) {
+        if (tableRightEdge > maxRightEdge) {
           console.warn(
-            `表格宽度溢出：xMm(${xMm.toFixed(2)}) + widthMm(${tableWidthMm.toFixed(2)}) = ${totalOccupied.toFixed(2)}mm，` +
-            `超出可用宽度 ${availableWidth.toFixed(2)}mm，已自动调整宽度`
+            `表格宽度溢出：xMm(${xMm.toFixed(2)}) + widthMm(${tableWidthMm.toFixed(2)}) = ${tableRightEdge.toFixed(2)}mm，` +
+            `超出右页边距 ${maxRightEdge.toFixed(2)}mm，已自动调整宽度`
           );
           // 自动调整宽度避免溢出
-          tableWidthMm = availableWidth - xMm;
+          tableWidthMm = maxRightEdge - xMm;
         }
       }
     } else if (context.pageInfo) {
       // 未设置宽度：自动占满可用宽度（减去 xMm 偏移）
-      const availableWidth = context.pageInfo.widthMm - context.pageInfo.marginMm.left - context.pageInfo.marginMm.right;
-      tableWidthMm = availableWidth - xMm;
+      const maxRightEdge = context.pageInfo.widthMm - context.pageInfo.marginMm.right;
+      tableWidthMm = maxRightEdge - xMm;
     } else {
       // 备用：使用默认值
       tableWidthMm = COMPONENT_DEFAULT_SIZE.TABLE_WIDTH;
     }
 
-    // ✅ 检查 xMm 是否已超过可用宽度
-    const availableWidth = context.pageInfo
-      ? context.pageInfo.widthMm - context.pageInfo.marginMm.left - context.pageInfo.marginMm.right
+    // ✅ 检查 xMm 是否已超过右页边距
+    const maxRightEdge = context.pageInfo
+      ? context.pageInfo.widthMm - context.pageInfo.marginMm.right
       : COMPONENT_DEFAULT_SIZE.TABLE_WIDTH;
 
-    if (xMm >= availableWidth) {
+    if (xMm >= maxRightEdge) {
       console.error(
-        `[TableRenderer] 表格位置错误：xMm(${xMm.toFixed(2)}mm) 已超过页面可用宽度(${availableWidth.toFixed(2)}mm)，` +
-        `表格将无法正常显示。请调整表格的 x 位置，使其小于 ${availableWidth.toFixed(2)}mm`
+        `[TableRenderer] 表格位置错误：xMm(${xMm.toFixed(2)}mm) 已超过右页边距(${maxRightEdge.toFixed(2)}mm)，` +
+        `表格将无法正常显示。请调整表格的 x 位置，使其小于 ${maxRightEdge.toFixed(2)}mm`
       );
     }
 
@@ -259,13 +259,11 @@ export class TableRenderer implements ComponentRenderer {
       return `<td style="${cellStyle}">${content}</td>`;
     }).join('');
 
-    const summaryRow = `<tfoot><tr style="min-height: ${rowHeightPx}px;">${cells}</tr></tfoot>`;
-
     const extraRowsHtml = this.renderSummaryExtraRows(
       data, columns, props, cellBorder, cellPadding, cellTextStyle, rowHeightPx, columns.length
     );
 
-    return summaryRow + extraRowsHtml;
+    return `<tfoot><tr style="min-height: ${rowHeightPx}px;">${cells}</tr>${extraRowsHtml}</tfoot>`;
   }
 
   /**
@@ -406,6 +404,7 @@ export class TableRenderer implements ComponentRenderer {
   ): string {
     const extraRows = props.summaryExtraRows;
     if (!extraRows || extraRows.length === 0) return '';
+    if (props.showSummary !== true) return '';
 
     const summaryStyle = props.summaryStyle || {};
     const defaultBgColor = summaryStyle.backgroundColor || '#f5f5f5';
@@ -424,11 +423,17 @@ export class TableRenderer implements ComponentRenderer {
           if (col) {
             let value: any = this.getColumnSummaryRawValue(data, col);
             if (item.pipes && value !== null) {
-              for (const pipe of item.pipes) {
-                const executor = getExecutor(pipe.type);
-                if (executor) {
-                  value = executor.execute(value, pipe.options);
+              const originalValue = value;
+              try {
+                for (const pipe of item.pipes) {
+                  const executor = getExecutor(pipe.type);
+                  if (executor) {
+                    value = executor.execute(value, pipe.options);
+                  }
                 }
+              } catch (pipeError) {
+                console.error('[TableRenderer] 额外行管道执行失败:', pipeError);
+                value = originalValue; // 保留原始值，不置 null
               }
             }
             if (value !== null && value !== undefined) {
@@ -457,18 +462,22 @@ export class TableRenderer implements ComponentRenderer {
 
   calculateHeight(component: ComponentNode, context: RenderContext): number {
     // 表格高度：简单估算（用于初始布局计算，实际分页使用 measureTableRowHeights）
+    const extraRowsCount = component.props?.showSummary === true
+      ? (component.props?.summaryExtraRows?.length || 0)
+      : 0;
+
     if (component.binding?.path) {
       const data = context.getValueByPath(component.binding.path);
       if (Array.isArray(data) && data.length > 0) {
         const headerHeight = component.props?.showHeader !== false ? TABLE_DEFAULT.HEADER_HEIGHT : 0;
-        // 使用基础行高（不乘系数），实际高度由渲染后测量决定
-        const rowHeight = TABLE_DEFAULT.MIN_ROW_HEIGHT;
+        const rowHeight = TABLE_DEFAULT.MIN_ROW_HEIGHT * TABLE_DEFAULT.ROW_HEIGHT_FACTOR;
         const summaryHeight = component.props?.showSummary === true ? rowHeight : 0;
 
-        return headerHeight + data.length * rowHeight + summaryHeight;
+        return headerHeight + data.length * rowHeight + summaryHeight + extraRowsCount * rowHeight;
       }
     }
 
-    return component.layout.heightMm || COMPONENT_DEFAULT_SIZE.TABLE_HEIGHT;
+    // 无 binding 回退：使用布局高度 + 额外行估算
+    return (component.layout.heightMm || COMPONENT_DEFAULT_SIZE.TABLE_HEIGHT) + extraRowsCount * TABLE_DEFAULT.MIN_ROW_HEIGHT;
   }
 }

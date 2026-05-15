@@ -5,7 +5,14 @@
 
 通用打印 SDK - 客户端打印解决方案
 
-**当前版本**: v1.2.0
+**当前版本**: v1.3.0
+
+## 🆕 v1.3.0 新增功能
+
+- ✨ **表格合计额外行**：支持在合计行下方添加自定义额外行（如金额大写、备注说明），支持绑定列合计值并通过管道格式化
+- ✨ **表格行号列**：支持显示行号列，可自定义标题
+- 🐛 **分页精度提升**：修复宽度计算公式不一致、`shouldBreakPage` 坐标系统一，优化分页计算精度
+- 🐛 **稳定性增强**：修复 total 模式空片段、防御检查精度混合、SSR 回退缺少额外行等多项问题
 
 ## 🆕 v1.2.0 新增功能
 
@@ -315,6 +322,60 @@ interface MultiTemplatePrintProgress {
     showSummary: true,
     summaryMode: 'total',   // total: 仅最后一页, page: 每页合计
     summaryLabel: '合计'
+  }
+}
+```
+
+### 表格合计额外行 ⭐ **v1.3.0 新增**
+
+在合计行下方添加自定义额外行，常用于显示金额大写、备注说明等：
+
+```typescript
+{
+  type: 'table',
+  props: {
+    columns: [
+      {
+        title: '金额',
+        dataIndex: 'amount',
+        summary: {
+          type: 'sum',
+          precision: 2
+        }
+      }
+    ],
+    showSummary: true,
+    summaryMode: 'total',
+    summaryLabel: '合计',
+    // 额外行配置
+    summaryExtraRows: [
+      {
+        label: '金额大写：',
+        sourceColumn: 'amount',     // 绑定到 amount 列的合计值
+        pipes: [                    // 通过管道格式化
+          {
+            type: 'money',
+            options: {
+              mode: 'none',
+              format: 'chineseUppercase'  // 输出：壹佰贰拾叁元肆角伍分
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 表格行号列 ⭐ **v1.3.0 新增**
+
+```typescript
+{
+  type: 'table',
+  props: {
+    showRowNumber: true,      // 显示行号列
+    rowNumberLabel: '序号',   // 自定义行号列标题（默认"序号"）
+    columns: [...]
   }
 }
 ```

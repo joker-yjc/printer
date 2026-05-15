@@ -100,7 +100,7 @@ export class PrintEngine {
       value = value[key];
     }
 
-    return value !== undefined ? value : (fallback || '');
+    return value != null ? value : (fallback || '');
   }
 
   /**
@@ -234,21 +234,23 @@ export class PrintEngine {
 
   /**
    * 判断是否需要换页
-   * @param currentHeight 当前页面累计高度
+   * @param currentHeight 当前页面累计高度（绝对坐标，含 marginTop）
    * @param componentHeight 组件高度
    * @param gap 组件间距
-   * @param availableHeight 可用高度
-   * @param isFirstComponent 是否为页面第一个组件
+   * @param availableHeight 可用高度（内容区高度，不含 marginTop）
+   * @param marginTop 页面上边距
    */
   private shouldBreakPage(
     currentHeight: number,
     componentHeight: number,
     gap: number,
     availableHeight: number,
-    isFirstComponent: boolean
+    marginTop: number
   ): boolean {
-    const needHeight = isFirstComponent ? componentHeight : gap + componentHeight;
-    return currentHeight + needHeight > availableHeight;
+    // currentHeight 是绝对坐标（含 marginTop），availableHeight 是不含 marginTop 的内容区高度
+    // 需要将 availableHeight 加上 marginTop 统一到绝对坐标系
+    const needHeight = gap + componentHeight;
+    return currentHeight + needHeight > availableHeight + marginTop;
   }
 
   /**
@@ -482,7 +484,7 @@ export class PrintEngine {
           isFirstComponentInPage = false;  // 表格后的组件不是页面第一个组件
         } else {
           // 空表格：按普通组件处理
-          if (this.shouldBreakPage(currentPageHeight, compHeightMm, actualGap, availableHeightMm, isFirstComponentInPage) && currentPage.length > 0) {
+          if (this.shouldBreakPage(currentPageHeight, compHeightMm, actualGap, availableHeightMm, marginTop) && currentPage.length > 0) {
             // 换页
             pages.push(currentPage);
             currentPage = [];
@@ -514,7 +516,7 @@ export class PrintEngine {
       // 4.2 普通组件：按相对间距累加高度
       else {
         // 使用辅助方法判断是否需要换页
-        if (this.shouldBreakPage(currentPageHeight, compHeightMm, actualGap, availableHeightMm, isFirstComponentInPage) && currentPage.length > 0) {
+        if (this.shouldBreakPage(currentPageHeight, compHeightMm, actualGap, availableHeightMm, marginTop) && currentPage.length > 0) {
           // 换页
           pages.push(currentPage);
           currentPage = [];
@@ -565,22 +567,28 @@ export class PrintEngine {
   ): Promise<{ headerHeight: number; rowHeights: number[]; summaryHeight: number }> {
     // 检查是否在浏览器环境
     if (typeof document === 'undefined') {
-      // 服务器端：使用估算值
+      // 服务器端：使用估算值（包含额外行）
       const baseRowHeight = this.calculateTableRowHeight(tableComponent);
+      const extraRowsCount = tableComponent.props?.showSummary === true
+        ? (tableComponent.props?.summaryExtraRows?.length || 0)
+        : 0;
       return {
         headerHeight: this.calculateTableHeaderHeight(tableComponent),
         rowHeights: tableData.map(() => baseRowHeight),
-        summaryHeight: baseRowHeight
+        summaryHeight: baseRowHeight + extraRowsCount * baseRowHeight
       };
     }
 
     const renderer = this.renderers.get('table');
     if (!renderer) {
       const baseRowHeight = this.calculateTableRowHeight(tableComponent);
+      const extraRowsCount = tableComponent.props?.showSummary === true
+        ? (tableComponent.props?.summaryExtraRows?.length || 0)
+        : 0;
       return {
         headerHeight: this.calculateTableHeaderHeight(tableComponent),
         rowHeights: tableData.map(() => baseRowHeight),
-        summaryHeight: baseRowHeight
+        summaryHeight: baseRowHeight + extraRowsCount * baseRowHeight
       };
     }
 
@@ -592,15 +600,15 @@ export class PrintEngine {
     if (tableComponent.layout.widthMm) {
       tableWidthMm = tableComponent.layout.widthMm;
       if (context.pageInfo) {
-        const availableWidth = context.pageInfo.widthMm - context.pageInfo.marginMm.left - context.pageInfo.marginMm.right;
-        const totalOccupied = xMm + tableWidthMm;
-        if (totalOccupied > availableWidth) {
-          tableWidthMm = availableWidth - xMm;
+        const maxRightEdge = context.pageInfo.widthMm - context.pageInfo.marginMm.right;
+        const tableRightEdge = xMm + tableWidthMm;
+        if (tableRightEdge > maxRightEdge) {
+          tableWidthMm = maxRightEdge - xMm;
         }
       }
     } else if (context.pageInfo) {
-      const availableWidth = context.pageInfo.widthMm - context.pageInfo.marginMm.left - context.pageInfo.marginMm.right;
-      tableWidthMm = availableWidth - xMm;
+      const maxRightEdge = context.pageInfo.widthMm - context.pageInfo.marginMm.right;
+      tableWidthMm = maxRightEdge - xMm;
     } else {
       tableWidthMm = COMPONENT_DEFAULT_SIZE.TABLE_WIDTH;
     }
@@ -617,14 +625,13 @@ export class PrintEngine {
     `;
 
     // 创建完整的表格组件用于测量（包含合计行）
-    // 使用用户实际的 showHeader 和 bordered 设置，确保测量准确
     const measureComponent: ComponentNode = {
       ...tableComponent,
       props: {
         ...tableComponent.props,
         _pageData: tableData,
-        _showHeader: tableComponent.props?.showHeader !== false, // 使用用户设置
-        _isLastPage: true, // 测量时包含合计行
+        _showHeader: tableComponent.props?.showHeader !== false,
+        _isLastPage: true,
       }
     };
 
@@ -640,7 +647,7 @@ export class PrintEngine {
     document.body.appendChild(measureContainer);
 
     try {
-      // ✅ 测量表头高度（如果存在）
+      // 测量表头高度（如果存在）
       let headerHeight = 0;
       const headerRow = measureContainer.querySelector('thead tr');
       if (headerRow) {
@@ -657,20 +664,23 @@ export class PrintEngine {
         rowHeights.push(heightMm);
       });
 
-      // ✅ 测量合计行高度（如果存在）
+      // 测量合计行高度（包括额外行）
       let summaryHeight = 0;
-      const summaryRow = measureContainer.querySelector('tfoot tr');
-      if (summaryRow) {
-        summaryHeight = (summaryRow as HTMLElement).offsetHeight / this.mmToPx;
-      }
+      const summaryRows = measureContainer.querySelectorAll('tfoot tr');
+      summaryRows.forEach((row) => {
+        summaryHeight += (row as HTMLElement).offsetHeight / this.mmToPx;
+      });
 
-      // 如果测量失败，使用估算值
+      // 如果测量失败，使用估算值（包含额外行）
       if (rowHeights.length === 0) {
         const baseRowHeight = this.calculateTableRowHeight(tableComponent);
+        const extraRowsCount = tableComponent.props?.showSummary === true
+          ? (tableComponent.props?.summaryExtraRows?.length || 0)
+          : 0;
         return {
           headerHeight: this.calculateTableHeaderHeight(tableComponent),
           rowHeights: tableData.map(() => baseRowHeight),
-          summaryHeight: baseRowHeight
+          summaryHeight: baseRowHeight + extraRowsCount * baseRowHeight
         };
       }
 
@@ -716,7 +726,7 @@ export class PrintEngine {
       tableData
     );
 
-    // 检查测量结果是否有效（防止所有列 hidden 等情况导致长度不一致）
+    // 检查测量结果是否有效（长度不匹配时回退到估算值）
     if (rowHeights.length !== tableData.length) {
       console.warn(
         `[PrintEngine] 表格测量结果异常：rowHeights.length (${rowHeights.length}) != tableData.length (${tableData.length})，` +
@@ -737,7 +747,8 @@ export class PrintEngine {
     // 循环处理：直到所有数据都分配完
     while (remainingData.length > 0) {
       // 计算当前页剩余高度
-      let remainingHeight = availableHeightMm - workingPageHeight;
+      // availableHeightMm 不含 marginTop，workingPageHeight 含 marginTop，需统一到绝对坐标系
+      let remainingHeight = availableHeightMm + marginTop - workingPageHeight;
 
       // 第一个片段需要考虑 gap
       if (isFirstFragment && !isFirstComponentInPage) {
@@ -746,7 +757,16 @@ export class PrintEngine {
 
       // 如果 repeatHeader = false 且是第一个片段，则表头已经在第一页了，后续页不需要表头
       const needHeader = isFirstFragment || repeatHeader;
-      let availableForRows = remainingHeight - (needHeader ? headerHeight : 0);
+
+      // ✅ 只在 page 模式下预先预留合计行高度
+      // total 模式只有最后一页显示合计行，不需要在中间页预留
+      const summaryMode = tableComponent.props?.summaryMode || 'total';
+      const showSummary = tableComponent.props?.showSummary === true;
+      const reserveSummaryHeight = (showSummary && summaryMode === 'page')
+        ? (measuredSummaryHeight || this.calculateTableRowHeight(tableComponent))
+        : 0;
+
+      let availableForRows = remainingHeight - (needHeader ? headerHeight : 0) - reserveSummaryHeight;
 
       // ✅ 使用实际测量的行高计算能放多少行
       let rowsCanFit = 0;
@@ -759,6 +779,20 @@ export class PrintEngine {
         } else {
           break;
         }
+      }
+
+      // 防御性检查：如果 rowsCanFit 异常小，标记为触发状态
+      let defensiveCheckTriggered = false;
+      let estimatedRowHeight = 0;
+      if (rowsCanFit < Math.max(remainingRowHeights.length * 0.1, 2) && rowsCanFit < 5) {
+        console.warn(
+          `[splitTableWithGap] rowsCanFit(${rowsCanFit}) 异常小，` +
+          `availableForRows=${availableForRows.toFixed(2)}mm，使用估算值重新计算`
+        );
+        estimatedRowHeight = this.calculateTableRowHeight(tableComponent);
+        rowsCanFit = Math.min(remainingRowHeights.length, Math.floor(availableForRows / estimatedRowHeight));
+        accumulatedHeight = rowsCanFit * estimatedRowHeight;
+        defensiveCheckTriggered = true;
       }
 
       // 确保至少有 1 行数据（避免只有表头的空页面）
@@ -774,13 +808,55 @@ export class PrintEngine {
       }
 
       // 取出当前页能放的数据
-      const dataForThisPage = remainingData.slice(0, rowsCanFit);
-      const rowHeightsForThisPage = remainingRowHeights.slice(0, rowsCanFit);
+      let dataForThisPage = remainingData.slice(0, rowsCanFit);
+      let rowHeightsForThisPage = remainingRowHeights.slice(0, rowsCanFit);
+      // ✅ 防御检查触发时，仅替换当前页的 rowHeightsForThisPage，保留 remainingRowHeights 供后续页使用
+      if (defensiveCheckTriggered) {
+        rowHeightsForThisPage = rowHeightsForThisPage.map(() => estimatedRowHeight);
+      }
       remainingData = remainingData.slice(rowsCanFit);
       remainingRowHeights = remainingRowHeights.slice(rowsCanFit);
 
       // 判断是否为最后一页（用于合计行）
-      const isLastPage = remainingData.length === 0;
+      let isLastPage = remainingData.length === 0;
+
+      // ✅ total 模式最后一页检查：如果加上合计行会溢出，减少一行数据
+      if (showSummary && summaryMode === 'total' && isLastPage && rowsCanFit > 0) {
+        const summaryHeight = measuredSummaryHeight || this.calculateTableRowHeight(tableComponent);
+        const usedHeight = (needHeader ? headerHeight : 0) + accumulatedHeight + summaryHeight;
+        if (usedHeight > remainingHeight) {
+          // 减少最后一行，为合计行腾出空间
+          rowsCanFit--;
+          const removedRow = dataForThisPage.pop()!;
+          const removedHeight = rowHeightsForThisPage.pop()!;
+          remainingData.unshift(removedRow);
+          remainingRowHeights.unshift(removedHeight);
+          accumulatedHeight -= removedHeight;
+          isLastPage = remainingData.length === 0; // 重新判断
+        }
+      }
+
+      // ✅ 回退后检查：如果 rowsCanFit 变成 0，强制放 1 行避免死循环
+      if (rowsCanFit === 0) {
+        if (workingPage.length > 0) {
+          pages.push(workingPage);
+          workingPage = [];
+        }
+        workingPageHeight = marginTop;
+        isFirstFragment = false;
+        // 强制至少放 1 行数据，避免死循环（会溢出，但比无限循环好）
+        if (remainingData.length > 0) {
+          rowsCanFit = 1;
+          dataForThisPage = remainingData.slice(0, 1);
+          rowHeightsForThisPage = remainingRowHeights.slice(0, 1);
+          remainingData = remainingData.slice(1);
+          remainingRowHeights = remainingRowHeights.slice(1);
+          isLastPage = remainingData.length === 0;
+          accumulatedHeight = rowHeightsForThisPage[0] || this.calculateTableRowHeight(tableComponent);
+        } else {
+          continue;
+        }
+      }
 
       // 创建当前页的表格片段
       const tableFragmentYMm = isFirstFragment
@@ -799,8 +875,7 @@ export class PrintEngine {
           _showHeader: needHeader,
           _isLastPage: isLastPage,
           _totalData: tableData,
-          _startRowIndex: consumedRowCount,
-          _rowHeights: rowHeightsForThisPage // 传递实际行高到渲染器
+          _startRowIndex: consumedRowCount
         }
       };
 
@@ -808,14 +883,14 @@ export class PrintEngine {
       consumedRowCount += rowsCanFit;
 
       // 计算合计行高度（如果启用合计功能）
-      const showSummary = tableComponent.props?.showSummary === true;
-      const summaryMode = tableComponent.props?.summaryMode || 'total';
       const shouldShowSummaryOnThisPage = showSummary && (
         summaryMode === 'page' ||
         (summaryMode === 'total' && isLastPage)
       );
       // ✅ 使用测量的合计行高度，如果没有测量值则使用平均行高
-      const avgRowHeight = rowHeightsForThisPage.reduce((a, b) => a + b, 0) / rowHeightsForThisPage.length;
+      const avgRowHeight = rowHeightsForThisPage.length > 0
+        ? rowHeightsForThisPage.reduce((a, b) => a + b, 0) / rowHeightsForThisPage.length
+        : this.calculateTableRowHeight(tableComponent);
       const summaryHeight = shouldShowSummaryOnThisPage ? (measuredSummaryHeight || avgRowHeight) : 0;
 
       // 更新当前页高度（使用实际测量的行高累加）

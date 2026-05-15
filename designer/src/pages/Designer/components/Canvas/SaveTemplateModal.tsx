@@ -76,8 +76,8 @@ const SaveTemplateModal = ({
       if (templateId) {
         // 更新现有模板
         await templateApi.update(templateId, { ...payload, id: templateId });
-        window.location.reload();
         message.success('模板更新成功！');
+        window.location.reload();
       } else {
         // 创建新模板
         const result = await templateApi.create(payload);

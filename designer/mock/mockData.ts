@@ -60,6 +60,7 @@ export const defaultMockData: MockData[] = [
       companyName: '深圳市示例科技有限公司',
       companyAddress: '广东省深圳市南山区科技园南区深南大道10000号',
       documentNo: 'SR202401',
+      orderDate: null,
       createdDate: '2024-01-31',
       createdTime: '2024-01-31T17:00:00',
       amount: 2856780.5,

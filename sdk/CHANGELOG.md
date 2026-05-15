@@ -2,6 +2,48 @@
 
 所有版本的变更记录都列在这里，遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 规范。
 
+## [1.3.0] - 2026-05-16
+
+### ✨ 新增功能
+
+- **表格合计额外行（Summary Extra Rows）**
+  - 支持在表格合计行下方添加自定义额外行（如金额大写、备注说明等）
+  - 额外行支持数据绑定到指定列的合计值（`sourceColumn`）
+  - 额外行支持管道系统格式化（`ChineseNumberPipe`、`MoneyPipe` 等）
+  - 设计器提供完整的额外行配置 UI（增删改、列选择、管道配置器）
+  - 选择 `sourceColumn` 时自动创建对应列的 `sum` 汇总配置
+
+- **表格行号列**
+  - 新增 `showRowNumber` 属性，支持显示行号列
+  - 支持自定义行号列标题（`rowNumberLabel`）
+  - 设计器表格预览支持行号列显示
+
+### 🐛 问题修复
+
+| 问题 | 修复内容 |
+|------|----------|
+| 表格宽度计算公式不一致 | `measureTableRowHeights` 与 `TableRenderer.render()` 统一使用 `maxRightEdge = pageWidth - marginRight`，修复旧公式多扣一次 `marginLeft` 导致的行高测量不准 |
+| `shouldBreakPage` 坐标系不一致 | 统一使用绝对坐标系比较（`availableHeight + marginTop`），修复提前换页问题 |
+| total 模式产生空表格片段 | 回退后 `rowsCanFit === 0` 时强制放入 1 行数据，避免生成只有表头的空页面 |
+| 防御检查精度混合 | 防御检查仅替换当前页 `rowHeightsForThisPage`，不再覆盖后续页的测量值 |
+| 防御检查阈值宽松 | 增加 `Math.max(..., 2)` floor，避免剩余行数少时误触发 |
+| `getValueByPath` null 处理 | `!== undefined` 改为 `!= null`，确保 `null` 值走 fallback 而非渲染为 `"null"` |
+| SSR 回退缺少额外行 | `measureTableRowHeights` 的 SSR/无 renderer 回退路径计入 `summaryExtraRows` 高度 |
+| `calculateHeight` 回退缺少额外行 | 无 `binding.path` 的回退路径计入 `summaryExtraRows` 高度 |
+| 额外行管道缺少异常保护 | 增加 try-catch，异常时回退到原始值而非 `null` |
+
+### 🔧 类型变更
+
+- **`DataBinding.path` 改为可选**（`path?: string`），与 Designer 端保持一致
+
+### 🧹 清理
+
+- 移除 `_rowHeights` 死代码（无 reader 只有 writer）
+
+**影响范围**：`sdk/src/printEngine.ts`、`sdk/src/printEngine/renderers/TableRenderer.ts`、`sdk/src/types.ts`、`designer/src/pages/Designer/components/PropertyPanel/TableColumnSection.tsx`、`designer/src/pipes/configurators/`
+
+---
+
 ## [1.2.0] - 2026-05-11
 
 ### ✨ 新增功能
