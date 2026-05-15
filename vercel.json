@@ -1,5 +1,0 @@
-{
-  "buildCommand": "cd designer && npm install && npm run build",
-  "outputDirectory": "designer/dist",
-  "installCommand": "cd designer && npm install"
-}
