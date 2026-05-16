@@ -7,6 +7,12 @@
 
 **当前版本**: v1.3.0
 
+## 🎨 在线演示
+
+**可视化模板设计器**: https://printer-pi-five.vercel.app
+
+拖拽式设计打印模板，生成模板 JSON 后直接配合 SDK 使用。内置示例数据，无需搭建环境即可体验。
+
 ## 🆕 v1.3.0 新增功能
 
 - ✨ **表格合计额外行**：支持在合计行下方添加自定义额外行（如金额大写、备注说明），支持绑定列合计值并通过管道格式化
@@ -562,6 +568,7 @@ MIT © joke_yao
 ## 🔗 相关链接
 
 - [GitHub 仓库](https://github.com/joker-yjc/printer)
+- [在线演示](https://printer-pi-five.vercel.app) - 可视化模板设计器，拖拽生成模板 JSON
 - [问题反馈](https://github.com/joker-yjc/printer/issues)
 - [更新日志](https://github.com/joker-yjc/printer/blob/main/CHANGELOG.md)
 
