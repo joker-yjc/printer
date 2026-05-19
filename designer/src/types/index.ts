@@ -249,6 +249,8 @@ export interface TableProps {
   showHeader?: boolean;
   /** 是否显示边框，默认 true */
   bordered?: boolean;
+  /** 边框样式，默认 'solid'（仅在 bordered 为 true 时生效） */
+  borderStyle?: 'solid' | 'dashed';
   /** 跨页时是否重复表头 */
   repeatHeader?: boolean;
   /** 是否显示合计行 */
@@ -263,6 +265,8 @@ export interface TableProps {
   showRowNumber?: boolean;
   /** 序号列标题，默认"序号" */
   rowNumberLabel?: string;
+  /** 行号列宽度（mm），不设置时自动分配 */
+  rowNumberWidth?: number;
   /** 当前页数据（SDK 内部使用） */
   _pageData?: any[];
   /** 是否显示表头（SDK 内部使用，用于控制跨页表头） */
