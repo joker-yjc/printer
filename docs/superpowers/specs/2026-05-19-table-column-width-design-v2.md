@@ -1,23 +1,23 @@
-# 表格列宽度调整功能 设计文档 v2
+# 表格列宽度调整 & 边框样式 设计文档 v2
 
-> 版本：v2.0 | 日期：2026-05-19
-> 上一版：[v1.0](./2026-05-15-table-column-width-design.md)
+> 版本：v2.1 | 日期：2026-05-19
+> 上一版：[v2.0](./2026-05-19-table-column-width-design-v2.md)
 > 状态：设计完成，待实现
 
 ---
 
 ## 一、背景与现状
 
-当前表格组件采用**均分列宽策略**（`100 / colCount`%），`TableColumn.width` 字段已定义但未在渲染中使用。客户反馈需要对不同列设置不同宽度（如"商品名称"需要 60mm，"序号"只需 15mm）。
+当前表格组件采用**均分列宽策略**（`100 / colCount`%），`TableColumn.width` 字段已定义但未在渲染中使用。边框仅支持开/关（`bordered`），样式固定为实线。客户反馈需要对不同列设置不同宽度，以及支持虚线边框。
 
 ### 涉及模块
 
 | 模块 | 当前行为 |
 |------|----------|
-| `TableRenderer.ts` (SDK) | `colWidthPercent = 100 / colCount`，忽略 `col.width` |
-| `TablePreview.tsx` (设计器) | `width: 100%` 整表均分，不显示列宽差异 |
-| `TableColumnSection.tsx` (设计器) | 无宽度输入框 |
-| `types.ts` (SDK + 设计器) | `width?: number` 已定义，未使用 |
+| `TableRenderer.ts` (SDK) | `colWidthPercent = 100 / colCount`，忽略 `col.width`；边框固定 `solid` |
+| `TablePreview.tsx` (设计器) | `width: 100%` 整表均分；边框固定 `solid` |
+| `TableColumnSection.tsx` (设计器) | 无宽度输入框；仅 `bordered` 复选框 |
+| `types.ts` (SDK + 设计器) | `width?: number`、`bordered?: boolean` 已定义 |
 
 ---
 
@@ -30,6 +30,7 @@
 | 默认行为（width 为空） | 均分 | 向后兼容，有宽度才固定 |
 | 溢出处理 | 设计器严格校验，禁止超出 | SDK 不做校验 |
 | 宽度单位 | mm | 与整个坐标系统一 |
+| 边框样式 | 新增 `borderStyle: 'solid' \| 'dashed'` | 用户需要虚线选项 |
 
 ---
 
@@ -42,6 +43,8 @@ export interface TableProps {
   // ... 现有字段 ...
   /** 行号列宽度（mm），不设置时自动分配 */
   rowNumberWidth?: number;
+  /** 边框样式，默认 'solid'（仅在 bordered 为 true 时生效） */
+  borderStyle?: 'solid' | 'dashed';
 }
 ```
 
@@ -49,13 +52,13 @@ export interface TableProps {
 
 ### 3.2 设计器类型 (`designer/src/types/index.ts`)
 
-同步新增 `rowNumberWidth`，`TableColumn.width` 无需改动。
+同步新增 `rowNumberWidth`、`borderStyle`。
 
 ---
 
 ## 四、SDK 渲染逻辑
 
-### 4.1 核心算法 (`TableRenderer.ts`)
+### 4.1 核心算法 — 列宽 (`TableRenderer.ts`)
 
 ```typescript
 /**
@@ -90,11 +93,26 @@ function computeColWidths(
 }
 ```
 
-### 4.2 行号列
+### 4.2 边框样式
+
+```typescript
+// 改前
+const cellBorder = bordered
+  ? `border: 1px solid ${TABLE_STYLE_DEFAULT.BORDER_COLOR};`
+  : '';
+
+// 改后
+const borderStyle = props?.borderStyle || 'solid';
+const cellBorder = bordered
+  ? `border: 1px ${borderStyle} ${TABLE_STYLE_DEFAULT.BORDER_COLOR};`
+  : '';
+```
+
+### 4.3 行号列
 
 行号列放入 `displayColumns` 前面时，附带 `{ width: props.rowNumberWidth }` 参与计算。
 
-### 4.3 HTML 模板和分页
+### 4.4 HTML 模板和分页
 
 无需改动。HTML 模板已使用百分比 width，测量高度和分页自动适配真实列宽。
 
@@ -134,16 +152,21 @@ maxWidth = tableWidthMm - 其他列固定宽度总和
 
 存储为 `rowNumberWidth`。
 
-### 5.3 画布预览 (`TablePreview.tsx`)
+### 5.3 边框样式
 
-改为使用 `computeColWidths()` 计算宽度百分比，逐列设置 `width` style：
+在现有 `bordered` 复选框旁增加样式下拉：
 
-```tsx
-const colWidths = computeColWidths(displayColumns, tableWidthMm);
-// <th style={{ width: colWidths[i], ... }}>...</th>
+```
+☑ 显示边框   |   样式: [实线 ▾/虚线]
 ```
 
-替换当前 `width: 100%` 整表等宽。
+- 当 `bordered` 为 false 时，样式下拉 disabled
+- 默认值 `'solid'`
+
+### 5.4 画布预览 (`TablePreview.tsx`)
+
+- 列宽：使用 `computeColWidths()` 计算百分比，逐列设置 `width` style
+- 边框：使用 `props.borderStyle` 替换硬编码的 `solid`
 
 ---
 
@@ -162,19 +185,20 @@ const colWidths = computeColWidths(displayColumns, tableWidthMm);
 
 | 文件 | 改动 | 工作量 |
 |------|------|--------|
-| `sdk/src/types.ts` | 新增 `rowNumberWidth` | 5min |
-| `sdk/src/printEngine/renderers/TableRenderer.ts` | 实现 `computeColWidths`，替换均分逻辑 | 1h |
-| `designer/src/types/index.ts` | 同步 `rowNumberWidth` | 5min |
-| `designer/src/pages/Designer/components/PropertyPanel/TableColumnSection.tsx` | 列宽度 InputNumber + 行号列宽度 InputNumber + 校验逻辑 | 1.5h |
-| `designer/src/pages/Designer/components/Canvas/componentRenderers/TablePreview.tsx` | 使用 `computeColWidths` 渲染列宽 | 30min |
+| `sdk/src/types.ts` | 新增 `rowNumberWidth`、`borderStyle` | 5min |
+| `sdk/src/printEngine/renderers/TableRenderer.ts` | 实现 `computeColWidths` + `borderStyle` | 1h |
+| `designer/src/types/index.ts` | 同步 `rowNumberWidth`、`borderStyle` | 5min |
+| `designer/src/pages/Designer/components/PropertyPanel/TableColumnSection.tsx` | 列宽度 InputNumber + 行号列宽度 + 边框样式下拉 + 校验逻辑 | 2h |
+| `designer/src/pages/Designer/components/Canvas/componentRenderers/TablePreview.tsx` | 列宽渲染 + 边框样式渲染 | 30min |
 | 测试验证 | 多场景测试 | 30min |
-| **合计** | | **≈ 4h** |
+| **合计** | | **≈ 4.5h** |
 
 ---
 
 ## 八、向后兼容
 
 - 所有旧模板的 `width` 字段为空 → 行为不变，均分
+- 所有旧模板的 `borderStyle` 为 undefined → 默认 `'solid'`，外观不变
 - 新模板设置部分列宽 → 混合计算
 - 行号列 `rowNumberWidth` 为 undefined → 自动分配
 
