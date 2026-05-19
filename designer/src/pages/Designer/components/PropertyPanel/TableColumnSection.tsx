@@ -10,6 +10,7 @@ import type { ComponentNode, TableColumnSummary, SummaryExtraRow, SummaryExtraRo
 import { getAllPipes, computeColumnMaxWidth } from '@jcyao/print-sdk';
 import { getConfigurator } from '../../../../pipes/configurators';
 import { useDesignerStore } from '../../../../store/designer';
+import { getTableContentWidth } from '../../../../utils/pageSize';
 
 const { Text } = Typography;
 
@@ -19,32 +20,20 @@ interface TableColumnSectionProps {
 }
 
 const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPropsChange }) => {
-  // 从 pageConfig 计算表格可用宽度，与 SDK/Preview 保持一致（#11）
+  // 从 pageConfig 计算表格可用宽度，与 SDK/Preview 保持一致
   const pageConfig = useDesignerStore(s => s.pageConfig);
-  const getPageWidthMm = () => {
-    const { size, orientation, widthMm } = pageConfig;
-    let pw: number;
-    if (size === 'CUSTOM') pw = widthMm || 210;
-    else if (size === 'CONTINUOUS') pw = widthMm || 80;
-    else pw = size === 'A4' ? 210 : 148;
-    if (orientation === 'landscape' && size !== 'CONTINUOUS') {
-      const ph = size === 'CUSTOM' ? (pageConfig.heightMm || 297) : (size === 'A4' ? 297 : 210);
-      pw = ph;
-    }
-    return pw;
-  };
-  const availableWidth = getPageWidthMm() - pageConfig.marginMm.left - pageConfig.marginMm.right;
-  const tableWidthMm = component.layout?.widthMm ?? (availableWidth - (component.layout?.xMm || 0));
+  const tableWidthMm = getTableContentWidth(pageConfig, component.layout);
 
-  // 检查列宽总和是否超限（#12）
+  // 检查列宽总和是否超限（#12），仅统计可见列
   const rowNumberWidth = component.props?.showRowNumber ? (component.props?.rowNumberWidth || 0) : 0;
-  const totalAssignedWidth = (component.props?.columns || []).reduce(
+  const visibleColsForValidation = (component.props?.columns || []).filter((col: any) => !col.hidden);
+  const totalAssignedWidth = visibleColsForValidation.reduce(
     (sum: number, col: any) => sum + (col.width || 0), 0
   ) + rowNumberWidth;
   const isWidthOverflow = totalAssignedWidth > tableWidthMm;
   const handleColumnToggle = (index: number, checked: boolean) => {
     const columns = [...(component.props?.columns || [])];
-    columns[index] = { ...columns[index], hidden: !checked };
+    columns[index] = { ...columns[index], hidden: !checked, width: !checked ? undefined : columns[index].width };
     onPropsChange('columns', columns);
   };
 
@@ -192,7 +181,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
               <Select
                 size="small"
                 style={{ width: 100, marginTop: 8 }}
-                value={component.props?.borderStyle || 'solid'}
+                value={component.props?.borderStyle ?? 'solid'}
                 onChange={(v) => onPropsChange('borderStyle', v)}
                 options={[
                   { label: '实线', value: 'solid' },
@@ -516,8 +505,8 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                         style={{ width: '100%', marginTop: 4 }}
                         min={1}
                         max={computeColumnMaxWidth(
-                          component.props?.columns || [],
-                          index,
+                          visibleColsForValidation,
+                          visibleColsForValidation.findIndex((c: any) => c.dataIndex === col.dataIndex),
                           tableWidthMm,
                           component.props?.showRowNumber ? (component.props?.rowNumberWidth || 0) : 0
                         )}

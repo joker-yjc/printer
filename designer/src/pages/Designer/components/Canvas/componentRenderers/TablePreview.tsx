@@ -1,6 +1,7 @@
 import type { ComponentNode } from '../../../../../types';
 import { computeColWidths, computeColumnMaxWidth } from '@jcyao/print-sdk';
 import { pxToMm } from '../../../../../utils/zoom';
+import { getTableContentWidth } from '../../../../../utils/pageSize';
 import { useDesignerStore } from '../../../../../store/designer';
 import { useState, useCallback, useEffect, useRef } from 'react';
 
@@ -20,6 +21,8 @@ function useColumnResize(
   } | null>(null);
   const [currentWidth, setCurrentWidth] = useState<number | null>(null);
   const currentWidthRef = useRef<number | null>(null);
+  const onWidthChangeRef = useRef(onWidthChange);
+  onWidthChangeRef.current = onWidthChange;
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent, colIndex: number, colWidthMm: number, maxWidth: number) => {
@@ -43,7 +46,7 @@ function useColumnResize(
     const handleMouseUp = () => {
       // mouseup 时一次性提交到 store，避免每次 mousemove 都写历史记录
       if (currentWidthRef.current !== null) {
-        onWidthChange(resizing.index, currentWidthRef.current);
+        onWidthChangeRef.current(resizing.index, currentWidthRef.current);
       }
       setResizing(null);
       setCurrentWidth(null);
@@ -55,7 +58,7 @@ function useColumnResize(
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [resizing, zoomLevel, onWidthChange]);
+  }, [resizing, zoomLevel]);
 
   return { resizing, currentWidth, handleMouseDown };
 }
@@ -66,7 +69,7 @@ function useColumnResize(
 export const TablePreview = ({ component }: TablePreviewProps) => {
   const columns = component.props?.columns || [];
   const bordered = component.props?.bordered !== false;
-  const borderStyle = component.props?.borderStyle || 'solid';
+  const borderStyle = component.props?.borderStyle ?? 'solid';
   const borderColor = component.props?.borderColor ?? '#d9d9d9';
   const borderWidth = component.props?.borderWidth ?? 1;
   const showHeader = component.props?.showHeader !== false;
@@ -75,22 +78,9 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
   const rowNumberLabel = component.props?.rowNumberLabel || '序号';
   const tableTextAlign = component.style?.textAlign || 'left';
 
-  // 从 pageConfig 计算表格可用宽度，与 SDK 动态计算保持一致（#11）
+  // 从 pageConfig 计算表格可用宽度，与 SDK 动态计算保持一致
   const pageConfig = useDesignerStore(s => s.pageConfig);
-  const getPageWidthMm = () => {
-    const { size, orientation, widthMm } = pageConfig;
-    let pw: number;
-    if (size === 'CUSTOM') pw = widthMm || 210;
-    else if (size === 'CONTINUOUS') pw = widthMm || 80;
-    else pw = size === 'A4' ? 210 : 148;
-    if (orientation === 'landscape' && size !== 'CONTINUOUS') {
-      const ph = size === 'CUSTOM' ? (pageConfig.heightMm || 297) : (size === 'A4' ? 297 : 210);
-      pw = ph;
-    }
-    return pw;
-  };
-  const availableWidth = getPageWidthMm() - pageConfig.marginMm.left - pageConfig.marginMm.right;
-  const tableWidthMm = component.layout?.widthMm ?? (availableWidth - (component.layout?.xMm || 0));
+  const tableWidthMm = getTableContentWidth(pageConfig, component.layout);
   const displayCols = showRowNumber
     ? [{ dataIndex: '__row_number__', title: rowNumberLabel, width: component.props?.rowNumberWidth }, ...visibleColumns]
     : visibleColumns;

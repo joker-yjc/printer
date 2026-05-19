@@ -250,7 +250,7 @@ export class TableRenderer implements ComponentRenderer {
     const tableStyleStr = buildStyleString(tableStyles);
 
     // 单元格样式
-    const borderStyle = props?.borderStyle || 'solid';
+    const borderStyle = props?.borderStyle ?? 'solid';
     const borderColor = props?.borderColor ?? TABLE_STYLE_DEFAULT.BORDER_COLOR;
     const borderWidth = props?.borderWidth ?? 1;
     const cellBorder = bordered ? `border: ${borderWidth}px ${borderStyle} ${borderColor};` : '';
