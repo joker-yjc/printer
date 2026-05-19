@@ -1,6 +1,6 @@
 # 表格列宽度调整 & 边框样式 设计文档 v2
 
-> 版本：v2.1 | 日期：2026-05-19
+> 版本：v2.2 | 日期：2026-05-19
 > 上一版：[v2.0](./2026-05-19-table-column-width-design-v2.md)
 > 状态：设计完成，待实现
 
@@ -25,7 +25,7 @@
 
 | 决策点 | 选择 | 原因 |
 |--------|------|------|
-| 交互方式 | Phase 1 输入框，Phase 2 拖拽（暂不做） | 快速交付，预留扩展 |
+| 交互方式 | 输入框 + 画布拖拽，两种方式同时支持 | 输入框精确，拖拽直观，数据互通 |
 | 行号列宽度 | 支持配置 | 用户明确需要 |
 | 默认行为（width 为空） | 均分 | 向后兼容，有宽度才固定 |
 | 溢出处理 | 设计器严格校验，禁止超出 | SDK 不做校验 |
@@ -168,15 +168,50 @@ maxWidth = tableWidthMm - 其他列固定宽度总和
 - 列宽：使用 `computeColWidths()` 计算百分比，逐列设置 `width` style
 - 边框：使用 `props.borderStyle` 替换硬编码的 `solid`
 
+### 5.5 画布拖拽调整列宽 (`TablePreview.tsx`)
+
+在画布表头每列的右边界放置一个**拖拽手柄**（`cursor: col-resize`），用户拖拽即可调整列宽：
+
+**交互流程**：
+1. `mousedown` 在手柄上 → 记录起始 X 和当前列宽
+2. `mousemove` → 计算 delta（需除以当前缩放比例换算为 mm）
+3. `mouseup` → 更新 Zustand store 中对应列的 `width`
+4. 拖拽过程中实时更新画布预览
+
+**计算逻辑**：
+```typescript
+// mousemove 时
+const deltaPx = currentX - startX;
+const deltaMm = deltaPx / zoomScale / pxPerMm; // pxPerMm ≈ 3.78 (96dpi)
+const newWidth = originalWidth + deltaMm;
+// clamp: 1 ≤ newWidth ≤ maxColumnWidth
+```
+
+**手柄样式**：
+- 宽度约 6px，左右居中于列边框
+- hover 时高亮（蓝色）
+- 拖拽中显示当前宽度 mm 值（跟随鼠标的 tooltip）
+
+**与输入框的数据流**：
+- 拖拽修改 → 更新 `table.props.columns[idx].width` → 输入框同步显示
+- 输入框修改 → 更新 `table.props.columns[idx].width` → 预览同步渲染
+- 两者操作同一个字段，天然同步
+
+**边界处理**：
+- 拖拽列宽不能超过 `maxWidth`（该列宽度上限）
+- 也不能低于 1mm（最小宽度）
+- 如果拖拽导���总宽度超限，clamp 到合法范围
+
 ---
 
 ## 六、校验逻辑
 
 | 场景 | 校验规则 | 实施位置 |
 |------|---------|---------|
-| 单列宽度上限 | ≤ tableWidth - 其他固定列总和 | 设计器 InputNumber.max |
+| 单列宽度上限 | ≤ tableWidth - 其他固定列总和 | 设计器 InputNumber.max + 拖拽 clamp |
 | 总宽度超限 | 最后一列修改导致溢出 → 标红 + tooltip | 设计器 onChange |
 | 宽度 ≤ 0 | min={1}，InputNumber 自动拒绝 | 设计器 |
+| 拖拽超出合法范围 | clamp 到 [1, maxColumnWidth] | TablePreview mousemove |
 | SDK 渲染 | 不做校验，设计器已拦截 | 无 |
 
 ---
@@ -189,9 +224,9 @@ maxWidth = tableWidthMm - 其他列固定宽度总和
 | `sdk/src/printEngine/renderers/TableRenderer.ts` | 实现 `computeColWidths` + `borderStyle` | 1h |
 | `designer/src/types/index.ts` | 同步 `rowNumberWidth`、`borderStyle` | 5min |
 | `designer/src/pages/Designer/components/PropertyPanel/TableColumnSection.tsx` | 列宽度 InputNumber + 行号列宽度 + 边框样式下拉 + 校验逻辑 | 2h |
-| `designer/src/pages/Designer/components/Canvas/componentRenderers/TablePreview.tsx` | 列宽渲染 + 边框样式渲染 | 30min |
-| 测试验证 | 多场景测试 | 30min |
-| **合计** | | **≈ 4.5h** |
+| `designer/src/pages/Designer/components/Canvas/componentRenderers/TablePreview.tsx` | 列宽渲染 + 边框样式渲染 + 拖拽调整列宽 | 2.5h |
+| 测试验证 | 多场景测试 | 1h |
+| **合计** | | **≈ 7h** |
 
 ---
 
@@ -204,8 +239,7 @@ maxWidth = tableWidthMm - 其他列固定宽度总和
 
 ---
 
-## 九、未来扩展（Phase 2）
+## 九、未来扩展
 
-- 画布表头列边框拖拽调整宽度
 - 列宽预设方案（如"名称宽/数值窄"一键应用）
 - 百分比单位支持（如 `width: "20%"`）
