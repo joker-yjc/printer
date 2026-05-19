@@ -52,9 +52,18 @@ function computeColWidths(
     ? Math.max(0, remainingMm / unfixedCount)
     : 0;
 
-  return columns.map(col => {
+  return columns.map((col, idx) => {
     const wMm = col.width || unsetWidthMm;
-    return `${((wMm / tableWidthMm) * 100).toFixed(2)}%`;
+    const pct = (wMm / tableWidthMm) * 100;
+    // 最后一列吸收舍入误差，确保总和严格等于 100%
+    if (idx === columns.length - 1) {
+      const sumPrev = columns.slice(0, -1).reduce((s, c) => {
+        const prevMm = c.width || unsetWidthMm;
+        return s + (prevMm / tableWidthMm) * 100;
+      }, 0);
+      return `${(100 - sumPrev).toFixed(2)}%`;
+    }
+    return `${pct.toFixed(2)}%`;
   });
 }
 
@@ -183,7 +192,7 @@ export class TableRenderer implements ComponentRenderer {
       const headerCells = displayColumns
         .map((col: any, idx: number) => {
           const title = col.title || col.dataIndex;
-          return `<th style="${cellBorder} ${cellPadding} ${cellTextStyle} background: ${TABLE_STYLE_DEFAULT.HEADER_BACKGROUND}; font-weight: 600; text-align: ${textAlign}; width: ${colWidths[idx]}%; min-height: ${headerHeightPx}px; box-sizing: border-box;">${title}</th>`;
+          return `<th style="${cellBorder} ${cellPadding} ${cellTextStyle} background: ${TABLE_STYLE_DEFAULT.HEADER_BACKGROUND}; font-weight: 600; text-align: ${textAlign}; width: ${colWidths[idx]}; min-height: ${headerHeightPx}px; box-sizing: border-box;">${title}</th>`;
         })
         .join('');
       // 表头使用固定高度，表体使用 min-height
@@ -200,10 +209,10 @@ export class TableRenderer implements ComponentRenderer {
             .map((col: any, idx: number) => {
               if (col.dataIndex === '__row_number__') {
                 const rowNumber = startRowIndex + rowIndex + 1;
-                return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} text-align: center; width: ${colWidths[idx]}%; min-height: ${rowHeightPx}px; box-sizing: border-box;">${rowNumber}</td>`;
+                return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} text-align: center; width: ${colWidths[idx]}; min-height: ${rowHeightPx}px; box-sizing: border-box;">${rowNumber}</td>`;
               }
               const value = getByPath(row, col.dataIndex) ?? '';
-              return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} text-align: ${textAlign}; width: ${colWidths[idx]}%; min-height: ${rowHeightPx}px; box-sizing: border-box;">${value}</td>`;
+              return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} text-align: ${textAlign}; width: ${colWidths[idx]}; min-height: ${rowHeightPx}px; box-sizing: border-box;">${value}</td>`;
             })
             .join('');
           return `<tr style="min-height: ${rowHeightPx}px;">${cells}</tr>`;
@@ -278,7 +287,7 @@ export class TableRenderer implements ComponentRenderer {
         ${cellPadding}
         ${cellTextStyle}
         text-align: ${col.align || defaultTextAlign};
-        width: ${colWidths[idx]}%;
+        width: ${colWidths[idx]};
         min-height: ${rowHeightPx}px;
         box-sizing: border-box;
         background: ${bgColor};

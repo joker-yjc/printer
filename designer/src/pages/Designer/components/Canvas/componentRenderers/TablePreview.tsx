@@ -19,9 +19,18 @@ function computeColWidths(
   }
   const remainingMm = tableWidthMm - totalFixed;
   const unsetWidthMm = unfixedCount > 0 ? Math.max(0, remainingMm / unfixedCount) : 0;
-  return columns.map(col => {
+  return columns.map((col, idx) => {
     const wMm = col.width || unsetWidthMm;
-    return `${((wMm / tableWidthMm) * 100).toFixed(2)}%`;
+    const pct = (wMm / tableWidthMm) * 100;
+    // 最后一列吸收舍入误差，确保总和严格等于 100%
+    if (idx === columns.length - 1) {
+      const sumPrev = columns.slice(0, -1).reduce((s, c) => {
+        const prevMm = c.width || unsetWidthMm;
+        return s + (prevMm / tableWidthMm) * 100;
+      }, 0);
+      return `${(100 - sumPrev).toFixed(2)}%`;
+    }
+    return `${pct.toFixed(2)}%`;
   });
 }
 
@@ -150,7 +159,7 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
                     <div
                       onMouseDown={(e) => handleMouseDown(e, idx, colMm, maxW)}
                       style={{
-                        position: 'absolute', right: 0, top: 0, bottom: 0, width: 6,
+                        position: 'absolute', right: 0, top: 0, bottom: 0, width: 8,
                         cursor: 'col-resize',
                         background: resizing?.index === idx ? '#1890ff' : 'transparent',
                         opacity: resizing?.index === idx ? 0.4 : 0,
@@ -169,15 +178,12 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
         )}
         <tbody>
           <tr>
-            {displayCols.map((_col: any, idx: number) => (
-              <td key={idx} style={{
-                width: colWidths[idx],
-                border: bordered ? `1px ${borderStyle} #d9d9d9` : 'none',
-                padding: '8px', textAlign: 'center', color: '#999',
-              }}>
-                暂无数据
-              </td>
-            ))}
+            <td colSpan={displayCols.length} style={{
+              border: bordered ? `1px ${borderStyle} #d9d9d9` : 'none',
+              padding: '8px', textAlign: 'center', color: '#999',
+            }}>
+              暂无数据
+            </td>
           </tr>
         </tbody>
       </table>
