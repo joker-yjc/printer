@@ -124,6 +124,10 @@ export interface TableProps {
   bordered?: boolean;               // 是否显示边框
   /** 边框样式，默认 'solid'（仅在 bordered 为 true 时生效） */
   borderStyle?: 'solid' | 'dashed';
+  /** 边框颜色，默认 '#d9d9d9'（仅在 bordered 为 true 时生效） */
+  borderColor?: string;
+  /** 边框线宽（px），默认 1，范围 1-5（仅在 bordered 为 true 时生效） */
+  borderWidth?: number;
   repeatHeader?: boolean;           // 跨页重复表头
   showSummary?: boolean;            // 是否显示合计行
   summaryMode?: 'page' | 'total';   // 合计模式：page=每页合计，total=仅最后一页合计（默认）

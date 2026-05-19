@@ -24,12 +24,13 @@ interface TableColumnSectionProps {
 function computeColumnMaxWidth(
   columns: { width?: number }[],
   index: number,
-  tableWidthMm: number
+  tableWidthMm: number,
+  reservedWidth: number = 0
 ): number {
   const otherFixed = columns.reduce((sum, col, i) =>
     i !== index ? sum + (col.width || 0) : sum, 0
   );
-  return Math.max(1, tableWidthMm - otherFixed);
+  return Math.max(1, tableWidthMm - otherFixed - reservedWidth);
 }
 
 const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPropsChange }) => {
@@ -179,16 +180,39 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
             显示边框
           </Checkbox>
           {component.props?.bordered !== false && (
-            <Select
-              size="small"
-              style={{ width: 100, marginTop: 8 }}
-              value={component.props?.borderStyle || 'solid'}
-              onChange={(v) => onPropsChange('borderStyle', v)}
-              options={[
-                { label: '实线', value: 'solid' },
-                { label: '虚线', value: 'dashed' },
-              ]}
-            />
+            <>
+              <Select
+                size="small"
+                style={{ width: 100, marginTop: 8 }}
+                value={component.props?.borderStyle || 'solid'}
+                onChange={(v) => onPropsChange('borderStyle', v)}
+                options={[
+                  { label: '实线', value: 'solid' },
+                  { label: '虚线', value: 'dashed' },
+                ]}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                <input
+                  type="color"
+                  value={component.props?.borderColor || '#d9d9d9'}
+                  onChange={(e) => onPropsChange('borderColor', e.target.value)}
+                  style={{ width: 28, height: 28, border: '1px solid #d9d9d9', borderRadius: 4, padding: 2, cursor: 'pointer' }}
+                />
+                <Text type="secondary" style={{ fontSize: 12 }}>颜色</Text>
+                <InputNumber
+                  size="small"
+                  style={{ width: 72 }}
+                  min={1}
+                  max={5}
+                  step={1}
+                  precision={0}
+                  value={component.props?.borderWidth || 1}
+                  onChange={(v) => onPropsChange('borderWidth', v)}
+                  suffix="px"
+                />
+                <Text type="secondary" style={{ fontSize: 12 }}>粗细</Text>
+              </div>
+            </>
           )}
         </div>
         <div className={styles["property-item"]}>
@@ -479,11 +503,12 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                        size="small"
                        style={{ width: '100%', marginTop: 4 }}
                        min={1}
-                       max={computeColumnMaxWidth(
-                         component.props?.columns || [],
-                         index,
-                         component.layout?.widthMm || 200
-                       )}
+                        max={computeColumnMaxWidth(
+                          component.props?.columns || [],
+                          index,
+                          component.layout?.widthMm || 200,
+                          component.props?.showRowNumber ? (component.props?.rowNumberWidth || 0) : 0
+                        )}
                        placeholder="自动"
                        suffix="mm"
                        value={col.width}

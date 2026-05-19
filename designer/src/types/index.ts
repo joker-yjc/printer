@@ -251,6 +251,10 @@ export interface TableProps {
   bordered?: boolean;
   /** 边框样式，默认 'solid'（仅在 bordered 为 true 时生效） */
   borderStyle?: 'solid' | 'dashed';
+  /** 边框颜色，默认 '#d9d9d9'（仅在 bordered 为 true 时生效） */
+  borderColor?: string;
+  /** 边框线宽（px），默认 1，范围 1-5（仅在 bordered 为 true 时生效） */
+  borderWidth?: number;
   /** 跨页时是否重复表头 */
   repeatHeader?: boolean;
   /** 是否显示合计行 */

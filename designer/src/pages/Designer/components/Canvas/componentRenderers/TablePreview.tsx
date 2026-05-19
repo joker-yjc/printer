@@ -11,23 +11,37 @@ function computeColWidths(
   columns: { width?: number }[],
   tableWidthMm: number
 ): string[] {
-  const totalFixed = columns.reduce((sum, c) => sum + (c.width || 0), 0);
   const totalCols = columns.length;
+  const totalFixed = columns.reduce((sum, c) => sum + (c.width || 0), 0);
   const unfixedCount = columns.filter(c => !c.width).length;
-  if (unfixedCount === totalCols) {
-    return columns.map(() => `${(100 / totalCols).toFixed(2)}%`);
+
+  // 固定列宽总和超表格宽度时，按比例缩减
+  if (totalFixed > tableWidthMm && unfixedCount === 0) {
+    const scale = tableWidthMm / totalFixed;
+    return columns.map((col, idx) => {
+      const pct = parseFloat(((col.width! * scale / tableWidthMm) * 100).toFixed(2));
+      if (idx === totalCols - 1) {
+        const sumPrev = columns.slice(0, -1).reduce((s, c) =>
+          s + parseFloat(((c.width! * scale / tableWidthMm) * 100).toFixed(2)), 0);
+        return `${(100 - sumPrev).toFixed(2)}%`;
+      }
+      return `${pct.toFixed(2)}%`;
+    });
   }
+
   const remainingMm = tableWidthMm - totalFixed;
   const unsetWidthMm = unfixedCount > 0 ? Math.max(0, remainingMm / unfixedCount) : 0;
-  return columns.map((col, idx) => {
+
+  const pcts = columns.map(col => {
     const wMm = col.width || unsetWidthMm;
-    const pct = (wMm / tableWidthMm) * 100;
-    // 最后一列吸收舍入误差，确保总和严格等于 100%
-    if (idx === columns.length - 1) {
-      const sumPrev = columns.slice(0, -1).reduce((s, c) => {
-        const prevMm = c.width || unsetWidthMm;
-        return s + (prevMm / tableWidthMm) * 100;
-      }, 0);
+    return (wMm / tableWidthMm) * 100;
+  });
+
+  // 最后一列吸收舍入误差，确保总和严格等于 100%
+  return pcts.map((pct, idx) => {
+    if (idx === totalCols - 1) {
+      const sumPrev = pcts.slice(0, -1).reduce((s, p) =>
+        s + parseFloat(p.toFixed(2)), 0);
       return `${(100 - sumPrev).toFixed(2)}%`;
     }
     return `${pct.toFixed(2)}%`;
@@ -37,12 +51,13 @@ function computeColWidths(
 function computeColumnMaxWidth(
   columns: { width?: number }[],
   index: number,
-  tableWidthMm: number
+  tableWidthMm: number,
+  reservedWidth: number = 0
 ): number {
   const otherFixed = columns.reduce((sum, col, i) =>
     i !== index ? sum + (col.width || 0) : sum, 0
   );
-  return Math.max(1, tableWidthMm - otherFixed);
+  return Math.max(1, tableWidthMm - otherFixed - reservedWidth);
 }
 
 function useColumnResize(
@@ -92,6 +107,8 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
   const columns = component.props?.columns || [];
   const bordered = component.props?.bordered !== false;
   const borderStyle = component.props?.borderStyle || 'solid';
+  const borderColor = component.props?.borderColor || '#d9d9d9';
+  const borderWidth = component.props?.borderWidth || 1;
   const showHeader = component.props?.showHeader !== false;
   const visibleColumns = columns.filter((col: any) => !col.hidden);
   const showRowNumber = component.props?.showRowNumber === true;
@@ -146,11 +163,11 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
               {displayCols.map((col: any, idx: number) => {
                 const isRowNum = col.dataIndex === '__rowNumber';
                 const colMm = parseFloat(colWidths[idx]) / 100 * tableWidthMm;
-                const maxW = computeColumnMaxWidth(displayCols, idx, tableWidthMm);
+                const maxW = computeColumnMaxWidth(displayCols, idx, tableWidthMm, showRowNumber ? (component.props?.rowNumberWidth || 0) : 0);
                 return (
                   <th key={idx} style={{
                     width: colWidths[idx],
-                    border: bordered ? `1px ${borderStyle} #d9d9d9` : 'none',
+                    border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
                     padding: '8px', background: '#fafafa', fontWeight: 600,
                     textAlign: isRowNum ? 'center' : (tableTextAlign as any),
                     position: 'relative',
@@ -179,7 +196,7 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
         <tbody>
           <tr>
             <td colSpan={displayCols.length} style={{
-              border: bordered ? `1px ${borderStyle} #d9d9d9` : 'none',
+              border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
               padding: '8px', textAlign: 'center', color: '#999',
             }}>
               暂无数据

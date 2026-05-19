@@ -174,7 +174,9 @@ export class TableRenderer implements ComponentRenderer {
 
     // 单元格样式
     const borderStyle = props?.borderStyle || 'solid';
-    const cellBorder = bordered ? `border: 1px ${borderStyle} ${TABLE_STYLE_DEFAULT.BORDER_COLOR};` : '';
+    const borderColor = props?.borderColor || TABLE_STYLE_DEFAULT.BORDER_COLOR;
+    const borderWidth = props?.borderWidth || 1;
+    const cellBorder = bordered ? `border: ${borderWidth}px ${borderStyle} ${borderColor};` : '';
     const cellPadding = `padding: ${TABLE_STYLE_DEFAULT.CELL_PADDING};`;
     const cellTextStyle = `white-space: normal; word-break: break-word; line-height: ${STYLE_DEFAULT.LINE_HEIGHT}; vertical-align: middle;`;
     const textAlign = style?.textAlign || 'left'; // 对齐方式
