@@ -22,6 +22,7 @@ interface TableColumnSectionProps {
 const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPropsChange }) => {
   // 从 pageConfig 计算表格可用宽度，与 SDK/Preview 保持一致
   const pageConfig = useDesignerStore(s => s.pageConfig);
+  const updateComponent = useDesignerStore(s => s.updateComponent);
   const tableWidthMm = getTableContentWidth(pageConfig, component.layout);
 
   // 检查列宽总和是否超限（#12），仅统计可见列
@@ -134,22 +135,33 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
 
   /** sourceColumn 变更时，自动为该列创建合计配置（如果没有） */
   const handleSourceColumnChange = (rowIndex: number, itemIndex: number, dataIndex: string | undefined) => {
-    // 更新 sourceColumn
-    handleExtraRowItemChange(rowIndex, itemIndex, 'sourceColumn', dataIndex);
+    const newRows = [...extraRows];
+    const items = [...newRows[rowIndex].items];
+    items[itemIndex] = { ...items[itemIndex], sourceColumn: dataIndex };
+    newRows[rowIndex] = { ...newRows[rowIndex], items };
 
-    // 如果选中了列且该列没有合计配置，自动创建默认 sum 配置
+    let columnsUpdated = false;
+    const columns = [...(component.props?.columns || [])];
+
     if (dataIndex) {
-      const columns = component.props?.columns || [];
       const colIndex = columns.findIndex((col: any) => col.dataIndex === dataIndex);
       if (colIndex >= 0 && !columns[colIndex].summary?.type) {
-        const newColumns = [...columns];
-        newColumns[colIndex] = {
-          ...newColumns[colIndex],
+        columns[colIndex] = {
+          ...columns[colIndex],
           summary: { type: 'sum', precision: 2 },
         };
-        onPropsChange('columns', newColumns);
+        columnsUpdated = true;
       }
     }
+
+    // 一次原子提交，避免 stale closure 导致 sourceColumn 写入被覆盖
+    updateComponent(component.id, {
+      props: {
+        ...component.props,
+        summaryExtraRows: newRows,
+        ...(columnsUpdated ? { columns } : {}),
+      },
+    });
   };
 
   // 仅在表格组件且有列配置时显示
