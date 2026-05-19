@@ -27,6 +27,37 @@ function getByPath(obj: any, path: string): any {
   return value;
 }
 
+/**
+ * 计算各列的宽度百分比
+ * - 全部未设置 width → 均分（向后兼容）
+ * - 部分设置 width → 固定列用 width，未设置列均分剩余空间
+ * @param columns - 显示列列表
+ * @param tableWidthMm - 表格总宽度 mm
+ * @returns 每列的 CSS 百分比字符串（如 "25.00%"）
+ */
+function computeColWidths(
+  columns: { width?: number }[],
+  tableWidthMm: number
+): string[] {
+  const totalFixed = columns.reduce((sum, c) => sum + (c.width || 0), 0);
+  const totalCols = columns.length;
+  const unfixedCount = columns.filter(c => !c.width).length;
+
+  if (unfixedCount === totalCols) {
+    return columns.map(() => `${(100 / totalCols).toFixed(2)}%`);
+  }
+
+  const remainingMm = tableWidthMm - totalFixed;
+  const unsetWidthMm = unfixedCount > 0
+    ? Math.max(0, remainingMm / unfixedCount)
+    : 0;
+
+  return columns.map(col => {
+    const wMm = col.width || unsetWidthMm;
+    return `${((wMm / tableWidthMm) * 100).toFixed(2)}%`;
+  });
+}
+
 export class TableRenderer implements ComponentRenderer {
   readonly type = 'table';
 
@@ -55,8 +86,9 @@ export class TableRenderer implements ComponentRenderer {
       align: 'center',
     };
 
+    const rowNumberCol = showRowNumber ? [{ ...rowNumberColumn, width: props?.rowNumberWidth }] : [];
     const displayColumns = showRowNumber
-      ? [rowNumberColumn, ...visibleColumns]
+      ? [...rowNumberCol, ...visibleColumns]
       : visibleColumns;
 
     // 支持分页传入的 _showHeader 标记，优先于 props.showHeader
@@ -132,14 +164,13 @@ export class TableRenderer implements ComponentRenderer {
     const tableStyleStr = buildStyleString(tableStyles);
 
     // 单元格样式
-    const cellBorder = bordered ? `border: 1px solid ${TABLE_STYLE_DEFAULT.BORDER_COLOR};` : '';
+    const borderStyle = props?.borderStyle || 'solid';
+    const cellBorder = bordered ? `border: 1px ${borderStyle} ${TABLE_STYLE_DEFAULT.BORDER_COLOR};` : '';
     const cellPadding = `padding: ${TABLE_STYLE_DEFAULT.CELL_PADDING};`;
     const cellTextStyle = `white-space: normal; word-break: break-word; line-height: ${STYLE_DEFAULT.LINE_HEIGHT}; vertical-align: middle;`;
     const textAlign = style?.textAlign || 'left'; // 对齐方式
 
-    // ✅ 计算均分列宽（简化方案：按列数均分表格宽度）
-    const colCount = displayColumns.length || 1;
-    const colWidthPercent = (100 / colCount).toFixed(2);
+    const colWidths = computeColWidths(displayColumns, tableWidthMm);
 
     // ✅ 计算表头和数据行的高度（mm 转 px）
     // 使用全局常量 ROW_HEIGHT_FACTOR，实际高度由内容自然撑开（min-height）
@@ -150,10 +181,9 @@ export class TableRenderer implements ComponentRenderer {
     let headerHtml = '';
     if (showHeader && displayColumns.length > 0) {
       const headerCells = displayColumns
-        .map((col: any) => {
+        .map((col: any, idx: number) => {
           const title = col.title || col.dataIndex;
-          // 使用百分比宽度实现均分，min-height 允许自然扩展
-          return `<th style="${cellBorder} ${cellPadding} ${cellTextStyle} background: ${TABLE_STYLE_DEFAULT.HEADER_BACKGROUND}; font-weight: 600; text-align: ${textAlign}; width: ${colWidthPercent}%; min-height: ${headerHeightPx}px; box-sizing: border-box;">${title}</th>`;
+          return `<th style="${cellBorder} ${cellPadding} ${cellTextStyle} background: ${TABLE_STYLE_DEFAULT.HEADER_BACKGROUND}; font-weight: 600; text-align: ${textAlign}; width: ${colWidths[idx]}%; min-height: ${headerHeightPx}px; box-sizing: border-box;">${title}</th>`;
         })
         .join('');
       // 表头使用固定高度，表体使用 min-height
@@ -167,13 +197,13 @@ export class TableRenderer implements ComponentRenderer {
       const rows = tableData
         .map((row: any, rowIndex: number) => {
           const cells = displayColumns
-            .map((col: any) => {
+            .map((col: any, idx: number) => {
               if (col.dataIndex === '__row_number__') {
                 const rowNumber = startRowIndex + rowIndex + 1;
-                return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} text-align: center; width: ${colWidthPercent}%; min-height: ${rowHeightPx}px; box-sizing: border-box;">${rowNumber}</td>`;
+                return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} text-align: center; width: ${colWidths[idx]}%; min-height: ${rowHeightPx}px; box-sizing: border-box;">${rowNumber}</td>`;
               }
               const value = getByPath(row, col.dataIndex) ?? '';
-              return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} text-align: ${textAlign}; width: ${colWidthPercent}%; min-height: ${rowHeightPx}px; box-sizing: border-box;">${value}</td>`;
+              return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} text-align: ${textAlign}; width: ${colWidths[idx]}%; min-height: ${rowHeightPx}px; box-sizing: border-box;">${value}</td>`;
             })
             .join('');
           return `<tr style="min-height: ${rowHeightPx}px;">${cells}</tr>`;
@@ -202,7 +232,7 @@ export class TableRenderer implements ComponentRenderer {
       : tableData;
 
     const summaryHtml = shouldShowSummary
-      ? this.renderSummary(summaryData, displayColumns, props as TableProps, cellBorder, cellPadding, cellTextStyle, rowHeightPx, textAlign, colWidthPercent)
+      ? this.renderSummary(summaryData, displayColumns, props as TableProps, cellBorder, cellPadding, cellTextStyle, rowHeightPx, textAlign, colWidths)
       : '';
 
     return `<table class="print-table" style="${tableStyleStr}">${headerHtml}${bodyHtml}${summaryHtml}</table>`;
@@ -220,7 +250,7 @@ export class TableRenderer implements ComponentRenderer {
     cellTextStyle: string,
     rowHeightPx: number,
     defaultTextAlign: string,
-    colWidthPercent: string = 'auto'
+    colWidths: string[]
   ): string {
     if (!columns.length) return '';
 
@@ -232,7 +262,7 @@ export class TableRenderer implements ComponentRenderer {
 
     const firstDataColumn = columns.find((col) => col.dataIndex !== '__row_number__');
 
-    const cells = columns.map((col) => {
+    const cells = columns.map((col, idx) => {
       let content = '';
 
       if (col.dataIndex === '__row_number__') {
@@ -248,7 +278,7 @@ export class TableRenderer implements ComponentRenderer {
         ${cellPadding}
         ${cellTextStyle}
         text-align: ${col.align || defaultTextAlign};
-        width: ${colWidthPercent}%;
+        width: ${colWidths[idx]}%;
         min-height: ${rowHeightPx}px;
         box-sizing: border-box;
         background: ${bgColor};
