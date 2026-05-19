@@ -2,6 +2,35 @@
 
 所有版本的变更记录都列在这里，遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 规范。
 
+## [1.4.0] - 2026-05-19
+
+### ✨ 新增功能
+
+- **表格列宽自定义**
+  - 新增 `TableColumn.width` 字段，支持为每列指定固定宽度（mm）
+  - `computeColWidths` 智能列宽计算：全部未设置→均分、部分设置→固定列+均分剩余、超出时→按比例缩放 + 未固定列最小份额保护
+  - 最后一列自动吸收舍入误差，确保百分比总和严格等于 100%
+  - `computeColumnMaxWidth` 导出函数，提供列最大宽度计算
+  - 设计器列配置面板支持 `width` 输入框
+  - 设计器表格预览支持拖拽调整列宽（实时同步到配置）
+
+- **行号列宽度自定义**
+  - 新增 `rowNumberWidth` 属性，支持自定义行号列宽度（mm）
+
+- **表格边框自定义**
+  - 新增 `borderStyle` 属性，支持 `solid` / `dashed` 两种边框样式
+  - 新增 `borderColor` 属性，支持自定义边框颜色（默认 `#d9d9d9`）
+  - 新增 `borderWidth` 属性，支持自定义边框线宽（1-5px，默认 1px）
+  - 所有边框属性仅当 `bordered: true` 时生效，向下兼容
+
+### 🔧 类型变更
+
+- **`TableProps` 新增可选属性**：`rowNumberWidth`、`borderStyle`、`borderColor`、`borderWidth`
+
+**影响范围**：`sdk/src/printEngine/renderers/TableRenderer.ts`、`sdk/src/types.ts`、`sdk/src/index.ts`、`designer/src/pages/Designer/components/PropertyPanel/TableColumnSection.tsx`、`designer/src/pages/Designer/components/Canvas/componentRenderers/TablePreviewRenderer.tsx`
+
+---
+
 ## [1.3.0] - 2026-05-16
 
 ### ✨ 新增功能

@@ -5,13 +5,20 @@
 
 通用打印 SDK - 客户端打印解决方案
 
-**当前版本**: v1.3.0
+**当前版本**: v1.4.0
 
 ## 🎨 在线演示
 
 **可视化模板设计器**: https://printer-pi-five.vercel.app
 
 拖拽式设计打印模板，生成模板 JSON 后直接配合 SDK 使用。内置示例数据，无需搭建环境即可体验。
+
+## 🆕 v1.4.0 新增功能
+
+- ✨ **表格列宽自定义**：新增 `TableColumn.width` 字段支持为每列指定固定宽度，`computeColWidths` 智能列宽计算（均分/固定+均分混合/超出缩放），设计器表格预览支持拖拽调整列宽
+- ✨ **行号列宽度自定义**：新增 `rowNumberWidth` 属性，支持自定义行号列宽度
+- ✨ **表格边框自定义**：新增 `borderStyle`（solid/dashed）、`borderColor`、`borderWidth` 属性
+- 🐛 **修复列宽精度**：修复百分比重复计算、舍入误差、溢出边缘情况等多项列宽问题
 
 ## 🆕 v1.3.0 新增功能
 
@@ -332,7 +339,9 @@ interface MultiTemplatePrintProgress {
 }
 ```
 
-### 表格合计额外行 ⭐ **v1.3.0 新增**
+> ⭐ **v1.4.0 新增**：`rowNumberWidth`、`borderStyle`、`borderColor`、`borderWidth`
+
+### 表格合计额外行
 
 在合计行下方添加自定义额外行，常用于显示金额大写、备注说明等：
 
@@ -373,7 +382,7 @@ interface MultiTemplatePrintProgress {
 }
 ```
 
-### 表格行号列 ⭐ **v1.3.0 新增**
+### 表格行号列 ⭐ **v1.4.0 新增：行号列宽度自定义**
 
 ```typescript
 {
@@ -381,6 +390,55 @@ interface MultiTemplatePrintProgress {
   props: {
     showRowNumber: true,      // 显示行号列
     rowNumberLabel: '序号',   // 自定义行号列标题（默认"序号"）
+    rowNumberWidth: 15,       // v1.4.0：行号列宽度（mm）
+    columns: [...]
+  }
+}
+```
+
+### 表格列宽自定义 ⭐ **v1.4.0 新增**
+
+```typescript
+{
+  type: 'table',
+  props: {
+    columns: [
+      {
+        title: '商品名称',
+        dataIndex: 'name',
+        width: 60    // 固定宽度（mm），不设置则均分剩余空间
+      },
+      {
+        title: '数量',
+        dataIndex: 'qty',
+        width: 20
+      },
+      {
+        title: '金额',
+        dataIndex: 'amount'
+        // 未设置 width → 均分剩余空间
+      }
+    ]
+  }
+}
+```
+
+#### 列宽计算规则
+
+1. **全部未设置** → 均分（向后兼容）
+2. **部分设置** → 固定列用指定宽度，未设置列均分剩余空间
+3. **固定列总和超表格宽度** → 全部固定则按比例缩放，部分固定则固定列缩放 + 未固定列最小 1% 份额
+
+### 表格边框自定义 ⭐ **v1.4.0 新增**
+
+```typescript
+{
+  type: 'table',
+  props: {
+    bordered: true,
+    borderStyle: 'dashed',     // solid | dashed
+    borderColor: '#1890ff',    // 自定义颜色
+    borderWidth: 2,            // 线宽 1-5px
     columns: [...]
   }
 }
