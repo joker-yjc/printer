@@ -3,12 +3,13 @@
  * 负责表格组件的列配置
  */
 
-import { Checkbox, Button, Space, Input, Typography, Collapse, Select, InputNumber, Radio, Tag } from 'antd';
+import { Checkbox, Button, Space, Input, Typography, Collapse, Select, InputNumber, Radio, Tag, Tooltip } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined, PlusOutlined, CloseOutlined } from '@ant-design/icons';
 import styles from './index.module.css';
 import type { ComponentNode, TableColumnSummary, SummaryExtraRow, SummaryExtraRowItem } from '../../../../types';
-import { getAllPipes } from '@jcyao/print-sdk';
+import { getAllPipes, computeColumnMaxWidth } from '@jcyao/print-sdk';
 import { getConfigurator } from '../../../../pipes/configurators';
+import { useDesignerStore } from '../../../../store/designer';
 
 const { Text } = Typography;
 
@@ -17,23 +18,30 @@ interface TableColumnSectionProps {
   onPropsChange: (field: string, value: any) => void;
 }
 
-/**
- * 计算某列的最大允许宽度
- * = 表格宽度 - 其他列固定宽度总和
- */
-function computeColumnMaxWidth(
-  columns: { width?: number }[],
-  index: number,
-  tableWidthMm: number,
-  reservedWidth: number = 0
-): number {
-  const otherFixed = columns.reduce((sum, col, i) =>
-    i !== index ? sum + (col.width || 0) : sum, 0
-  );
-  return Math.max(1, tableWidthMm - otherFixed - reservedWidth);
-}
-
 const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPropsChange }) => {
+  // 从 pageConfig 计算表格可用宽度，与 SDK/Preview 保持一致（#11）
+  const pageConfig = useDesignerStore(s => s.pageConfig);
+  const getPageWidthMm = () => {
+    const { size, orientation, widthMm } = pageConfig;
+    let pw: number;
+    if (size === 'CUSTOM') pw = widthMm || 210;
+    else if (size === 'CONTINUOUS') pw = widthMm || 80;
+    else pw = size === 'A4' ? 210 : 148;
+    if (orientation === 'landscape' && size !== 'CONTINUOUS') {
+      const ph = size === 'CUSTOM' ? (pageConfig.heightMm || 297) : (size === 'A4' ? 297 : 210);
+      pw = ph;
+    }
+    return pw;
+  };
+  const availableWidth = getPageWidthMm() - pageConfig.marginMm.left - pageConfig.marginMm.right;
+  const tableWidthMm = component.layout?.widthMm ?? (availableWidth - (component.layout?.xMm || 0));
+
+  // 检查列宽总和是否超限（#12）
+  const rowNumberWidth = component.props?.showRowNumber ? (component.props?.rowNumberWidth || 0) : 0;
+  const totalAssignedWidth = (component.props?.columns || []).reduce(
+    (sum: number, col: any) => sum + (col.width || 0), 0
+  ) + rowNumberWidth;
+  const isWidthOverflow = totalAssignedWidth > tableWidthMm;
   const handleColumnToggle = (index: number, checked: boolean) => {
     const columns = [...(component.props?.columns || [])];
     columns[index] = { ...columns[index], hidden: !checked };
@@ -194,7 +202,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
                 <input
                   type="color"
-                  value={component.props?.borderColor || '#d9d9d9'}
+                  value={component.props?.borderColor ?? '#d9d9d9'}
                   onChange={(e) => onPropsChange('borderColor', e.target.value)}
                   style={{ width: 28, height: 28, border: '1px solid #d9d9d9', borderRadius: 4, padding: 2, cursor: 'pointer' }}
                 />
@@ -206,7 +214,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                   max={5}
                   step={1}
                   precision={0}
-                  value={component.props?.borderWidth || 1}
+                  value={component.props?.borderWidth ?? 1}
                   onChange={(v) => onPropsChange('borderWidth', v)}
                   suffix="px"
                 />
@@ -495,27 +503,33 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                     placeholder="数据字段名 (dataIndex)"
                     value={col.dataIndex}
                     disabled={col.hidden}
-                     onChange={(e) => handleColumnDataIndexChange(index, e.target.value)}
-                   />
-                   <div>
-                     <Text type="secondary" style={{ fontSize: 12 }}>宽度 (mm)</Text>
-                     <InputNumber
-                       size="small"
-                       style={{ width: '100%', marginTop: 4 }}
-                       min={1}
+                    onChange={(e) => handleColumnDataIndexChange(index, e.target.value)}
+                  />
+                  <div>
+                    <Text type="secondary" style={{ fontSize: 12 }}>宽度 (mm)</Text>
+                    <Tooltip
+                      title={isWidthOverflow ? `列宽总和 ${totalAssignedWidth.toFixed(1)}mm 超过表格宽度 ${tableWidthMm.toFixed(1)}mm` : undefined}
+                      open={isWidthOverflow ? undefined : false}
+                    >
+                      <InputNumber
+                        size="small"
+                        style={{ width: '100%', marginTop: 4 }}
+                        min={1}
                         max={computeColumnMaxWidth(
                           component.props?.columns || [],
                           index,
-                          component.layout?.widthMm || 200,
+                          tableWidthMm,
                           component.props?.showRowNumber ? (component.props?.rowNumberWidth || 0) : 0
                         )}
-                       placeholder="自动"
-                       suffix="mm"
-                       value={col.width}
-                       onChange={(v) => handleColumnWidthChange(index, v)}
-                     />
-                   </div>
-                   {component.props?.showSummary && (
+                        status={isWidthOverflow ? 'error' : undefined}
+                        placeholder="自动"
+                        suffix="mm"
+                        value={col.width}
+                        onChange={(v) => handleColumnWidthChange(index, v)}
+                      />
+                    </Tooltip>
+                  </div>
+                  {component.props?.showSummary && (
                     <Collapse
                       size="small"
                       ghost

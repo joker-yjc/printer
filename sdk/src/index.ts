@@ -16,3 +16,6 @@ export * from './pipes';
 
 // 导出工具函数（供外部使用）
 export { waitForImagesLoaded, waitForPrintResourcesReady } from './utils/resourceLoader';
+
+// 导出表格工具函数（供设计器复用）
+export { computeColWidths, computeColumnMaxWidth } from './printEngine/renderers/TableRenderer';

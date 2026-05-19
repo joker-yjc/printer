@@ -10,6 +10,18 @@ import { COMPONENT_DEFAULT_SIZE, TABLE_DEFAULT, TABLE_STYLE_DEFAULT, STYLE_DEFAU
 import { getExecutor } from '../../pipes/registry';
 
 /**
+ * HTML 转义，防止 XSS 注入
+ */
+function escapeHtml(text: string): string {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
  * 根据数据路径从对象中取值
  * 支持嵌套路径，如：'product.name' => obj.product.name
  * @param obj 数据对象
@@ -31,40 +43,105 @@ function getByPath(obj: any, path: string): any {
  * 计算各列的宽度百分比
  * - 全部未设置 width → 均分（向后兼容）
  * - 部分设置 width → 固定列用 width，未设置列均分剩余空间
+ * - 固定列总和超表格宽度 → 按比例缩放（全固定）或给未固定列最小份额（部分固定）
  * @param columns - 显示列列表
  * @param tableWidthMm - 表格总宽度 mm
  * @returns 每列的 CSS 百分比字符串（如 "25.00%"）
  */
-function computeColWidths(
+export function computeColWidths(
   columns: { width?: number }[],
   tableWidthMm: number
 ): string[] {
-  const totalFixed = columns.reduce((sum, c) => sum + (c.width || 0), 0);
+  // 空数组守卫（#1）
+  if (columns.length === 0) return [];
+
   const totalCols = columns.length;
+  const totalFixed = columns.reduce((sum, c) => sum + (c.width || 0), 0);
   const unfixedCount = columns.filter(c => !c.width).length;
 
+  // 全部未设置 width → 均分
   if (unfixedCount === totalCols) {
     return columns.map(() => `${(100 / totalCols).toFixed(2)}%`);
   }
 
+  // 固定列宽总和超过表格宽度（#13 + #14）
+  if (totalFixed > tableWidthMm) {
+    if (unfixedCount === 0) {
+      // 全部固定：按比例缩放（#13）
+      const scale = tableWidthMm / totalFixed;
+      const pcts = columns.map(col =>
+        parseFloat(((col.width! * scale / tableWidthMm) * 100).toFixed(2))
+      );
+      return columns.map((_, idx) => {
+        if (idx === totalCols - 1) {
+          const sumPrev = pcts.slice(0, -1).reduce((s, p) => s + p, 0);
+          const lastPct = Math.min(100, Math.max(0, 100 - sumPrev));
+          return `${lastPct.toFixed(2)}%`;
+        }
+        return `${pcts[idx].toFixed(2)}%`;
+      });
+    } else {
+      // 部分固定：固定列按比例缩放，未固定列分配最小份额（#14）
+      const minPct = 1;
+      const fixedAvailable = 100 - minPct * unfixedCount;
+      const pcts = columns.map(col => {
+        if (col.width) {
+          return parseFloat(((col.width / totalFixed) * fixedAvailable).toFixed(2));
+        }
+        return minPct;
+      });
+      return columns.map((_, idx) => {
+        if (idx === totalCols - 1) {
+          const sumPrev = pcts.slice(0, -1).reduce((s, p) => s + p, 0);
+          const lastPct = Math.min(100, Math.max(0, 100 - sumPrev));
+          return `${lastPct.toFixed(2)}%`;
+        }
+        return `${pcts[idx].toFixed(2)}%`;
+      });
+    }
+  }
+
+  // 正常情况：固定列 + 未固定列均分剩余
   const remainingMm = tableWidthMm - totalFixed;
   const unsetWidthMm = unfixedCount > 0
     ? Math.max(0, remainingMm / unfixedCount)
     : 0;
 
-  return columns.map((col, idx) => {
+  const pcts = columns.map(col => {
     const wMm = col.width || unsetWidthMm;
-    const pct = (wMm / tableWidthMm) * 100;
-    // 最后一列吸收舍入误差，确保总和严格等于 100%
-    if (idx === columns.length - 1) {
-      const sumPrev = columns.slice(0, -1).reduce((s, c) => {
-        const prevMm = c.width || unsetWidthMm;
-        return s + (prevMm / tableWidthMm) * 100;
-      }, 0);
-      return `${(100 - sumPrev).toFixed(2)}%`;
-    }
-    return `${pct.toFixed(2)}%`;
+    return (wMm / tableWidthMm) * 100;
   });
+
+  // 最后一列吸收舍入误差，确保总和严格等于 100%（#8 clamp）
+  return columns.map((_, idx) => {
+    if (idx === totalCols - 1) {
+      const sumPrev = pcts.slice(0, -1).reduce((s, p) =>
+        s + parseFloat(p.toFixed(2)), 0);
+      const lastPct = Math.min(100, Math.max(0, 100 - sumPrev));
+      return `${lastPct.toFixed(2)}%`;
+    }
+    return `${pcts[idx].toFixed(2)}%`;
+  });
+}
+
+/**
+ * 计算某列的最大允许宽度（mm）
+ * @param columns - 显示列列表
+ * @param index - 目标列索引
+ * @param tableWidthMm - 表格总宽度 mm
+ * @param reservedWidth - 预留宽度（如行号列宽度），默认 0
+ * @returns 最大允许宽度 mm
+ */
+export function computeColumnMaxWidth(
+  columns: { width?: number }[],
+  index: number,
+  tableWidthMm: number,
+  reservedWidth: number = 0
+): number {
+  const otherFixed = columns.reduce((sum, col, i) =>
+    i !== index ? sum + (col.width || 0) : sum, 0
+  );
+  return Math.max(1, tableWidthMm - otherFixed - reservedWidth);
 }
 
 export class TableRenderer implements ComponentRenderer {
@@ -174,8 +251,8 @@ export class TableRenderer implements ComponentRenderer {
 
     // 单元格样式
     const borderStyle = props?.borderStyle || 'solid';
-    const borderColor = props?.borderColor || TABLE_STYLE_DEFAULT.BORDER_COLOR;
-    const borderWidth = props?.borderWidth || 1;
+    const borderColor = props?.borderColor ?? TABLE_STYLE_DEFAULT.BORDER_COLOR;
+    const borderWidth = props?.borderWidth ?? 1;
     const cellBorder = bordered ? `border: ${borderWidth}px ${borderStyle} ${borderColor};` : '';
     const cellPadding = `padding: ${TABLE_STYLE_DEFAULT.CELL_PADDING};`;
     const cellTextStyle = `white-space: normal; word-break: break-word; line-height: ${STYLE_DEFAULT.LINE_HEIGHT}; vertical-align: middle;`;
@@ -194,7 +271,7 @@ export class TableRenderer implements ComponentRenderer {
       const headerCells = displayColumns
         .map((col: any, idx: number) => {
           const title = col.title || col.dataIndex;
-          return `<th style="${cellBorder} ${cellPadding} ${cellTextStyle} background: ${TABLE_STYLE_DEFAULT.HEADER_BACKGROUND}; font-weight: 600; text-align: ${textAlign}; width: ${colWidths[idx]}; min-height: ${headerHeightPx}px; box-sizing: border-box;">${title}</th>`;
+          return `<th style="${cellBorder} ${cellPadding} ${cellTextStyle} background: ${TABLE_STYLE_DEFAULT.HEADER_BACKGROUND}; font-weight: 600; text-align: ${textAlign}; width: ${colWidths[idx]}; min-height: ${headerHeightPx}px; box-sizing: border-box;">${escapeHtml(title)}</th>`;
         })
         .join('');
       // 表头使用固定高度，表体使用 min-height
@@ -214,7 +291,7 @@ export class TableRenderer implements ComponentRenderer {
                 return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} text-align: center; width: ${colWidths[idx]}; min-height: ${rowHeightPx}px; box-sizing: border-box;">${rowNumber}</td>`;
               }
               const value = getByPath(row, col.dataIndex) ?? '';
-              return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} text-align: ${textAlign}; width: ${colWidths[idx]}; min-height: ${rowHeightPx}px; box-sizing: border-box;">${value}</td>`;
+              return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} text-align: ${textAlign}; width: ${colWidths[idx]}; min-height: ${rowHeightPx}px; box-sizing: border-box;">${escapeHtml(String(value))}</td>`;
             })
             .join('');
           return `<tr style="min-height: ${rowHeightPx}px;">${cells}</tr>`;
@@ -297,7 +374,7 @@ export class TableRenderer implements ComponentRenderer {
         ${fontSize ? `font-size: ${fontSize}px;` : ''}
       `.trim().replace(/\s+/g, ' ');
 
-      return `<td style="${cellStyle}">${content}</td>`;
+      return `<td style="${cellStyle}">${escapeHtml(content)}</td>`;
     }).join('');
 
     const extraRowsHtml = this.renderSummaryExtraRows(
@@ -497,7 +574,7 @@ export class TableRenderer implements ComponentRenderer {
         font-weight: ${fontWeight};
       `.trim().replace(/\s+/g, ' ');
 
-      return `<tr style="min-height: ${rowHeightPx}px;"><td colspan="${colCount}" style="${cellStyle}">${content}</td></tr>`;
+      return `<tr style="min-height: ${rowHeightPx}px;"><td colspan="${colCount}" style="${cellStyle}">${escapeHtml(content)}</td></tr>`;
     }).join('');
   }
 

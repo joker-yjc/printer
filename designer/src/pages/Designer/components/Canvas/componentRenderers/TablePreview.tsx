@@ -1,63 +1,11 @@
 import type { ComponentNode } from '../../../../../types';
+import { computeColWidths, computeColumnMaxWidth } from '@jcyao/print-sdk';
 import { pxToMm } from '../../../../../utils/zoom';
 import { useDesignerStore } from '../../../../../store/designer';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 interface TablePreviewProps {
   component: ComponentNode;
-}
-
-function computeColWidths(
-  columns: { width?: number }[],
-  tableWidthMm: number
-): string[] {
-  const totalCols = columns.length;
-  const totalFixed = columns.reduce((sum, c) => sum + (c.width || 0), 0);
-  const unfixedCount = columns.filter(c => !c.width).length;
-
-  // 固定列宽总和超表格宽度时，按比例缩减
-  if (totalFixed > tableWidthMm && unfixedCount === 0) {
-    const scale = tableWidthMm / totalFixed;
-    return columns.map((col, idx) => {
-      const pct = parseFloat(((col.width! * scale / tableWidthMm) * 100).toFixed(2));
-      if (idx === totalCols - 1) {
-        const sumPrev = columns.slice(0, -1).reduce((s, c) =>
-          s + parseFloat(((c.width! * scale / tableWidthMm) * 100).toFixed(2)), 0);
-        return `${(100 - sumPrev).toFixed(2)}%`;
-      }
-      return `${pct.toFixed(2)}%`;
-    });
-  }
-
-  const remainingMm = tableWidthMm - totalFixed;
-  const unsetWidthMm = unfixedCount > 0 ? Math.max(0, remainingMm / unfixedCount) : 0;
-
-  const pcts = columns.map(col => {
-    const wMm = col.width || unsetWidthMm;
-    return (wMm / tableWidthMm) * 100;
-  });
-
-  // 最后一列吸收舍入误差，确保总和严格等于 100%
-  return pcts.map((pct, idx) => {
-    if (idx === totalCols - 1) {
-      const sumPrev = pcts.slice(0, -1).reduce((s, p) =>
-        s + parseFloat(p.toFixed(2)), 0);
-      return `${(100 - sumPrev).toFixed(2)}%`;
-    }
-    return `${pct.toFixed(2)}%`;
-  });
-}
-
-function computeColumnMaxWidth(
-  columns: { width?: number }[],
-  index: number,
-  tableWidthMm: number,
-  reservedWidth: number = 0
-): number {
-  const otherFixed = columns.reduce((sum, col, i) =>
-    i !== index ? sum + (col.width || 0) : sum, 0
-  );
-  return Math.max(1, tableWidthMm - otherFixed - reservedWidth);
 }
 
 function useColumnResize(
@@ -70,6 +18,8 @@ function useColumnResize(
     originalWidth: number;
     maxWidth: number;
   } | null>(null);
+  const [currentWidth, setCurrentWidth] = useState<number | null>(null);
+  const currentWidthRef = useRef<number | null>(null);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent, colIndex: number, colWidthMm: number, maxWidth: number) => {
@@ -86,9 +36,19 @@ function useColumnResize(
       const deltaPx = e.clientX - resizing.startX;
       const deltaMm = pxToMm(deltaPx, zoomLevel);
       const newWidth = Math.max(1, Math.min(resizing.maxWidth, resizing.originalWidth + deltaMm));
-      onWidthChange(resizing.index, Math.round(newWidth * 10) / 10);
+      const rounded = Math.round(newWidth * 10) / 10;
+      currentWidthRef.current = rounded;
+      setCurrentWidth(rounded); // 仅更新本地状态，不触发 store
     };
-    const handleMouseUp = () => setResizing(null);
+    const handleMouseUp = () => {
+      // mouseup 时一次性提交到 store，避免每次 mousemove 都写历史记录
+      if (currentWidthRef.current !== null) {
+        onWidthChange(resizing.index, currentWidthRef.current);
+      }
+      setResizing(null);
+      setCurrentWidth(null);
+      currentWidthRef.current = null;
+    };
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     return () => {
@@ -97,7 +57,7 @@ function useColumnResize(
     };
   }, [resizing, zoomLevel, onWidthChange]);
 
-  return { resizing, handleMouseDown };
+  return { resizing, currentWidth, handleMouseDown };
 }
 
 /**
@@ -107,17 +67,32 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
   const columns = component.props?.columns || [];
   const bordered = component.props?.bordered !== false;
   const borderStyle = component.props?.borderStyle || 'solid';
-  const borderColor = component.props?.borderColor || '#d9d9d9';
-  const borderWidth = component.props?.borderWidth || 1;
+  const borderColor = component.props?.borderColor ?? '#d9d9d9';
+  const borderWidth = component.props?.borderWidth ?? 1;
   const showHeader = component.props?.showHeader !== false;
   const visibleColumns = columns.filter((col: any) => !col.hidden);
   const showRowNumber = component.props?.showRowNumber === true;
   const rowNumberLabel = component.props?.rowNumberLabel || '序号';
   const tableTextAlign = component.style?.textAlign || 'left';
 
-  const tableWidthMm = component.layout?.widthMm || 200;
+  // 从 pageConfig 计算表格可用宽度，与 SDK 动态计算保持一致（#11）
+  const pageConfig = useDesignerStore(s => s.pageConfig);
+  const getPageWidthMm = () => {
+    const { size, orientation, widthMm } = pageConfig;
+    let pw: number;
+    if (size === 'CUSTOM') pw = widthMm || 210;
+    else if (size === 'CONTINUOUS') pw = widthMm || 80;
+    else pw = size === 'A4' ? 210 : 148;
+    if (orientation === 'landscape' && size !== 'CONTINUOUS') {
+      const ph = size === 'CUSTOM' ? (pageConfig.heightMm || 297) : (size === 'A4' ? 297 : 210);
+      pw = ph;
+    }
+    return pw;
+  };
+  const availableWidth = getPageWidthMm() - pageConfig.marginMm.left - pageConfig.marginMm.right;
+  const tableWidthMm = component.layout?.widthMm ?? (availableWidth - (component.layout?.xMm || 0));
   const displayCols = showRowNumber
-    ? [{ dataIndex: '__rowNumber', title: rowNumberLabel, width: component.props?.rowNumberWidth }, ...visibleColumns]
+    ? [{ dataIndex: '__row_number__', title: rowNumberLabel, width: component.props?.rowNumberWidth }, ...visibleColumns]
     : visibleColumns;
   const colWidths = computeColWidths(displayCols, tableWidthMm);
 
@@ -140,7 +115,7 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
     },
     [component, showRowNumber, updateComponent]
   );
-  const { resizing, handleMouseDown } = useColumnResize(handleColumnWidthChange);
+  const { resizing, currentWidth, handleMouseDown } = useColumnResize(handleColumnWidthChange);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -150,7 +125,7 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
           background: '#1890ff', color: '#fff', padding: '4px 12px',
           borderRadius: 4, fontSize: 12, zIndex: 9999,
         }}>
-          {Math.round(parseFloat(colWidths[resizing.index]) / 100 * tableWidthMm)} mm
+          {currentWidth ? Math.round(currentWidth) : 0} mm
         </div>
       )}
       <table style={{
@@ -161,9 +136,9 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
           <thead>
             <tr>
               {displayCols.map((col: any, idx: number) => {
-                const isRowNum = col.dataIndex === '__rowNumber';
+                const isRowNum = col.dataIndex === '__row_number__';
                 const colMm = parseFloat(colWidths[idx]) / 100 * tableWidthMm;
-                const maxW = computeColumnMaxWidth(displayCols, idx, tableWidthMm, showRowNumber ? (component.props?.rowNumberWidth || 0) : 0);
+                const maxW = computeColumnMaxWidth(displayCols, idx, tableWidthMm);
                 return (
                   <th key={idx} style={{
                     width: colWidths[idx],
@@ -195,7 +170,7 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
         )}
         <tbody>
           <tr>
-            <td colSpan={displayCols.length} style={{
+            <td colSpan={displayCols.length || 1} style={{
               border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
               padding: '8px', textAlign: 'center', color: '#999',
             }}>
