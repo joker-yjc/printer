@@ -17,6 +17,21 @@ interface TableColumnSectionProps {
   onPropsChange: (field: string, value: any) => void;
 }
 
+/**
+ * 计算某列的最大允许宽度
+ * = 表格宽度 - 其他列固定宽度总和
+ */
+function computeColumnMaxWidth(
+  columns: { width?: number }[],
+  index: number,
+  tableWidthMm: number
+): number {
+  const otherFixed = columns.reduce((sum, col, i) =>
+    i !== index ? sum + (col.width || 0) : sum, 0
+  );
+  return Math.max(1, tableWidthMm - otherFixed);
+}
+
 const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPropsChange }) => {
   const handleColumnToggle = (index: number, checked: boolean) => {
     const columns = [...(component.props?.columns || [])];
@@ -41,6 +56,12 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
   const handleColumnDataIndexChange = (index: number, dataIndex: string) => {
     const columns = [...(component.props?.columns || [])];
     columns[index] = { ...columns[index], dataIndex };
+    onPropsChange('columns', columns);
+  };
+
+  const handleColumnWidthChange = (index: number, width: number | null) => {
+    const columns = [...(component.props?.columns || [])];
+    columns[index] = { ...columns[index], width: width ?? undefined };
     onPropsChange('columns', columns);
   };
 
@@ -157,6 +178,18 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
           >
             显示边框
           </Checkbox>
+          {component.props?.bordered !== false && (
+            <Select
+              size="small"
+              style={{ width: 100, marginTop: 8 }}
+              value={component.props?.borderStyle || 'solid'}
+              onChange={(v) => onPropsChange('borderStyle', v)}
+              options={[
+                { label: '实线', value: 'solid' },
+                { label: '虚线', value: 'dashed' },
+              ]}
+            />
+          )}
         </div>
         <div className={styles["property-item"]}>
           <Checkbox
@@ -347,15 +380,29 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
           </Checkbox>
         </div>
         {component.props?.showRowNumber && (
-          <div className={styles["property-item"]}>
-            <Text className={styles["property-label"]}>序号列标题</Text>
-            <Input
-              size="small"
-              placeholder="默认：序号"
-              value={component.props?.rowNumberLabel || ''}
-              onChange={(e) => onPropsChange('rowNumberLabel', e.target.value)}
-            />
-          </div>
+          <>
+            <div className={styles["property-item"]}>
+              <Text className={styles["property-label"]}>序号列标题</Text>
+              <Input
+                size="small"
+                placeholder="默认：序号"
+                value={component.props?.rowNumberLabel || ''}
+                onChange={(e) => onPropsChange('rowNumberLabel', e.target.value)}
+              />
+            </div>
+            <div className={styles["property-item"]}>
+              <Text className={styles["property-label"]}>序号列宽度 (mm)</Text>
+              <InputNumber
+                size="small"
+                style={{ width: '100%' }}
+                min={1}
+                placeholder="自动"
+                suffix="mm"
+                value={component.props?.rowNumberWidth}
+                onChange={(v) => onPropsChange('rowNumberWidth', v ?? undefined)}
+              />
+            </div>
+          </>
         )}
         <div className={styles["property-item"]} style={{ marginTop: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -424,9 +471,26 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                     placeholder="数据字段名 (dataIndex)"
                     value={col.dataIndex}
                     disabled={col.hidden}
-                    onChange={(e) => handleColumnDataIndexChange(index, e.target.value)}
-                  />
-                  {component.props?.showSummary && (
+                     onChange={(e) => handleColumnDataIndexChange(index, e.target.value)}
+                   />
+                   <div>
+                     <Text type="secondary" style={{ fontSize: 12 }}>宽度 (mm)</Text>
+                     <InputNumber
+                       size="small"
+                       style={{ width: '100%', marginTop: 4 }}
+                       min={1}
+                       max={computeColumnMaxWidth(
+                         component.props?.columns || [],
+                         index,
+                         component.layout?.widthMm || 200
+                       )}
+                       placeholder="自动"
+                       suffix="mm"
+                       value={col.width}
+                       onChange={(v) => handleColumnWidthChange(index, v)}
+                     />
+                   </div>
+                   {component.props?.showSummary && (
                     <Collapse
                       size="small"
                       ghost
