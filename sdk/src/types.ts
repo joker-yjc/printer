@@ -122,6 +122,8 @@ export interface TableProps {
   columns: TableColumn[];           // 列配置
   showHeader?: boolean;             // 是否显示表头
   bordered?: boolean;               // 是否显示边框
+  /** 边框样式，默认 'solid'（仅在 bordered 为 true 时生效） */
+  borderStyle?: 'solid' | 'dashed';
   repeatHeader?: boolean;           // 跨页重复表头
   showSummary?: boolean;            // 是否显示合计行
   summaryMode?: 'page' | 'total';   // 合计模式：page=每页合计，total=仅最后一页合计（默认）
@@ -131,6 +133,8 @@ export interface TableProps {
   showRowNumber?: boolean;
   /** 序号列标题，默认"序号" */
   rowNumberLabel?: string;
+  /** 行号列宽度（mm），不设置时自动分配 */
+  rowNumberWidth?: number;
   _pageData?: any[];                // 分页数据（内部使用）
   _showHeader?: boolean;            // 是否显示表头（内部使用）
   _isLastPage?: boolean;            // 是否为最后一页（内部使用）
