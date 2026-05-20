@@ -127,8 +127,8 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
             <tr>
               {displayCols.map((col: any, idx: number) => {
                 const isRowNum = col.dataIndex === '__row_number__';
-                const colMm = parseFloat(colWidths[idx]) / 100 * tableWidthMm;
-                const maxW = computeColumnMaxWidth(displayCols, idx, tableWidthMm);
+                const colMm = Math.round(parseFloat(colWidths[idx]) / 100 * tableWidthMm * 10) / 10;
+                const maxW = Math.round(computeColumnMaxWidth(displayCols, idx, tableWidthMm) * 10) / 10;
                 return (
                   <th key={idx} style={{
                     width: colWidths[idx],

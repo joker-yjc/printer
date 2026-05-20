@@ -429,6 +429,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                 size="small"
                 style={{ width: '100%' }}
                 min={1}
+                precision={1}
                 placeholder="自动"
                 suffix="mm"
                 value={component.props?.rowNumberWidth}
@@ -516,6 +517,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                         size="small"
                         style={{ width: '100%', marginTop: 4 }}
                         min={1}
+                        precision={1}
                         disabled={col.hidden}
                         max={computeColumnMaxWidth(
                           visibleColsForValidation,
