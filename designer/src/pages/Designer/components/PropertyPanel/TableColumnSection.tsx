@@ -516,6 +516,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                         size="small"
                         style={{ width: '100%', marginTop: 4 }}
                         min={1}
+                        disabled={col.hidden}
                         max={computeColumnMaxWidth(
                           visibleColsForValidation,
                           visibleColsForValidation.findIndex((c: any) => c.dataIndex === col.dataIndex),
