@@ -4,27 +4,19 @@ import {
   Button,
   Space,
   message,
-  Modal,
   Form,
-  Input,
   Popconfirm,
   Tag,
   Alert,
   Collapse,
   Typography,
-  Tabs,
   Upload,
-  Card,
-  Row,
-  Col,
-  Spin,
 } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   QuestionCircleOutlined,
-  ThunderboltOutlined,
   DownloadOutlined,
   UploadOutlined,
   EyeOutlined,
@@ -37,9 +29,11 @@ import {
   CalendarOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons';
-import MonacoEditor from '@monaco-editor/react';
 import { schemaApi } from '../../services/api';
 import type { SchemaDictionary, SchemaField } from '../../types';
+import SchemaFormModal from './components/SchemaFormModal';
+import SchemaPreviewModal from './components/SchemaPreviewModal';
+import SchemaHelpModal from './components/SchemaHelpModal';
 
 const { Panel } = Collapse;
 const { Paragraph, Text, Title } = Typography;
@@ -520,210 +514,35 @@ const SchemaManagement = () => {
         pagination={{ pageSize: 10 }}
       />
 
-      <Modal
-        title={editingSchema ? '编辑 Schema' : '新建 Schema'}
+      <SchemaFormModal
         open={modalOpen}
-        onOk={handleSubmit}
+        editingSchema={editingSchema}
+        form={form}
+        jsonValue={jsonValue}
+        onJsonValueChange={setJsonValue}
+        mockJsonValue={mockJsonValue}
+        onMockJsonValueChange={setMockJsonValue}
+        onSubmit={handleSubmit}
         onCancel={() => setModalOpen(false)}
-        width={1200}
-        okText="保存"
-        cancelText="取消"
-        style={{ top: 20 }}
-      >
-        <Form form={form} layout="vertical">
-          <div style={{ display: 'flex', gap: 16 }}>
-            {/* 左侧：基本信息 */}
-            <div style={{ width: 300 }}>
-              <Form.Item
-                label="名称"
-                name="name"
-                rules={[{ required: true, message: '请输入名称' }]}
-              >
-                <Input placeholder="如：订单 Schema" />
-              </Form.Item>
-              <Form.Item
-                label="版本"
-                name="version"
-                rules={[{ required: true, message: '请输入版本' }]}
-              >
-                <Input placeholder="如：1.0.0" />
-              </Form.Item>
-              <Form.Item label="描述" name="description">
-                <Input.TextArea rows={4} placeholder="Schema 说明" />
-              </Form.Item>
-            </div>
+        onGenerateFromMock={generateSchemaFromMock}
+      />
 
-            {/* 右侧：JSON 编辑器 */}
-            <div style={{ flex: 1 }}>
-              <Tabs
-                items={[
-                  {
-                    key: 'manual',
-                    label: '手动编辑',
-                    children: (
-                      <div>
-                        <Alert
-                          message="字段说明"
-                          description="key: 字段名 | label: 显示名 | type: 类型 (string/number/boolean/date/object/array) | children: 子字段(仅object/array)"
-                          type="info"
-                          showIcon
-                          style={{ marginBottom: 8 }}
-                        />
-                        <div style={{ border: '1px solid #d9d9d9', borderRadius: 4 }}>
-                          <MonacoEditor
-                            height="500px"
-                            language="json"
-                            value={jsonValue}
-                            onChange={(value: string | undefined) => setJsonValue(value || '')}
-                            loading={
-                              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Spin tip="编辑器加载中..." />
-                              </div>
-                            }
-                            options={{
-                              minimap: { enabled: false },
-                              scrollBeyondLastLine: false,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: 'auto',
-                    label: <><ThunderboltOutlined /> 智能生成</>,
-                    children: (
-                      <div>
-                        <Alert
-                          message="从 Mock 数据自动推断 Schema"
-                          description="粘贴 JSON 格式的样例数据，系统将自动推断字段类型和结构。生成后请检查并补充 label 等信息。"
-                          type="warning"
-                          showIcon
-                          style={{ marginBottom: 8 }}
-                        />
-                        <div style={{ border: '1px solid #d9d9d9', borderRadius: 4, marginBottom: 12 }}>
-                          <MonacoEditor
-                            height="400px"
-                            language="json"
-                            value={mockJsonValue}
-                            onChange={(value: string | undefined) => setMockJsonValue(value || '')}
-                            loading={
-                              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Spin tip="编辑器加载中..." />
-                              </div>
-                            }
-                            options={{
-                              minimap: { enabled: false },
-                              scrollBeyondLastLine: false,
-                            }}
-                          />
-                        </div>
-                        <Button
-                          type="primary"
-                          icon={<ThunderboltOutlined />}
-                          onClick={generateSchemaFromMock}
-                          disabled={!mockJsonValue.trim()}
-                          size="large"
-                          block
-                        >
-                          生成 Schema
-                        </Button>
-                      </div>
-                    ),
-                  },
-                ]}
-              />
-            </div>
-          </div>
-        </Form>
-      </Modal>
-
-      {/* 预览模态框 */}
-      <Modal
-        title={
-          <Space>
-            <EyeOutlined />
-            {previewSchema?.name}
-          </Space>
-        }
+      <SchemaPreviewModal
         open={previewModalOpen}
-        onCancel={() => setPreviewModalOpen(false)}
-        footer={[
-          <Button key="export" icon={<DownloadOutlined />} onClick={() => previewSchema && handleExport(previewSchema)}>
-            导出
-          </Button>,
-          <Button key="edit" type="primary" icon={<EditOutlined />} onClick={() => {
-            if (previewSchema) {
-              setPreviewModalOpen(false);
-              handleEdit(previewSchema);
-            }
-          }}>
-            编辑
-          </Button>,
-          <Button key="close" onClick={() => setPreviewModalOpen(false)}>
-            关闭
-          </Button>,
-        ]}
-        width={900}
-      >
-        {previewSchema && (
-          <div>
-            {/* 基本信息 */}
-            <Card size="small" style={{ marginBottom: 16 }}>
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Text type="secondary">名称：</Text>
-                  <Text strong>{previewSchema.name}</Text>
-                </Col>
-                <Col span={8}>
-                  <Text type="secondary">版本：</Text>
-                  <Tag color="blue">{previewSchema.version}</Tag>
-                </Col>
-                <Col span={8}>
-                  <Text type="secondary">ID：</Text>
-                  <Text code>{previewSchema.id}</Text>
-                </Col>
-              </Row>
-              {previewSchema.description && (
-                <div style={{ marginTop: 8 }}>
-                  <Text type="secondary">描述：</Text>
-                  <Text>{previewSchema.description}</Text>
-                </div>
-              )}
-              <div style={{ marginTop: 8 }}>
-                <Text type="secondary">字段数量：</Text>
-                <Tag>{countFields(previewSchema.root)}</Tag>
-              </div>
-            </Card>
+        previewSchema={previewSchema}
+        onExport={handleExport}
+        onEdit={(schema) => {
+          setPreviewModalOpen(false);
+          handleEdit(schema);
+        }}
+        onClose={() => setPreviewModalOpen(false)}
+      />
 
-            {/* JSON 预览 */}
-            <Collapse ghost>
-              <Collapse.Panel header="查看 JSON 原文" key="json">
-                <pre style={{
-                  background: '#f5f5f5',
-                  padding: 12,
-                  borderRadius: 4,
-                  maxHeight: 400,
-                  overflow: 'auto',
-                  fontSize: 12,
-                }}>
-                  {JSON.stringify(previewSchema, null, 2)}
-                </pre>
-              </Collapse.Panel>
-            </Collapse>
-          </div>
-        )}
-      </Modal>
-
-      <Modal
-        title="Schema 字段说明"
+      <SchemaHelpModal
         open={helpVisible}
-        onCancel={() => setHelpVisible(false)}
-        footer={null}
-        width={700}
-      >
-        {schemaHelpContent}
-      </Modal>
+        content={schemaHelpContent}
+        onClose={() => setHelpVisible(false)}
+      />
     </div>
   );
 };
