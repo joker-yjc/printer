@@ -1254,6 +1254,273 @@ export const defaultTemplates: PrintTemplate[] = [
       }
     ],
     "id": "template-demo-nested-order"
+  },
+  {
+    id: 'template-continuous-half',
+    name: '二分纸模板（连续纸）',
+    version: '1.0',
+    description: '二分纸打印模板，自定义纸张 241mm × 140mm，方便根据内容拆单打印',
+    schemaId: 'schema-demo-sales',
+    page: {
+      size: 'CUSTOM',
+      widthMm: 241,
+      heightMm: 140,
+      orientation: 'portrait',
+      marginMm: { top: 5, right: 10, bottom: 5, left: 10 }
+    },
+    layoutMode: 'absolute',
+    components: [
+      {
+        id: 'title',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 10, yMm: 5, widthMm: 221, heightMm: 10 },
+        style: { fontSize: 16, fontWeight: 'bold', textAlign: 'center' },
+        binding: { path: 'title', fallback: '销售出库单' },
+        props: {}
+      },
+      {
+        id: 'line1',
+        type: 'line',
+        layout: { mode: 'absolute', xMm: 10, yMm: 17, widthMm: 221, heightMm: 2 },
+        style: { borderTopWidth: 1, borderTopStyle: 'solid', borderTopColor: '#000000' },
+        props: { direction: 'horizontal' }
+      },
+      {
+        id: 'documentNo',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 10, yMm: 22, widthMm: 100, heightMm: 6 },
+        style: { fontSize: 11 },
+        binding: { path: 'documentNo', fallback: 'SO-' },
+        props: { label: '单据编号：' }
+      },
+      {
+        id: 'createdDate',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 120, yMm: 22, widthMm: 100, heightMm: 6 },
+        style: { fontSize: 11, textAlign: 'right' },
+        binding: {
+          path: 'createdDate',
+          pipes: [{ type: 'date', options: { format: 'YYYY-MM-DD' } }],
+          fallback: '2024-01-15'
+        },
+        props: { label: '日期：' }
+      },
+      {
+        id: 'customerName',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 10, yMm: 30, widthMm: 100, heightMm: 6 },
+        style: { fontSize: 11 },
+        binding: { path: 'customer.name', fallback: '客户名称' },
+        props: { label: '客户：' }
+      },
+      {
+        id: 'customerPhone',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 120, yMm: 30, widthMm: 100, heightMm: 6 },
+        style: { fontSize: 11, textAlign: 'right' },
+        binding: { path: 'customer.phone', fallback: '138****0000' },
+        props: { label: '电话：' }
+      },
+      {
+        id: 'line2',
+        type: 'line',
+        layout: { mode: 'absolute', xMm: 10, yMm: 38, widthMm: 221, heightMm: 2 },
+        style: { borderTopWidth: 1, borderTopStyle: 'solid', borderTopColor: '#000000' },
+        props: { direction: 'horizontal' }
+      },
+      {
+        id: 'itemsTable',
+        type: 'table',
+        layout: { mode: 'absolute', xMm: 10, yMm: 42, widthMm: 221, heightMm: 60 },
+        style: { fontSize: 10, textAlign: 'center' },
+        binding: { path: 'items' },
+        props: {
+          bordered: true,
+          showHeader: true,
+          columns: [
+            { dataIndex: 'no', title: '序号', width: 20 },
+            { dataIndex: 'code', title: '编码', width: 40 },
+            { dataIndex: 'name', title: '名称', width: 80 },
+            { dataIndex: 'spec', title: '规格', width: 40 },
+            { dataIndex: 'unit', title: '单位', width: 20 },
+            { dataIndex: 'quantity', title: '数量', width: 30 },
+            { dataIndex: 'price', title: '单价', width: 30 },
+            { dataIndex: 'amount', title: '金额', width: 30 }
+          ]
+        }
+      },
+      {
+        id: 'totalAmount',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 150, yMm: 105, widthMm: 81, heightMm: 8 },
+        style: { fontSize: 12, fontWeight: 'bold', textAlign: 'right' },
+        binding: {
+          path: 'summary.finalAmount',
+          pipes: [{ type: 'currency', options: {} }],
+          fallback: '¥0.00'
+        },
+        props: { label: '合计：' }
+      },
+      {
+        id: 'remarks',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 10, yMm: 115, widthMm: 221, heightMm: 10 },
+        style: { fontSize: 10 },
+        binding: { path: 'remarks', fallback: '' },
+        props: { label: '备注：' }
+      },
+      {
+        id: 'operator',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 10, yMm: 127, widthMm: 100, heightMm: 6 },
+        style: { fontSize: 10 },
+        binding: { path: 'operator', fallback: '' },
+        props: { label: '操作员：' }
+      },
+      {
+        id: 'reviewer',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 120, yMm: 127, widthMm: 100, heightMm: 6 },
+        style: { fontSize: 10, textAlign: 'right' },
+        binding: { path: 'reviewer', fallback: '' },
+        props: { label: '审核人：' }
+      }
+    ]
+  },
+  {
+    id: 'template-a5-order',
+    name: 'A5 订单模板',
+    version: '1.0',
+    description: 'A5 纸张模板（148mm × 210mm），纵向，包含标题、客户信息、明细表格和合计',
+    schemaId: 'schema-demo-sales',
+    page: {
+      size: 'A5',
+      orientation: 'portrait',
+      marginMm: { top: 10, right: 10, bottom: 10, left: 10 }
+    },
+    layoutMode: 'absolute',
+    components: [
+      {
+        id: 'title',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 10, yMm: 10, widthMm: 128, heightMm: 10 },
+        style: { fontSize: 16, fontWeight: 'bold', textAlign: 'center' },
+        binding: { path: 'title', fallback: '销售出库单' },
+        props: {}
+      },
+      {
+        id: 'line1',
+        type: 'line',
+        layout: { mode: 'absolute', xMm: 10, yMm: 23, widthMm: 128, heightMm: 2 },
+        style: { borderTopWidth: 1, borderTopStyle: 'solid', borderTopColor: '#000000' },
+        props: { direction: 'horizontal' }
+      },
+      {
+        id: 'documentNo',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 10, yMm: 28, widthMm: 60, heightMm: 6 },
+        style: { fontSize: 10 },
+        binding: { path: 'documentNo', fallback: 'SO-' },
+        props: { label: '单号：' }
+      },
+      {
+        id: 'createdDate',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 78, yMm: 28, widthMm: 60, heightMm: 6 },
+        style: { fontSize: 10, textAlign: 'right' },
+        binding: {
+          path: 'createdDate',
+          pipes: [{ type: 'date', options: { format: 'YYYY-MM-DD' } }],
+          fallback: '2024-01-15'
+        },
+        props: { label: '日期：' }
+      },
+      {
+        id: 'customerName',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 10, yMm: 36, widthMm: 128, heightMm: 5 },
+        style: { fontSize: 10 },
+        binding: { path: 'customer.name', fallback: '客户名称' },
+        props: { label: '客户：' }
+      },
+      {
+        id: 'customerAddress',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 10, yMm: 43, widthMm: 128, heightMm: 5 },
+        style: { fontSize: 10 },
+        binding: { path: 'customer.address', fallback: '地址' },
+        props: { label: '地址：' }
+      },
+      {
+        id: 'customerPhone',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 10, yMm: 50, widthMm: 60, heightMm: 5 },
+        style: { fontSize: 10 },
+        binding: { path: 'customer.phone', fallback: '电话' },
+        props: { label: '电话：' }
+      },
+      {
+        id: 'line2',
+        type: 'line',
+        layout: { mode: 'absolute', xMm: 10, yMm: 58, widthMm: 128, heightMm: 2 },
+        style: { borderTopWidth: 1, borderTopStyle: 'solid', borderTopColor: '#000000' },
+        props: { direction: 'horizontal' }
+      },
+      {
+        id: 'itemsTable',
+        type: 'table',
+        layout: { mode: 'absolute', xMm: 10, yMm: 62, widthMm: 128, heightMm: 100 },
+        style: { fontSize: 9, textAlign: 'center' },
+        binding: { path: 'items' },
+        props: {
+          bordered: true,
+          showHeader: true,
+          columns: [
+            { dataIndex: 'no', title: '序号', width: 15 },
+            { dataIndex: 'name', title: '名称', width: 40 },
+            { dataIndex: 'spec', title: '规格', width: 25 },
+            { dataIndex: 'quantity', title: '数量', width: 18 },
+            { dataIndex: 'price', title: '单价', width: 20 },
+            { dataIndex: 'amount', title: '金额', width: 20 }
+          ]
+        }
+      },
+      {
+        id: 'totalAmount',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 78, yMm: 165, widthMm: 60, heightMm: 7 },
+        style: { fontSize: 12, fontWeight: 'bold', textAlign: 'right' },
+        binding: {
+          path: 'summary.finalAmount',
+          pipes: [{ type: 'currency', options: {} }],
+          fallback: '¥0.00'
+        },
+        props: { label: '合计：' }
+      },
+      {
+        id: 'remarks',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 10, yMm: 175, widthMm: 128, heightMm: 8 },
+        style: { fontSize: 9 },
+        binding: { path: 'remarks', fallback: '' },
+        props: { label: '备注：' }
+      },
+      {
+        id: 'operator',
+        type: 'text',
+        layout: { mode: 'absolute', xMm: 10, yMm: 186, widthMm: 60, heightMm: 5 },
+        style: { fontSize: 9 },
+        binding: { path: 'operator', fallback: '' },
+        props: { label: '操作员：' }
+      },
+      {
+        id: 'qrcode',
+        type: 'qrcode',
+        layout: { mode: 'absolute', xMm: 98, yMm: 175, widthMm: 20, heightMm: 20 },
+        binding: { path: 'qrCodeUrl', fallback: 'https://example.com' },
+        props: { content: '' }
+      }
+    ]
   }
 ];
 
@@ -1676,6 +1943,97 @@ export const defaultMockData: MockData[] = [
       ],
       summary: { totalAmount: 26185.00, finalAmount: 26185.00 },
       remarks: '嵌套对象路径测试：表格列使用 product.name、product.code、product.category 等 dataIndex'
+    }
+  },
+  {
+    id: 'mock-continuous-001',
+    name: '二分纸测试数据 - 标准样例',
+    schemaId: 'schema-demo-sales',
+    templateId: 'template-continuous-half',
+    description: '用于二分纸连续打印模板的测试数据，包含 5 个明细项',
+    data: {
+      title: '销售出库单',
+      subtitle: 'CONTINUOUS PRINT',
+      companyName: '示例科技有限公司',
+      companyAddress: '测试地址',
+      documentNo: 'SO202405150001',
+      createdDate: '2024-05-15',
+      createdTime: '2024-05-15T10:30:00',
+      amount: 38677.0,
+      status: 'completed',
+      qrCodeUrl: 'https://example.com/delivery/SO202405150001',
+      barcode: 'SO202405150001',
+      logoUrl: '',
+      signatureUrl: '',
+      customer: {
+        name: '北京测试商贸有限公司',
+        contact: '王经理',
+        phone: '13900139000',
+        email: 'wang@test.com',
+        address: '北京市朝阳区测试路 1 号'
+      },
+      items: [
+        { no: 1, code: 'TEST-001', name: '测试商品 A', spec: '标准规格', unit: '个', quantity: 10, price: 999.0, amount: 9990.0 },
+        { no: 2, code: 'TEST-002', name: '测试商品 B', spec: '大号', unit: '个', quantity: 5, price: 1599.0, amount: 7995.0 },
+        { no: 3, code: 'TEST-003', name: '测试商品 C', spec: '小号', unit: '个', quantity: 20, price: 299.0, amount: 5980.0 },
+        { no: 4, code: 'TEST-004', name: '测试商品 D', spec: '中号', unit: '个', quantity: 8, price: 899.0, amount: 7192.0 },
+        { no: 5, code: 'TEST-005', name: '测试商品 E', spec: '豪华版', unit: '个', quantity: 3, price: 2500.0, amount: 7500.0 }
+      ],
+      summary: {
+        totalQuantity: 46,
+        totalAmount: 38657.0,
+        discount: 100.0,
+        tax: 4626.84,
+        finalAmount: 43183.84
+      },
+      remarks: '这是用于测试二分纸连续打印的示例数据，请核对商品数量和规格。',
+      operator: '测试员',
+      reviewer: '审核员'
+    }
+  },
+  {
+    id: 'mock-a5-001',
+    name: 'A5 订单测试数据 - 标准样例',
+    schemaId: 'schema-demo-sales',
+    templateId: 'template-a5-order',
+    description: '用于 A5 纸张模板的测试数据，包含 4 个明细项',
+    data: {
+      title: '销售出库单',
+      subtitle: 'A5 DOCUMENT',
+      companyName: '示例科技有限公司',
+      companyAddress: '广东省深圳市南山区科技园',
+      documentNo: 'A5-20240515001',
+      createdDate: '2024-05-15',
+      createdTime: '2024-05-15T09:00:00',
+      amount: 38890.0,
+      status: 'completed',
+      qrCodeUrl: 'https://example.com/order/A5-20240515001',
+      barcode: 'A5-20240515001',
+      logoUrl: '',
+      signatureUrl: '',
+      customer: {
+        name: '上海极光商贸有限公司',
+        contact: '李经理',
+        phone: '13912345678',
+        email: 'li@jiguang.com',
+        address: '上海市浦东新区张江高科技园区 200 号'
+      },
+      items: [
+        { no: 1, code: 'A5-001', name: '文具套装 A', spec: '标准版', unit: '套', quantity: 20, price: 299.0, amount: 5980.0 },
+        { no: 2, code: 'A5-002', name: '办公笔记本', spec: 'A5 皮面', unit: '本', quantity: 50, price: 35.0, amount: 1750.0 },
+        { no: 3, code: 'A5-003', name: '签字笔套装', spec: '12 支装', unit: '盒', quantity: 30, price: 128.0, amount: 3840.0 },
+        { no: 4, code: 'A5-004', name: '打印纸', spec: '80g/500张', unit: '箱', quantity: 10, price: 289.0, amount: 2890.0 }
+      ],
+      summary: {
+        totalQuantity: 110,
+        totalAmount: 14460.0,
+        discount: 200.0,
+        tax: 1711.2,
+        finalAmount: 15971.2
+      },
+      remarks: 'A5 模板测试数据 - 常规文具订单，请按时发货。',
+      operator: '张三',
+      reviewer: '李四'
     }
   }
 ];
