@@ -16,7 +16,7 @@ export const TableStylePlugin: StylePlugin = {
       <>
         <div className={styles["property-item"]}>
           <Tooltip title="表格内容的字体大小">
-            <Text className={styles["property-label"]}>🔤 字体大小</Text>
+            <Text className={styles["property-label"]}>字体大小</Text>
           </Tooltip>
           <InputNumber
             style={{ width: '100%' }}
@@ -26,7 +26,7 @@ export const TableStylePlugin: StylePlugin = {
         </div>
         <div className={styles["property-item"]}>
           <Tooltip title="表格单元格内容的对齐方式">
-            <Text className={styles["property-label"]}>📏 对齐方式</Text>
+            <Text className={styles["property-label"]}>对齐方式</Text>
           </Tooltip>
           <Select
             style={{ width: '100%' }}
