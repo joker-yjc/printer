@@ -240,7 +240,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
         {component.props?.showSummary && (
           <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
             <div className={styles["property-list"]} style={{ padding: 0 }}>
-              <div className={styles["property-item"]}>
+              <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
                 <Text className={styles["property-label"]}>合计模式</Text>
                 <Radio.Group
                   size="small"
@@ -251,7 +251,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                   <Radio.Button value="page">分页合计</Radio.Button>
                 </Radio.Group>
               </div>
-              <div className={styles["property-item"]}>
+              <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
                 <Text className={styles["property-label"]}>合计标签</Text>
                 <Input
                   size="small"
@@ -408,7 +408,8 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                 </div>
               )}
             </div>
-          </>
+            </div>
+          </div>
         )}
         <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Checkbox
@@ -444,7 +445,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
             </div>
           )}
         </div>
-        <div className={`${styles["property-item"]} ${styles["property-item-full"]}`} style={{ marginTop: 12 }}
+        <div className={`${styles["property-item"]} ${styles["property-item-full"]}`} style={{ marginTop: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <Text className={styles["property-label"]}>列配置</Text>
             <Button
@@ -688,10 +689,9 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                                             }}
                                           />
                                         </Space.Compact>
-             </div>
-            </div>
-          </div>
-        )}
+                                      </div>
+                                    </>
+                                  )}
                                 </>
                               )}
                             </Space>
