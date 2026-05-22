@@ -193,7 +193,7 @@ export const defaultTemplates: PrintTemplate[] = [
           "mode": "absolute",
           "xMm": 10,
           "yMm": 25,
-          "widthMm": 180,
+          "widthMm": 190,
           "heightMm": 2
         },
         "style": {
@@ -418,7 +418,7 @@ export const defaultTemplates: PrintTemplate[] = [
           "mode": "absolute",
           "xMm": 10,
           "yMm": 95,
-          "widthMm": 180,
+          "widthMm": 190,
           "heightMm": 2
         },
         "style": {
@@ -437,7 +437,7 @@ export const defaultTemplates: PrintTemplate[] = [
           "mode": "absolute",
           "xMm": 10,
           "yMm": 100,
-          "widthMm": 180,
+          "widthMm": 190,
           "heightMm": 80
         },
         "style": {
@@ -515,7 +515,7 @@ export const defaultTemplates: PrintTemplate[] = [
           "mode": "absolute",
           "xMm": 10,
           "yMm": 192,
-          "widthMm": 180,
+          "widthMm": 190,
           "heightMm": 15
         },
         "style": {
@@ -629,7 +629,7 @@ export const defaultTemplates: PrintTemplate[] = [
           "mode": "absolute",
           "xMm": 10,
           "yMm": 30,
-          "widthMm": 180,
+          "widthMm": 190,
           "heightMm": 2
         },
         "style": {
@@ -866,7 +866,7 @@ export const defaultTemplates: PrintTemplate[] = [
           "mode": "absolute",
           "xMm": 10,
           "yMm": 85,
-          "widthMm": 180,
+          "widthMm": 190,
           "heightMm": 2
         },
         "style": {
@@ -904,7 +904,7 @@ export const defaultTemplates: PrintTemplate[] = [
           "mode": "absolute",
           "xMm": 10,
           "yMm": 100,
-          "widthMm": 180,
+          "widthMm": 190,
           "heightMm": 40
         },
         "style": {
@@ -943,7 +943,7 @@ export const defaultTemplates: PrintTemplate[] = [
           "mode": "absolute",
           "xMm": 10,
           "yMm": 148,
-          "widthMm": 180,
+          "widthMm": 190,
           "heightMm": 2
         },
         "style": {
@@ -1109,7 +1109,7 @@ export const defaultTemplates: PrintTemplate[] = [
       {
         id: 'component-a',
         type: 'text',
-        layout: { mode: 'absolute', xMm: 10, yMm: 10, widthMm: 180, heightMm: 100 },
+        layout: { mode: 'absolute', xMm: 10, yMm: 10, widthMm: 190, heightMm: 100 },
         style: { fontSize: 14 },
         binding: { fallback: '组件A：高度100mm' },
         props: { text: '组件A：高度100mm' }
@@ -1117,7 +1117,7 @@ export const defaultTemplates: PrintTemplate[] = [
       {
         id: 'component-b',
         type: 'text',
-        layout: { mode: 'absolute', xMm: 10, yMm: 90, widthMm: 180, heightMm: 30 },
+        layout: { mode: 'absolute', xMm: 10, yMm: 90, widthMm: 190, heightMm: 30 },
         style: { fontSize: 14, fontWeight: 'bold', color: '#ff0000', backgroundColor: '#ffffcc' },
         binding: { fallback: '组件B（与A重叠20mm）' },
         props: { text: '组件B：与A重叠20mm' }
@@ -1125,7 +1125,7 @@ export const defaultTemplates: PrintTemplate[] = [
       {
         id: 'component-c',
         type: 'text',
-        layout: { mode: 'absolute', xMm: 10, yMm: 100, widthMm: 180, heightMm: 200 },
+        layout: { mode: 'absolute', xMm: 10, yMm: 100, widthMm: 190, heightMm: 200 },
         style: { fontSize: 14, color: '#0000ff', backgroundColor: '#ccffcc' },
         binding: { fallback: '组件C（与B负gap，会换页）' },
         props: { text: '组件C：与B有-20mm的gap，换页后会成为新页面第一个组件。如果看到这句话位置异常或消失，说明bug存在。' }
@@ -1203,14 +1203,14 @@ export const defaultTemplates: PrintTemplate[] = [
       {
         "id": "line1",
         "type": "line",
-        "layout": { "mode": "absolute", "xMm": 10, "yMm": 50, "widthMm": 180, "heightMm": 2 },
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 50, "widthMm": 190, "heightMm": 2 },
         "style": { "borderTopWidth": 1, "borderTopStyle": "solid", "borderTopColor": "#000000" },
         "props": { "direction": "horizontal" }
       },
       {
         "id": "itemsTable",
         "type": "table",
-        "layout": { "mode": "absolute", "xMm": 10, "yMm": 55, "widthMm": 180, "heightMm": 80 },
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 55, "widthMm": 190, "heightMm": 80 },
         "style": { "fontSize": 10, "textAlign": "center" },
         "binding": { "path": "items" },
         "props": {
@@ -1247,7 +1247,7 @@ export const defaultTemplates: PrintTemplate[] = [
       {
         "id": "remarks",
         "type": "text",
-        "layout": { "mode": "absolute", "xMm": 10, "yMm": 140, "widthMm": 180, "heightMm": 10 },
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 140, "widthMm": 190, "heightMm": 10 },
         "style": { "fontSize": 10 },
         "binding": { "path": "remarks", "fallback": "" },
         "props": { "label": "备注：" }
