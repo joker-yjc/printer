@@ -2,7 +2,7 @@
  * 文本组件样式插件
  */
 
-import { Input, InputNumber, Select, Space, Typography } from 'antd';
+import { Input, InputNumber, Select, Typography } from 'antd';
 import styles from '../index.module.css';
 import type { StylePlugin } from './types';
 
