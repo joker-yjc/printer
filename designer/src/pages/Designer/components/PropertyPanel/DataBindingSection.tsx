@@ -46,9 +46,9 @@ const DataBindingSection: React.FC<DataBindingSectionProps> = ({ component, onBi
     <div className={styles["property-section"]}>
       <div className={styles["property-title"]}>🔗 数据绑定</div>
       <div className={styles["property-list"]}>
-        <div className={styles["property-item"]}>
+        <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Tooltip title="数据的JSON路径，如 'user.name'、'items.0.title'，也可从左侧数据资产拖拽">
-            <Text className={styles["property-label"]}>🔗 绑定路径</Text>
+            <Text className={styles["property-label"]}>绑定路径</Text>
           </Tooltip>
           <Input
             value={component.binding?.path || ''}
@@ -57,9 +57,9 @@ const DataBindingSection: React.FC<DataBindingSectionProps> = ({ component, onBi
             allowClear
           />
         </div>
-        <div className={styles["property-item"]}>
+        <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Tooltip title="当数据为空、null或undefined时的默认显示值">
-            <Text className={styles["property-label"]}>🛡️ 默认值 (Fallback)</Text>
+            <Text className={styles["property-label"]}>默认值 (Fallback)</Text>
           </Tooltip>
           <Input
             value={component.binding?.fallback || ''}
@@ -68,10 +68,10 @@ const DataBindingSection: React.FC<DataBindingSectionProps> = ({ component, onBi
             allowClear
           />
         </div>
-        <div className={styles["property-item"]}>
+        <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <Tooltip title="数据管道用于格式化数据，如日期格式化、大小写转换等，按顺序执行">
-              <Text className={styles["property-label"]}>🔧 数据管道 (Pipes)</Text>
+              <Text className={styles["property-label"]}>数据管道 (Pipes)</Text>
             </Tooltip>
             <Select
               size="small"

@@ -2,7 +2,7 @@
  * 文本组件样式插件
  */
 
-import { Input, InputNumber, Select, Space, Typography } from 'antd';
+import { Input, InputNumber, Select, Typography } from 'antd';
 import styles from '../index.module.css';
 import type { StylePlugin } from './types';
 
@@ -15,7 +15,7 @@ export const TextStylePlugin: StylePlugin = {
     return (
       <>
         {/* 文本组件特有属性 */}
-        <div className={styles["property-item"]}>
+        <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Text className={styles["property-label"]}>标签 (Label)</Text>
           <Input
             placeholder="例如：订单号："
@@ -24,7 +24,7 @@ export const TextStylePlugin: StylePlugin = {
             allowClear
           />
         </div>
-        <div className={styles["property-item"]}>
+        <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Text className={styles["property-label"]}>静态文本</Text>
           <Input
             placeholder="不绑定数据时显示的文本"
@@ -42,21 +42,6 @@ export const TextStylePlugin: StylePlugin = {
             value={component.style?.fontSize || 14}
             onChange={(val) => onStyleChange('fontSize', val || 14)}
           />
-        </div>
-        <div className={styles["property-item"]}>
-          <Text className={styles["property-label"]}>字体颜色</Text>
-          <Space.Compact style={{ width: '100%' }}>
-            <Input
-              type="color"
-              value={component.style?.color || '#262626'}
-              onChange={(e) => onStyleChange('color', e.target.value)}
-              style={{ width: 60 }}
-            />
-            <Input
-              value={component.style?.color || '#262626'}
-              onChange={(e) => onStyleChange('color', e.target.value)}
-            />
-          </Space.Compact>
         </div>
         <div className={styles["property-item"]}>
           <Text className={styles["property-label"]}>字重</Text>
@@ -81,6 +66,15 @@ export const TextStylePlugin: StylePlugin = {
               { value: 'center', label: '居中' },
               { value: 'right', label: '右对齐' },
             ]}
+          />
+        </div>
+        <div className={styles["property-item"]}>
+          <Text className={styles["property-label"]}>字体颜色</Text>
+          <input
+            type="color"
+            value={component.style?.color || '#262626'}
+            onChange={(e) => onStyleChange('color', e.target.value)}
+            style={{ width: '100%', height: 32, cursor: 'pointer', border: '1px solid #d9d9d9', borderRadius: 4, padding: 2 }}
           />
         </div>
       </>

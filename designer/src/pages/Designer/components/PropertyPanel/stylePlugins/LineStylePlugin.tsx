@@ -27,7 +27,7 @@ export const LineStylePlugin: StylePlugin = {
       <>
         <div className={styles["property-item"]}>
           <Tooltip title="线条的粗细（像素）">
-            <Text className={styles["property-label"]}>📏 线条高度</Text>
+            <Text className={styles["property-label"]}>线条高度</Text>
           </Tooltip>
           <InputNumber
             style={{ width: '100%' }}
@@ -39,7 +39,7 @@ export const LineStylePlugin: StylePlugin = {
         </div>
         <div className={styles["property-item"]}>
           <Tooltip title="选择线条样式">
-            <Text className={styles["property-label"]}>🎨 线条样式</Text>
+            <Text className={styles["property-label"]}>线条样式</Text>
           </Tooltip>
           <Select
             style={{ width: '100%' }}
@@ -52,15 +52,15 @@ export const LineStylePlugin: StylePlugin = {
             ]}
           />
         </div>
-        <div className={styles["property-item"]}>
+        <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Tooltip title="线条的颜色">
-            <Text className={styles["property-label"]}>🎨 线条颜色</Text>
+            <Text className={styles["property-label"]}>线条颜色</Text>
           </Tooltip>
           <input
             type="color"
             value={component.style?.borderTopColor || '#000000'}
             onChange={(e) => onStyleChange('borderTopColor', e.target.value)}
-            style={{ width: '100%', height: 32, cursor: 'pointer' }}
+            style={{ width: '100%', height: 32, cursor: 'pointer', border: '1px solid #d9d9d9', borderRadius: 4, padding: 2 }}
           />
         </div>
       </>
