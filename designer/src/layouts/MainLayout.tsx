@@ -35,7 +35,7 @@ const MainLayout = () => {
     <Layout className={styles['main-layout']}>
       <Sider width={200} theme="light">
         <div className={styles['logo-section']}>
-          🖨️ 打印模板平台
+          打印模板平台
         </div>
         <Menu
           mode="inline"

@@ -22,6 +22,7 @@ import {
   ThunderboltOutlined,
   DownloadOutlined,
   UploadOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
 import type { UploadFile } from 'antd';
 import MonacoEditor from '@monaco-editor/react';
@@ -282,30 +283,39 @@ const MockDataManagement = () => {
 
   return (
     <div style={{ padding: 24 }}>
-      <Space style={{ marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-          新建 Mock 数据
-        </Button>
-        <Upload
-          accept=".json"
-          showUploadList={false}
-          beforeUpload={handleImport}
-          fileList={fileList}
-        >
-          <Button icon={<UploadOutlined />}>导入</Button>
-        </Upload>
-        <Button icon={<DownloadOutlined />} onClick={handleBatchExport}>
-          批量导出
-        </Button>
-        <Select
-          style={{ width: 200 }}
-          placeholder="筛选 Schema"
-          allowClear
-          value={filterSchemaId}
-          onChange={setFilterSchemaId}
-          options={schemas.map((s) => ({ value: s.id, label: s.name }))}
-        />
-      </Space>
+      <div style={{ marginBottom: 16 }}>
+        <Space style={{ marginBottom: 16 }}>
+          <Select
+            style={{ width: 200 }}
+            placeholder="筛选 Schema"
+            allowClear
+            value={filterSchemaId}
+            onChange={setFilterSchemaId}
+            options={schemas.map((s) => ({ value: s.id, label: s.name }))}
+          />
+        </Space>
+        <div>
+          <Space>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+              新建 Mock 数据
+            </Button>
+            <Upload
+              accept=".json"
+              showUploadList={false}
+              beforeUpload={handleImport}
+              fileList={fileList}
+            >
+              <Button icon={<UploadOutlined />}>导入</Button>
+            </Upload>
+            <Button icon={<DownloadOutlined />} onClick={handleBatchExport}>
+              批量导出
+            </Button>
+            <Button icon={<ReloadOutlined />} onClick={loadMockData}>
+              刷新
+            </Button>
+          </Space>
+        </div>
+      </div>
 
       <Table
         columns={columns}

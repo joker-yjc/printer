@@ -4,15 +4,10 @@ import {
   Button,
   Space,
   message,
-  Modal,
-  Form,
-  Input,
   Popconfirm,
   Tag,
-  Card,
-  Row,
-  Col,
-  Statistic,
+  Form,
+  Input,
   Select,
   Upload,
   Tooltip,
@@ -27,11 +22,12 @@ import {
   ReloadOutlined,
   FileTextOutlined,
   CopyOutlined,
-  DatabaseOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { templateApi, schemaApi } from '../../services/api';
 import type { PrintTemplate, SchemaDictionary } from '../../types';
+import TemplateFormModal from './components/TemplateFormModal';
+import TemplatePreviewModal from './components/TemplatePreviewModal';
 
 const TemplateManagement = () => {
   const navigate = useNavigate();
@@ -353,27 +349,6 @@ const TemplateManagement = () => {
 
   return (
     <div style={{ padding: 24 }}>
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="模板总数"
-              value={templates.length}
-              prefix={<FileTextOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="关联 Schema"
-              value={new Set(templates.map((t) => t.schemaId).filter(Boolean)).size}
-              prefix={<DatabaseOutlined />}
-            />
-          </Card>
-        </Col>
-      </Row>
-
       <div style={{ marginBottom: 16 }}>
         <Space style={{ marginBottom: 16 }}>
           <Input.Search
@@ -428,135 +403,23 @@ const TemplateManagement = () => {
         scroll={{ x: 1200 }}
       />
 
-      <Modal
-        title={editingTemplate ? '编辑模板信息' : '新建模板'}
+      <TemplateFormModal
         open={modalOpen}
-        onOk={handleSubmit}
+        editingTemplate={editingTemplate}
+        schemas={schemas}
+        form={form}
+        onSubmit={handleSubmit}
         onCancel={() => setModalOpen(false)}
-        okText="保存"
-        cancelText="取消"
-      >
-        <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
-          <Form.Item
-            label="模板名称"
-            name="name"
-            rules={[{ required: true, message: '请输入模板名称' }]}
-          >
-            <Input placeholder="如：订单打印模板" />
-          </Form.Item>
-          <Form.Item
-            label="关联 Schema"
-            name="schemaId"
-            tooltip="可选。关联 Schema 后可便于管理和分类，但不影响模板使用"
-          >
-            <Select placeholder="选择数据 Schema（可选）" allowClear>
-              {schemas.map((schema) => (
-                <Select.Option key={schema.id} value={schema.id}>
-                  {schema.name}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item label="描述" name="description">
-            <Input.TextArea rows={3} placeholder="模板说明" />
-          </Form.Item>
-        </Form>
-      </Modal>
+      />
 
-      <Modal
-        title={
-          <Space>
-            <EyeOutlined />
-            {previewTemplate?.name}
-          </Space>
-        }
+      <TemplatePreviewModal
         open={previewModalOpen}
-        onCancel={() => setPreviewModalOpen(false)}
-        footer={[
-          <Button key="export" icon={<DownloadOutlined />} onClick={() => previewTemplate && handleExport(previewTemplate)}>
-            导出
-          </Button>,
-          <Button key="edit" type="primary" icon={<EditOutlined />} onClick={() => {
-            if (previewTemplate) {
-              setPreviewModalOpen(false);
-              handleOpenInDesigner(previewTemplate.id);
-            }
-          }}>
-            在设计器中打开
-          </Button>,
-          <Button key="close" onClick={() => setPreviewModalOpen(false)}>
-            关闭
-          </Button>,
-        ]}
-        width={900}
-      >
-        {previewTemplate && (
-          <div>
-            <Card size="small" style={{ marginBottom: 16 }}>
-              <Row gutter={16}>
-                <Col span={8}>
-                  <div><strong>模板名称：</strong>{previewTemplate.name}</div>
-                </Col>
-                <Col span={8}>
-                  <div>
-                    <strong>Schema：</strong>
-                    {previewTemplate.schemaId
-                      ? (schemas.find((s) => s.id === previewTemplate.schemaId)?.name || '已删除')
-                      : '未关联'}
-                  </div>
-                </Col>
-                <Col span={8}>
-                  <div><strong>组件数：</strong>{previewTemplate.components.length}</div>
-                </Col>
-              </Row>
-              <Row gutter={16} style={{ marginTop: 12 }}>
-                <Col span={8}>
-                  <div>
-                    <strong>纸张尺寸：</strong>
-                    {previewTemplate.page.size === 'CUSTOM' && previewTemplate.page.widthMm && previewTemplate.page.heightMm
-                      ? `${previewTemplate.page.widthMm}×${previewTemplate.page.heightMm}mm`
-                      : previewTemplate.page.size}
-                  </div>
-                </Col>
-                <Col span={8}>
-                  <div>
-                    <strong>方向：</strong>
-                    {previewTemplate.page.orientation === 'portrait' ? '纵向' : '横向'}
-                  </div>
-                </Col>
-                <Col span={8}>
-                  <div><strong>ID：</strong><Tag>{previewTemplate.id}</Tag></div>
-                </Col>
-              </Row>
-              {previewTemplate.description && (
-                <div style={{ marginTop: 12 }}>
-                  <strong>描述：</strong>{previewTemplate.description}
-                </div>
-              )}
-            </Card>
-
-            <Card size="small" title="组件列表">
-              {previewTemplate.components.length > 0 ? (
-                <div style={{ maxHeight: 300, overflow: 'auto' }}>
-                  {previewTemplate.components.map((comp) => (
-                    <div key={comp.id} style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                      <Tag color="blue">{comp.type}</Tag>
-                      <span style={{ marginLeft: 8 }}>
-                        位置: ({comp.layout.xMm || 0}, {comp.layout.yMm || 0})
-                        尺寸: {comp.layout.widthMm || 0}×{comp.layout.heightMm || 0}mm
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: 24, color: '#999' }}>
-                  暂无组件
-                </div>
-              )}
-            </Card>
-          </div>
-        )}
-      </Modal>
+        previewTemplate={previewTemplate}
+        schemas={schemas}
+        onExport={handleExport}
+        onEdit={handleOpenInDesigner}
+        onClose={() => setPreviewModalOpen(false)}
+      />
     </div>
   );
 };

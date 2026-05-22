@@ -17,7 +17,6 @@ import {
   Card,
   Row,
   Col,
-  Statistic,
   Spin,
 } from 'antd';
 import {
@@ -37,7 +36,6 @@ import {
   NumberOutlined,
   CalendarOutlined,
   CheckCircleOutlined,
-  DatabaseOutlined,
 } from '@ant-design/icons';
 import MonacoEditor from '@monaco-editor/react';
 import { schemaApi } from '../../services/api';
@@ -490,28 +488,6 @@ const SchemaManagement = () => {
 
   return (
     <div style={{ padding: 24 }}>
-      {/* 统计信息 */}
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Schema 总数"
-              value={schemas.length}
-              prefix={<DatabaseOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="总字段数"
-              value={schemas.reduce((sum, s) => sum + countFields(s.root), 0)}
-              prefix={<FileOutlined />}
-            />
-          </Card>
-        </Col>
-      </Row>
-
       <div style={{ marginBottom: 16 }}>
         <Space>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
@@ -524,11 +500,11 @@ const SchemaManagement = () => {
           >
             <Button icon={<UploadOutlined />}>导入</Button>
           </Upload>
-          <Button icon={<ReloadOutlined />} onClick={loadSchemas}>
-            刷新
-          </Button>
           <Button icon={<DownloadOutlined />} onClick={handleBatchExport}>
             批量导出
+          </Button>
+          <Button icon={<ReloadOutlined />} onClick={loadSchemas}>
+            刷新
           </Button>
           <Button icon={<QuestionCircleOutlined />} onClick={() => setHelpVisible(true)}>
             字段说明
