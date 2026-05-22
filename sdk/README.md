@@ -628,7 +628,7 @@ MIT © joke_yao
 - [GitHub 仓库](https://github.com/joker-yjc/printer)
 - [在线演示](https://printer-pi-five.vercel.app) - 可视化模板设计器，拖拽生成模板 JSON
 - [问题反馈](https://github.com/joker-yjc/printer/issues)
-- [更新日志](https://github.com/joker-yjc/printer/blob/main/CHANGELOG.md)
+- [更新日志](https://github.com/joker-yjc/printer/blob/master/CHANGELOG.md)
 
 ## 🤝 贡献
 

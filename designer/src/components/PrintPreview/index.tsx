@@ -1,7 +1,7 @@
 import { Modal, Button, Space, message, Select, Segmented } from 'antd';
 import { LeftOutlined, RightOutlined, PrinterOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useState, useEffect, useRef } from 'react';
-import { createPrintEngine, waitForImagesLoaded } from '@jcyao/print-sdk';
+import { createPrintEngine, PrintSDK } from '@jcyao/print-sdk';
 import { useDesignerStore } from '../../store/designer';
 import { mockDataApi, templateApi } from '../../services/api';
 import type { MockData, PrintTemplate } from '../../types';
@@ -336,27 +336,84 @@ ${numberedBody}
 </html>`;
   };
 
+  /** 打印（通过 SDK API，无需依赖 previewHtml） */
   const handlePrint = async () => {
-    if (!previewHtml) {
-      message.error('请先生成预览');
+    if (templateMode === 'single') {
+      await handlePrintSingle();
+    } else {
+      await handlePrintMulti();
+    }
+  };
+
+  const handlePrintSingle = async () => {
+    if (!selectedMockDataId) {
+      message.error('请选择 Mock 数据');
       return;
     }
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      message.error('无法打开打印窗口，请检查浏览器设置');
-      return;
-    }
-
-    printWindow.document.write(previewHtml);
-    printWindow.document.close();
-
+    setLoading(true);
     try {
-      await waitForImagesLoaded(printWindow.document);
-      printWindow.print();
+      const mockData = mockDataList.find(item => item.id === selectedMockDataId);
+      if (!mockData) {
+        message.error('Mock 数据不存在');
+        return;
+      }
+
+      const template = generateTemplate() as PrintTemplate;
+      const sdk = new PrintSDK();
+
+      if (Array.isArray(mockData.data)) {
+        await sdk.printMultiple(template, mockData.data, { preview: true });
+        message.success(`批量打印已发起（${mockData.data.length} 份文档）`);
+      } else {
+        await sdk.print({ template, data: mockData.data, preview: true });
+        message.success('打印已发起');
+      }
     } catch (error) {
-      console.error('图片加载失败:', error);
-      printWindow.print();
+      message.error('打印失败');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePrintMulti = async () => {
+    const validGroups = templateGroups.filter(g => g.dataId && g.templateSource);
+    if (validGroups.length === 0) {
+      message.error('请为至少一个模板组选择模板和数据');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const sdk = new PrintSDK();
+      const groups: { template: PrintTemplate; dataList: any[] }[] = [];
+
+      for (const group of validGroups) {
+        const template = await getTemplateForGroup(group);
+        if (!template) continue;
+
+        const data = getDataForGroup(group);
+        if (!data) continue;
+
+        groups.push({
+          template,
+          dataList: Array.isArray(data) ? data : [data],
+        });
+      }
+
+      if (groups.length === 0) {
+        message.error('没有有效模板组可打印');
+        return;
+      }
+
+      await sdk.printMultiTemplate(groups, { preview: true });
+      message.success('打印已发起');
+    } catch (error) {
+      message.error('打印失败');
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -441,7 +498,7 @@ ${numberedBody}
                 <Button type="primary" onClick={handleGeneratePreview} loading={loading}>
                   生成预览
                 </Button>
-                <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint} disabled={!previewHtml}>
+                <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint} loading={loading}>
                   打印
                 </Button>
                 {printMode === 'batch' && batchCount > 0 && (
@@ -502,7 +559,7 @@ ${numberedBody}
                   <Button type="primary" onClick={handleGeneratePreview} loading={loading}>
                     生成预览
                   </Button>
-                  <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint} disabled={!previewHtml}>
+                  <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint} loading={loading}>
                     打印
                   </Button>
                   {previewHtml && batchCount > 0 && (
