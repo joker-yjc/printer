@@ -173,7 +173,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
     <div className={styles["property-section"]}>
       <div className={styles["property-title"]}>📋 表格列管理</div>
       <div className={styles["property-list"]}>
-        <div className={styles["property-item"]}>
+        <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Checkbox
             checked={component.props?.showHeader !== false}
             onChange={(e) => onPropsChange('showHeader', e.target.checked)}
@@ -181,7 +181,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
             显示表头
           </Checkbox>
         </div>
-        <div className={styles["property-item"]}>
+        <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Checkbox
             checked={component.props?.bordered !== false}
             onChange={(e) => onPropsChange('bordered', e.target.checked)}
@@ -189,28 +189,25 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
             显示边框
           </Checkbox>
           {component.props?.bordered !== false && (
-            <>
-              <Select
-                size="small"
-                style={{ width: 100, marginTop: 8 }}
-                value={component.props?.borderStyle ?? 'solid'}
-                onChange={(v) => onPropsChange('borderStyle', v)}
-                options={[
-                  { label: '实线', value: 'solid' },
-                  { label: '虚线', value: 'dashed' },
-                ]}
-              />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                <input
-                  type="color"
-                  value={component.props?.borderColor ?? '#d9d9d9'}
-                  onChange={(e) => onPropsChange('borderColor', e.target.value)}
-                  style={{ width: 28, height: 28, border: '1px solid #d9d9d9', borderRadius: 4, padding: 2, cursor: 'pointer' }}
+            <div className={styles["property-list"]} style={{ padding: 0, marginTop: 8 }}>
+              <div className={styles["property-item"]}>
+                <Text className={styles["property-label"]}>线条样式</Text>
+                <Select
+                  size="small"
+                  style={{ width: '100%' }}
+                  value={component.props?.borderStyle ?? 'solid'}
+                  onChange={(v) => onPropsChange('borderStyle', v)}
+                  options={[
+                    { label: '实线', value: 'solid' },
+                    { label: '虚线', value: 'dashed' },
+                  ]}
                 />
-                <Text type="secondary" style={{ fontSize: 12 }}>颜色</Text>
+              </div>
+              <div className={styles["property-item"]}>
+                <Text className={styles["property-label"]}>线条粗细 (px)</Text>
                 <InputNumber
                   size="small"
-                  style={{ width: 72 }}
+                  style={{ width: '100%' }}
                   min={1}
                   max={5}
                   step={1}
@@ -219,12 +216,20 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                   onChange={(v) => onPropsChange('borderWidth', v)}
                   suffix="px"
                 />
-                <Text type="secondary" style={{ fontSize: 12 }}>粗细</Text>
               </div>
-            </>
+              <div className={styles["property-item"]}>
+                <Text className={styles["property-label"]}>线条颜色</Text>
+                <input
+                  type="color"
+                  value={component.props?.borderColor ?? '#d9d9d9'}
+                  onChange={(e) => onPropsChange('borderColor', e.target.value)}
+                  style={{ width: '100%', height: 32, border: '1px solid #d9d9d9', borderRadius: 4, padding: 2, cursor: 'pointer' }}
+                />
+              </div>
+            </div>
           )}
         </div>
-        <div className={styles["property-item"]}>
+        <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Checkbox
             checked={component.props?.showSummary === true}
             onChange={(e) => onPropsChange('showSummary', e.target.checked)}
@@ -233,30 +238,31 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
           </Checkbox>
         </div>
         {component.props?.showSummary && (
-          <>
-            <div className={styles["property-item"]}>
-              <Text className={styles["property-label"]}>合计模式</Text>
-              <Radio.Group
-                size="small"
-                value={component.props?.summaryMode || 'total'}
-                onChange={(e) => onPropsChange('summaryMode', e.target.value)}
-              >
-                <Radio.Button value="total">总计（最后一页）</Radio.Button>
-                <Radio.Button value="page">分页合计</Radio.Button>
-              </Radio.Group>
-            </div>
-            <div className={styles["property-item"]}>
-              <Text className={styles["property-label"]}>合计标签</Text>
-              <Input
-                size="small"
-                placeholder="默认：合计"
-                value={component.props?.summaryLabel || ''}
-                onChange={(e) => onPropsChange('summaryLabel', e.target.value)}
-              />
-            </div>
-            <div className={styles["property-item"]}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <Text className={styles["property-label"]}>合计额外行</Text>
+          <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
+            <div className={styles["property-list"]} style={{ padding: 0 }}>
+              <div className={styles["property-item"]}>
+                <Text className={styles["property-label"]}>合计模式</Text>
+                <Radio.Group
+                  size="small"
+                  value={component.props?.summaryMode || 'total'}
+                  onChange={(e) => onPropsChange('summaryMode', e.target.value)}
+                >
+                  <Radio.Button value="total">总计（最后一页）</Radio.Button>
+                  <Radio.Button value="page">分页合计</Radio.Button>
+                </Radio.Group>
+              </div>
+              <div className={styles["property-item"]}>
+                <Text className={styles["property-label"]}>合计标签</Text>
+                <Input
+                  size="small"
+                  placeholder="默认：合计"
+                  value={component.props?.summaryLabel || ''}
+                  onChange={(e) => onPropsChange('summaryLabel', e.target.value)}
+                />
+              </div>
+              <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <Text className={styles["property-label"]}>合计额外行</Text>
                 <Button
                   size="small"
                   type="dashed"
@@ -285,7 +291,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                       </div>
                       <Space direction="vertical" size="small" style={{ width: '100%' }}>
                         <div>
-                          <Text type="secondary" style={{ fontSize: 12 }}>对齐方式</Text>
+                          <Text className={styles["property-label"]}>对齐方式</Text>
                           <Select
                             size="small"
                             style={{ width: '100%', marginTop: 4 }}
@@ -300,7 +306,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                         </div>
                         <div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                            <Text type="secondary" style={{ fontSize: 12 }}>数据项</Text>
+                            <Text className={styles["property-label"]}>数据项</Text>
                             <Button
                               size="small"
                               type="dashed"
@@ -342,7 +348,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                                   options={getAllColumns()}
                                 />
                                 <div>
-                                  <Text type="secondary" style={{ fontSize: 12 }}>管道转换</Text>
+                                  <Text className={styles["property-label"]}>管道转换</Text>
                                   {item.pipes?.[0] ? (
                                     <div style={{ marginTop: 4, border: '1px solid #d9d9d9', borderRadius: 4, padding: 8, background: '#fafafa' }}>
                                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -404,41 +410,41 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
             </div>
           </>
         )}
-        <div className={styles["property-item"]}>
+        <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Checkbox
             checked={component.props?.showRowNumber === true}
             onChange={(e) => onPropsChange('showRowNumber', e.target.checked)}
           >
             显示序号列
           </Checkbox>
+          {component.props?.showRowNumber && (
+            <div className={styles["property-list"]} style={{ padding: 0, marginTop: 8 }}>
+              <div className={styles["property-item"]}>
+                <Text className={styles["property-label"]}>序号列标题</Text>
+                <Input
+                  size="small"
+                  placeholder="默认：序号"
+                  value={component.props?.rowNumberLabel || ''}
+                  onChange={(e) => onPropsChange('rowNumberLabel', e.target.value)}
+                />
+              </div>
+              <div className={styles["property-item"]}>
+                <Text className={styles["property-label"]}>序号列宽度 (mm)</Text>
+                <InputNumber
+                  size="small"
+                  style={{ width: '100%' }}
+                  min={1}
+                  precision={1}
+                  placeholder="自动"
+                  suffix="mm"
+                  value={component.props?.rowNumberWidth}
+                  onChange={(v) => onPropsChange('rowNumberWidth', v ?? undefined)}
+                />
+              </div>
+            </div>
+          )}
         </div>
-        {component.props?.showRowNumber && (
-          <>
-            <div className={styles["property-item"]}>
-              <Text className={styles["property-label"]}>序号列标题</Text>
-              <Input
-                size="small"
-                placeholder="默认：序号"
-                value={component.props?.rowNumberLabel || ''}
-                onChange={(e) => onPropsChange('rowNumberLabel', e.target.value)}
-              />
-            </div>
-            <div className={styles["property-item"]}>
-              <Text className={styles["property-label"]}>序号列宽度 (mm)</Text>
-              <InputNumber
-                size="small"
-                style={{ width: '100%' }}
-                min={1}
-                precision={1}
-                placeholder="自动"
-                suffix="mm"
-                value={component.props?.rowNumberWidth}
-                onChange={(v) => onPropsChange('rowNumberWidth', v ?? undefined)}
-              />
-            </div>
-          </>
-        )}
-        <div className={styles["property-item"]} style={{ marginTop: 12 }}>
+        <div className={`${styles["property-item"]} ${styles["property-item-full"]}`} style={{ marginTop: 12 }}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <Text className={styles["property-label"]}>列配置</Text>
             <Button
@@ -493,22 +499,28 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                       />
                     </Space>
                   </Space>
-                  <Input
-                    size="small"
-                    placeholder="列标题"
-                    value={col.title}
-                    disabled={col.hidden}
-                    onChange={(e) => handleColumnTitleChange(index, e.target.value)}
-                  />
-                  <Input
-                    size="small"
-                    placeholder="数据字段名 (dataIndex)"
-                    value={col.dataIndex}
-                    disabled={col.hidden}
-                    onChange={(e) => handleColumnDataIndexChange(index, e.target.value)}
-                  />
-                  <div>
-                    <Text type="secondary" style={{ fontSize: 12 }}>宽度 (mm)</Text>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <Text className={styles["property-label"]}>列标题</Text>
+                    <Input
+                      size="small"
+                      placeholder="例如：商品名称"
+                      value={col.title}
+                      disabled={col.hidden}
+                      onChange={(e) => handleColumnTitleChange(index, e.target.value)}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <Text className={styles["property-label"]}>数据字段名 (dataIndex)</Text>
+                    <Input
+                      size="small"
+                      placeholder="例如：productName"
+                      value={col.dataIndex}
+                      disabled={col.hidden}
+                      onChange={(e) => handleColumnDataIndexChange(index, e.target.value)}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <Text className={styles["property-label"]}>宽度 (mm)</Text>
                     <Tooltip
                       title={isWidthOverflow ? `列宽总和 ${totalAssignedWidth.toFixed(1)}mm 超过表格宽度 ${tableWidthMm.toFixed(1)}mm` : undefined}
                       open={isWidthOverflow ? undefined : false}
@@ -546,7 +558,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                           children: (
                             <Space direction="vertical" size="small" style={{ width: '100%' }}>
                               <div>
-                                <Text type="secondary" style={{ fontSize: 12 }}>聚合类型</Text>
+                                <Text className={styles["property-label"]}>聚合类型</Text>
                                 <Select
                                   size="small"
                                   style={{ width: '100%', marginTop: 4 }}
@@ -575,7 +587,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                               {col.summary?.type && (
                                 <>
                                   <div>
-                                    <Text type="secondary" style={{ fontSize: 12 }}>小数位数</Text>
+                                    <Text className={styles["property-label"]}>小数位数</Text>
                                     <InputNumber
                                       size="small"
                                       style={{ width: '100%', marginTop: 4 }}
@@ -592,7 +604,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                                     />
                                   </div>
                                   <div>
-                                    <Text type="secondary" style={{ fontSize: 12 }}>管道转换</Text>
+                                    <Text className={styles["property-label"]}>管道转换</Text>
                                     {col.summary?.pipe ? (
                                       <div style={{ marginTop: 4, border: '1px solid #d9d9d9', borderRadius: 4, padding: 8, background: '#fafafa' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -651,7 +663,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                                   {!col.summary?.pipe && (
                                     <>
                                       <div>
-                                        <Text type="secondary" style={{ fontSize: 12 }}>前缀/后缀</Text>
+                                        <Text className={styles["property-label"]}>前缀/后缀</Text>
                                         <Space.Compact style={{ width: '100%', marginTop: 4 }}>
                                           <Input
                                             size="small"
@@ -676,9 +688,10 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                                             }}
                                           />
                                         </Space.Compact>
-                                      </div>
-                                    </>
-                                  )}
+             </div>
+            </div>
+          </div>
+        )}
                                 </>
                               )}
                             </Space>
