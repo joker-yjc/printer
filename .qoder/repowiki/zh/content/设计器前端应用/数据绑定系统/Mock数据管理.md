@@ -8,11 +8,11 @@
 - [api.ts](file://designer/src/services/api.ts)
 - [mockApi.ts](file://designer/src/services/mockApi.ts)
 - [mockStore.ts](file://designer/src/services/mockStore.ts)
-- [mockData.ts](file://designer/src/services/mockData.ts)
+- [mockData.ts](file://designer/src/services/mock/mockData.ts)
 - [types/index.ts](file://designer/src/types/index.ts)
 - [vite.config.ts](file://designer/vite.config.ts)
 - [server.ts](file://designer/mock/server.ts)
-- [index.ts](file://designer/mock/index.ts)
+- [index.ts](file://designer/src/services/mock/index.ts)
 - [App.tsx](file://designer/src/App.tsx)
 - [MainLayout.tsx](file://designer/src/layouts/MainLayout.tsx)
 - [README.md](file://README.md)
@@ -20,10 +20,11 @@
 
 ## 更新摘要
 **变更内容**
-- 架构重构：Mock数据管理系统已重构为中央存储架构，删除了旧的mockData.ts、schemas.ts、templates.ts文件
+- 架构重构：Mock数据管理系统已重构为中央存储架构，删除了旧的独立文件结构
 - 引入新服务：新增mockApi.ts、mockStore.ts服务，提供统一的Mock数据操作接口
 - 环境变量支持：新增VITE_USE_MOCK环境变量，支持静态部署环境切换
 - API统一：前端API通过USE_MOCK环境变量动态选择真实HTTP或前端内存Mock模式
+- 中央存储：mockStore提供统一的数据管理接口，支持Schema、模板、Mock数据的CRUD操作
 
 ## 目录
 1. [简介](#简介)
@@ -49,7 +50,6 @@ Mock数据管理功能主要分布在以下模块：
 - 服务层：统一的mockStore中央存储服务，提供Schema、模板、Mock数据的CRUD操作
 - API层：mockApi前端Mock实现，支持USE_MOCK环境变量切换
 - 类型定义：Mock数据与Schema字段的类型约束
-- Mock存储系统：集中化的内存存储管理
 
 ```mermaid
 graph TB
@@ -92,12 +92,12 @@ C --> J
 - [api.ts:1-134](file://designer/src/services/api.ts#L1-L134)
 - [mockApi.ts:1-103](file://designer/src/services/mockApi.ts#L1-L103)
 - [mockStore.ts:1-135](file://designer/src/services/mockStore.ts#L1-L135)
-- [mockData.ts:1-2040](file://designer/src/services/mockData.ts#L1-L2040)
+- [mockData.ts:1-200](file://designer/src/services/mock/mockData.ts#L1-L200)
 - [mockDataGenerator.ts:1-113](file://designer/src/utils/mockDataGenerator.ts#L1-L113)
-- [types/index.ts:151-160](file://designer/src/types/index.ts#L151-L160)
+- [types/index.ts:360-378](file://designer/src/types/index.ts#L360-L378)
 - [vite.config.ts:1-29](file://designer/vite.config.ts#L1-L29)
-- [server.ts:1-192](file://designer/mock/server.ts#L1-L192)
-- [index.ts:1-6](file://designer/mock/index.ts#L1-L6)
+- [server.ts:1-193](file://designer/mock/server.ts#L1-L193)
+- [index.ts:1-4](file://designer/src/services/mock/index.ts#L1-L4)
 
 ## 核心组件
 - Mock数据管理页面：提供列表展示、筛选、新建/编辑弹窗、单条导出、批量导出与导入入口；集成智能生成器与Monaco编辑器。
@@ -286,11 +286,11 @@ MockData --> DeleteMockData["deleteMockData(id)"]
 
 **图表来源**
 - [mockStore.ts:29-134](file://designer/src/services/mockStore.ts#L29-L134)
-- [mockData.ts:1-2040](file://designer/src/services/mockData.ts#L1-L2040)
+- [mockData.ts:1-200](file://designer/src/services/mock/mockData.ts#L1-L200)
 
 **章节来源**
 - [mockStore.ts:1-135](file://designer/src/services/mockStore.ts#L1-L135)
-- [mockData.ts:1-2040](file://designer/src/services/mockData.ts#L1-L2040)
+- [mockData.ts:1-200](file://designer/src/services/mock/mockData.ts#L1-L200)
 
 ### Vite集成中间件插件
 - Vite集成中间件：提供完整的CRUD API支持，内置CORS设置，支持同源访问。
@@ -321,11 +321,11 @@ API-->>UI : "Mock数据列表"
 
 **图表来源**
 - [server.ts:36-179](file://designer/mock/server.ts#L36-L179)
-- [server.ts:184-192](file://designer/mock/server.ts#L184-L192)
+- [server.ts:184-193](file://designer/mock/server.ts#L184-L193)
 - [vite.config.ts:5-18](file://designer/vite.config.ts#L5-L18)
 
 **章节来源**
-- [server.ts:1-192](file://designer/mock/server.ts#L1-L192)
+- [server.ts:1-193](file://designer/mock/server.ts#L1-L193)
 - [vite.config.ts:1-29](file://designer/vite.config.ts#L1-L29)
 
 ### 类型定义与Schema集成
@@ -335,9 +335,9 @@ API-->>UI : "Mock数据列表"
 - 默认数据：mockData.ts提供丰富的默认Schema、模板和Mock数据，覆盖多种业务场景。
 
 **章节来源**
-- [types/index.ts:364-378](file://designer/src/types/index.ts#L364-L378)
+- [types/index.ts:360-378](file://designer/src/types/index.ts#L360-L378)
 - [types/index.ts:18-33](file://designer/src/types/index.ts#L18-L33)
-- [mockData.ts:1-2040](file://designer/src/services/mockData.ts#L1-L2040)
+- [mockData.ts:1-200](file://designer/src/services/mock/mockData.ts#L1-L200)
 
 ## 依赖关系分析
 - MockDataManagement依赖：
@@ -381,8 +381,8 @@ SERVER --> STORE
 - [api.ts:1-134](file://designer/src/services/api.ts#L1-L134)
 - [mockApi.ts:1-103](file://designer/src/services/mockApi.ts#L1-L103)
 - [mockStore.ts:1-135](file://designer/src/services/mockStore.ts#L1-L135)
-- [server.ts:1-192](file://designer/mock/server.ts#L1-L192)
-- [types/index.ts:1-317](file://designer/src/types/index.ts#L1-L317)
+- [server.ts:1-193](file://designer/mock/server.ts#L1-L193)
+- [types/index.ts:1-378](file://designer/src/types/index.ts#L1-L378)
 
 ## 性能考量
 - 生成器复杂度：O(N)，N为Schema节点数，通常较小，生成开销可控。
@@ -475,7 +475,6 @@ Mock数据管理以中央存储架构为核心，结合智能生成器与可视�
   - 利用默认数据快速启动项目，减少初始化成本。
   - 在静态部署环境中充分利用前端Mock模式的优势。
   - 合理使用嵌套对象结构，提高数据表达能力。
-  - 通过mockStore统一管理数据，支持前后端共享。
 - 实际场景：
   - 模板设计阶段的快速预览与对比。
   - SDK集成时的离线测试与演示数据准备。
