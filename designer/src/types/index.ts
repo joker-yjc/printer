@@ -112,6 +112,14 @@ export interface PageConfig {
   };
   /** 页码配置 */
   pageNumber?: PageNumberConfig;
+  /** 是否启用页头区域，默认 false */
+  headerEnabled?: boolean;
+  /** 页头区域高度（mm），默认 15 */
+  headerHeight?: number;
+  /** 是否启用页脚区域，默认 false */
+  footerEnabled?: boolean;
+  /** 页脚区域高度（mm），默认 15 */
+  footerHeight?: number;
 }
 
 /**
@@ -127,6 +135,9 @@ export type ComponentType =
   | 'line'      // 线条组件
   | 'qrcode'    // 二维码组件
   | 'barcode';  // 条形码组件
+
+/** 组件所属的页面区域 */
+export type PageSection = 'header' | 'content' | 'footer';
 
 /**
  * 数据管道配置
@@ -340,6 +351,10 @@ export interface PrintTemplate {
   layoutMode: 'absolute' | 'flow';
   /** 组件列表 */
   components: ComponentNode[];
+  /** 页头区域组件，可选（老模板无此字段） */
+  headerComponents?: ComponentNode[];
+  /** 页脚区域组件，可选 */
+  footerComponents?: ComponentNode[];
 }
 
 /**

@@ -2,6 +2,66 @@
 
 所有版本的变更记录都列在这里，遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 规范。
 
+## [1.5.0] - 2026-05-30
+
+### ✨ 新增功能
+
+- **页头/页脚（Header/Footer）**
+  - 支持配置页头/页脚区域，可独立添加组件、设置高度、控制显示
+  - 每页自动注入页头/页脚组件，坐标转换为页面绝对坐标
+  - 页头组件：`yMm + marginTop`；页脚组件：`yMm + pageH - footerH - marginBottom`
+  - 设计器三区域独立渲染（header/content/footer），支持组件跨区域拖拽
+  - 页头/页脚区域高度可通过拖拽手柄实时调整（前后端一致 15mm 最小高度保护）
+  - 连续纸模式下自动禁用页头/页脚
+  - 表格组件禁止放入页头/页脚（含组件库拖拽、数据资产拖拽、跨区域拖拽）
+  - 层级管理（置顶/置底/上移/下移）覆盖三区域
+  - 对齐工具支持区域感知约束（header/footer 使用区域相对坐标，content 使用内容区相对坐标）
+  - 空画布检查覆盖三区域
+
+### 🐛 问题修复
+
+| 问题 | 修复内容 |
+|------|----------|
+| 分页引擎坐标系不一致 | `shouldBreakPage` 参数 `marginTop` → `contentTop`，表格分页使用 `contentTop`/`contentBottom` 边界统一到绝对坐标系 |
+| `constrainYFor` content 分支坐标系错误 | content 组件 yMm 是区域相对坐标，min Y 使用 0 而非 `marginMm.top`，max Y 扣减 headerH/footerH |
+| `constrainYFor` 缺少最小高度保护 | header/footer 约束中 `headerHeight \|\| 0` → `Math.max(15, headerHeight \|\| 15)` |
+| `getPageSize()` useEffect 闭包过期 | 拖拽/resize 闭包内改用 `pageConfigRef.current` 内联计算页面尺寸 |
+| `getCanvasSize` 连续纸未遍历三区域 | 改为 `[...headerComponents, ...components, ...footerComponents]` |
+| `handleDrop` 表格/线条宽度硬编码 | 提取 `pageWidthMmForDrop`/`effectivePageWForDrop` 支持 CUSTOM/CONTINUOUS/landscape |
+| `alignComponents` 跨区域坐标系 | 新增 `constrainYFor(section, h)` 和 `getSection(id)`，垂直对齐使用区域感知约束 |
+| `distributeComponents` 缺失排序 | 恢复 `.sort()` |
+| `handleDrop` 丢失 section 参数 | 组件库拖拽 `addComponent(newComponent, section)` 传入正确 section |
+| 层级管理不覆盖页头/页脚 | `bringToFront/sendToBack/bringForward/sendBackward` 扩展为三区域感知 |
+| 对齐工具跨区域未拦截 | 垂直方向对齐（top/bottom/centerV）跨区域时 return state |
+| 连续纸显示页头/页脚手柄 | 渲染条件添加 `pageConfig.size !== 'CONTINUOUS'` |
+| Ctrl+V 粘贴区域错误 | 根据选中组件推断目标 section |
+| 拖拽 useEffect 闭包过期 | 全改用 useRef 缓存状态值 |
+| 空画布检查遗漏页头/页脚 | 三区域联合判断 |
+| array 字段缺少表格区域拦截 | 数据资产拖拽分支添加 `section !== 'content'` 拦截 |
+| `isComponentOutOfBounds` 旧模板回归 | header/footer 区域独立判断高度越界，content 区域扣减 headerH/footerH |
+| 页头/页脚宽度越界未检测 | 宽度越界在区域判断前统一检测 |
+| `lastMousePosRef` 初始值跳变 | `handleComponentMouseDown` 中初始化 `lastMousePosRef.current = {x, y}` |
+| resize useEffect 依赖过重 | resize 手柄 useEffect 仅依赖 `[resizingSection, setPageConfig]` |
+| `distributeComponents` 跨区域分配 | 垂直方向添加跨区域检测 |
+| `measureMaxHeight` 命名歧义 | 重命名为 `measureMaxBottom` |
+| `inferHeight` 禁用区域返回 15 | 禁用时返回 0 |
+| `moveComponentToSection` 缺少表格拦截 | 添加 `found.type === 'table'` 拦截 |
+| `(component as any)._section` 多余断言 | 移除 `as any` |
+| TemplatePreviewModal 中文值存入 `_section` | 改用独立 `_displaySection` 字段 |
+| `overflow: hidden` 仅在 TextRenderer 处理 | printEngine `renderSinglePage` 统一为 header/footer 组件注入 |
+| `page-content` 缺少 `onDrop` 兜底 | 添加 `onDrop={(e) => handleDrop(e, 'content')}` |
+| PageSettingModal `min={5}` → `min={15}` | 与最小高度保护一致 |
+
+### 🔧 类型变更
+
+- **`PageConfig` 新增可选属性**：`headerEnabled`、`headerHeight`、`footerEnabled`、`footerHeight`
+- **`PrintTemplate` 新增可选属性**：`headerComponents`、`footerComponents`
+- **`ComponentNode` 新增可选属性**：`_section?: PageSection`
+
+**影响范围**：`sdk/src/printEngine.ts`（分页 + header/footer 注入）、`sdk/src/types.ts`（类型扩展）、`designer/src/store/designer.ts`（三区域状态管理）、`designer/src/types/index.ts`（Designer 类型）、`designer/src/pages/Designer/components/Canvas/`（拖放、对齐、层级、越界检测）、`designer/src/pages/Designer/PageSettingModal.tsx`（页头/页脚配置）、`designer/src/components/PrintPreview/`（打印预览 + 空画布检查）
+
+---
+
 ## [1.4.0] - 2026-05-19
 
 ### ✨ 新增功能

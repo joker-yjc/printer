@@ -33,6 +33,8 @@ export const LineStylePlugin: StylePlugin = {
             style={{ width: '100%' }}
             min={1}
             max={20}
+            precision={0}
+            step={1}
             value={component.style?.borderTopWidth || 1}
             onChange={handleLineHeightChange}
           />

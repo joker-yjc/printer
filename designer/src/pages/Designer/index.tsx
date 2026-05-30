@@ -21,7 +21,7 @@ const Designer = () => {
   const [, setLoading] = useState(false);
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
-  const { generateTemplate, components, templateName, schemaId, loadTemplate, zoomLevel, zoomInAction, zoomOutAction, resetZoom } = useDesignerStore();
+  const { generateTemplate, components, headerComponents, footerComponents, templateName, schemaId, loadTemplate, zoomLevel, zoomInAction, zoomOutAction, resetZoom } = useDesignerStore();
 
   // 加载 URL 参数中的模板
   useEffect(() => {
@@ -338,7 +338,10 @@ const Designer = () => {
           </div>
           <div style={{ marginBottom: 16 }}>
             <Text strong>组件数量：</Text>
-            <Text>{components.length}</Text>
+            <Text>{components.length + headerComponents.length + footerComponents.length}</Text>
+            <Text type="secondary" style={{ marginLeft: 8 }}>
+              (页头 {headerComponents.length} / 内容 {components.length} / 页脚 {footerComponents.length})
+            </Text>
           </div>
 
           <div style={{ borderTop: '1px solid #f0f0f0', margin: '16px 0' }} />

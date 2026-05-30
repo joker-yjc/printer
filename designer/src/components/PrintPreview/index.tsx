@@ -23,7 +23,7 @@ interface TemplateGroup {
 let groupKeyCounter = 0;
 
 const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
-  const { generateTemplate, components } = useDesignerStore();
+  const { generateTemplate, components, headerComponents, footerComponents } = useDesignerStore();
   const [mockDataList, setMockDataList] = useState<MockData[]>([]);
   const [selectedMockDataId, setSelectedMockDataId] = useState<string>();
   const [previewHtml, setPreviewHtml] = useState('');
@@ -243,7 +243,7 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
       return;
     }
 
-    if (components.length === 0) {
+    if (components.length === 0 && headerComponents.length === 0 && footerComponents.length === 0) {
       message.warning('当前画布无组件，包含"当前画布模板"的组将为空');
     }
 

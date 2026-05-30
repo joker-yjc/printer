@@ -5,13 +5,22 @@
 
 通用打印 SDK - 客户端打印解决方案
 
-**当前版本**: v1.4.0
+**当前版本**: v1.5.0
 
 ## 🎨 在线演示
 
 **可视化模板设计器**: https://printer-pi-five.vercel.app
 
 拖拽式设计打印模板，生成模板 JSON 后直接配合 SDK 使用。内置示例数据，无需搭建环境即可体验。
+
+## 🆕 v1.5.0 新增功能
+
+- ✨ **页头/页脚支持**：`PageConfig` 新增 `headerEnabled`/`headerHeight`/`footerEnabled`/`footerHeight` 配置，每页自动注入页头/页脚组件并转换坐标
+- ✨ **`ComponentNode._section`**：新增运行时属性，标识组件所属区域（header/content/footer）
+- ✨ **`PrintTemplate.headerComponents/footerComponents`**：模板支持三区域组件列表
+- 🐛 **分页精度提升**：`shouldBreakPage` 参数统一为 `contentTop` 绝对坐标系，header/footer 高度变化后分页计算正确
+- 🐛 **overflow 溢出控制**：页头/页脚组件统一包裹 `overflow: hidden`
+- ✨ **SDK 类型扩展**：`ComponentNode` 新增 `_section?: PageSection`
 
 ## 🆕 v1.4.0 新增功能
 
@@ -64,7 +73,7 @@
 
 ## ✨ 特性
 
-- 🎨 **可视化模板设计** - 拖拽式设计打印模板
+- 🎨 **可视化模板设计** - 拖拽式设计打印模板，支持页头/页脚区域
 - 📄 **多组件支持** - 文本、表格、图片、二维码、条形码等
 - 🔄 **数据绑定** - Schema 驱动的数据绑定系统
 - 📊 **表格高级功能** - 跨页分页、表头重复、表格合计

@@ -27,6 +27,8 @@ const LayoutSection: React.FC<LayoutSectionProps> = ({ component, onChange }) =>
             style={{ width: '100%' }}
             value={component.layout.xMm}
             onChange={(val) => onChange('xMm', val || 0)}
+            precision={1}
+            step={0.5}
           />
         </div>
         <div className={styles["property-item"]}>
@@ -37,6 +39,8 @@ const LayoutSection: React.FC<LayoutSectionProps> = ({ component, onChange }) =>
             style={{ width: '100%' }}
             value={component.layout.yMm}
             onChange={(val) => onChange('yMm', val || 0)}
+            precision={1}
+            step={0.5}
           />
         </div>
         <div className={styles["property-item"]}>
@@ -47,6 +51,8 @@ const LayoutSection: React.FC<LayoutSectionProps> = ({ component, onChange }) =>
             style={{ width: '100%' }}
             value={component.layout.widthMm}
             onChange={(val) => onChange('widthMm', val || 0)}
+            precision={1}
+            step={0.5}
           />
         </div>
         <div className={styles["property-item"]}>
@@ -57,6 +63,8 @@ const LayoutSection: React.FC<LayoutSectionProps> = ({ component, onChange }) =>
             style={{ width: '100%' }}
             value={component.layout.heightMm}
             onChange={(val) => onChange('heightMm', val || 0)}
+            precision={1}
+            step={0.5}
           />
         </div>
       </div>

@@ -22,6 +22,8 @@ export const TableStylePlugin: StylePlugin = {
             style={{ width: '100%' }}
             value={component.style?.fontSize || 12}
             onChange={(val) => onStyleChange('fontSize', val || 12)}
+            precision={0}
+            step={1}
           />
         </div>
         <div className={styles["property-item"]}>

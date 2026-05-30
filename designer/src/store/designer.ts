@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import type { ComponentNode, PrintTemplate, PageConfig } from '../types';
+import type { ComponentNode, PrintTemplate, PageConfig, PageSection } from '../types';
 import { snapToGrid } from '../utils/grid';
+import { CONTINUOUS_PAPER_DEFAULT_WIDTH } from '../constants';
 
 // 最多保存 20 步历史
 const MAX_HISTORY_STEPS = 20;
@@ -8,7 +9,11 @@ const MAX_HISTORY_STEPS = 20;
 interface DesignerStore {
   // 画布上的组件列表
   components: ComponentNode[];
-  addComponent: (component: ComponentNode) => void;
+  /** 页头区域组件 */
+  headerComponents: ComponentNode[];
+  /** 页脚区域组件 */
+  footerComponents: ComponentNode[];
+  addComponent: (component: ComponentNode, section?: PageSection) => void;
   updateComponent: (id: string, updates: Partial<ComponentNode>) => void;
   removeComponent: (id: string) => void;
 
@@ -28,7 +33,11 @@ interface DesignerStore {
   schemaId: string | null;
   pageConfig: PageConfig;
   setTemplateInfo: (info: Partial<{ templateId: string | null; templateName: string; schemaId: string | null }>) => void;
-  setPageConfig: (config: PageConfig) => void;
+  setPageConfig: (config: Partial<PageConfig>) => void;
+  /** 设置页头区域开关 */
+  setHeaderEnabled: (enabled: boolean) => void;
+  /** 设置页脚区域开关 */
+  setFooterEnabled: (enabled: boolean) => void;
 
   // 生成完整的模板 JSON
   generateTemplate: () => Omit<PrintTemplate, 'id'>;
@@ -42,8 +51,11 @@ interface DesignerStore {
   // 复制/粘贴
   clipboard: ComponentNode[];
   copyComponents: (ids: string[]) => void;
-  pasteComponents: () => void;
+  pasteComponents: (section?: PageSection) => void;
   duplicateComponent: (id: string) => void;
+
+  /** 将组件移动到指定区域 */
+  moveComponentToSection: (id: string, targetSection: PageSection, newYm?: number) => void;
 
   // 网格设置
   gridEnabled: boolean;
@@ -68,8 +80,8 @@ interface DesignerStore {
   bringForward: (id: string) => void;  // 上移一层
   sendBackward: (id: string) => void;  // 下移一层
 
-  // 撤销/重做
-  history: ComponentNode[][];
+  // 撤销/重做 — 全量状态快照
+  history: { headerComponents: ComponentNode[]; components: ComponentNode[]; footerComponents: ComponentNode[] }[];
   historyIndex: number;
   undo: () => void;
   redo: () => void;
@@ -79,9 +91,13 @@ interface DesignerStore {
 
 // 保存历史记录
 const saveHistory = (state: DesignerStore) => {
+  const snapshot = {
+    headerComponents: JSON.parse(JSON.stringify(state.headerComponents)),
+    components: JSON.parse(JSON.stringify(state.components)),
+    footerComponents: JSON.parse(JSON.stringify(state.footerComponents)),
+  };
   const newHistory = state.history.slice(0, state.historyIndex + 1);
-  newHistory.push(JSON.parse(JSON.stringify(state.components)));
-  // 最多保存 20 步历史
+  newHistory.push(snapshot);
   if (newHistory.length > MAX_HISTORY_STEPS) {
     newHistory.shift();
     return { history: newHistory, historyIndex: newHistory.length - 1 };
@@ -91,24 +107,44 @@ const saveHistory = (state: DesignerStore) => {
 
 export const useDesignerStore = create<DesignerStore>((set, get) => ({
   components: [],
-  addComponent: (component) => {
+  headerComponents: [],
+  footerComponents: [],
+
+  addComponent: (component, section = 'content') => {
     set((state) => {
-      const newComponents = [...state.components, component];
-      return { components: newComponents, ...saveHistory({ ...state, components: newComponents }) };
+      let updater: Partial<DesignerStore>;
+      if (section === 'header') {
+        updater = { headerComponents: [...state.headerComponents, component] };
+      } else if (section === 'footer') {
+        updater = { footerComponents: [...state.footerComponents, component] };
+      } else {
+        updater = { components: [...state.components, component] };
+      }
+      return { ...updater, ...saveHistory({ ...state, ...updater }) };
     });
   },
   updateComponent: (id, updates) => {
     set((state) => {
-      const newComponents = state.components.map((comp) =>
-        comp.id === id ? { ...comp, ...updates } : comp
-      );
-      return { components: newComponents, ...saveHistory({ ...state, components: newComponents }) };
+      const updater = (list: ComponentNode[]) =>
+        list.map((comp) => (comp.id === id ? { ...comp, ...updates } : comp));
+      const newState = {
+        headerComponents: updater(state.headerComponents),
+        components: updater(state.components),
+        footerComponents: updater(state.footerComponents),
+      };
+      return { ...newState, ...saveHistory({ ...state, ...newState }) };
     });
   },
   removeComponent: (id) => {
     set((state) => {
-      const newComponents = state.components.filter((comp) => comp.id !== id);
-      return { components: newComponents, ...saveHistory({ ...state, components: newComponents }) };
+      const newState = {
+        headerComponents: state.headerComponents.filter((comp) => comp.id !== id),
+        components: state.components.filter((comp) => comp.id !== id),
+        footerComponents: state.footerComponents.filter((comp) => comp.id !== id),
+        selectedComponentId: state.selectedComponentId === id ? null : state.selectedComponentId,
+        selectedComponentIds: state.selectedComponentIds.filter((sid) => sid !== id),
+      };
+      return { ...newState, ...saveHistory({ ...state, ...newState }) };
     });
   },
 
@@ -140,7 +176,15 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
     marginMm: { top: 10, right: 10, bottom: 10, left: 10 },
   },
   setTemplateInfo: (info) => set(info),
-  setPageConfig: (config) => set({ pageConfig: config }),
+  setPageConfig: (config) => set((state) => ({
+    pageConfig: { ...state.pageConfig, ...config },
+  })),
+  setHeaderEnabled: (enabled) => set((state) => ({
+    pageConfig: { ...state.pageConfig, headerEnabled: enabled },
+  })),
+  setFooterEnabled: (enabled) => set((state) => ({
+    pageConfig: { ...state.pageConfig, footerEnabled: enabled },
+  })),
 
   generateTemplate: () => {
     const state = get();
@@ -151,16 +195,55 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
       page: state.pageConfig,
       layoutMode: 'absolute',
       components: state.components,
+      headerComponents: state.headerComponents,
+      footerComponents: state.footerComponents,
     };
   },
 
   loadTemplate: (template) => {
+    // 向后兼容：旧模板可能没有 headerHeight/footerHeight，按现有逻辑推断一次
+    const inferHeight = (
+      enabled: boolean,
+      existingHeight: number | undefined,
+      components: ComponentNode[],
+      defaultMin: number
+    ): number => {
+      if (existingHeight !== undefined && existingHeight > 0) return existingHeight;
+      if (!enabled) return 0;
+      const autoH = Math.max(
+        defaultMin,
+        ...components.map((c) => (c.layout.yMm || 0) + (c.layout.heightMm || 10))
+      );
+      return autoH;
+    };
+
+    const headerHeight = inferHeight(
+      template.page.headerEnabled ?? false,
+      template.page.headerHeight,
+      template.headerComponents || [],
+      15
+    );
+    const footerHeight = inferHeight(
+      template.page.footerEnabled ?? false,
+      template.page.footerHeight,
+      template.footerComponents || [],
+      15
+    );
+
     set({
       templateId: template.id,
       templateName: template.name,
       schemaId: template.schemaId,
-      pageConfig: template.page,
+      pageConfig: {
+        ...template.page,
+        headerEnabled: template.page.headerEnabled ?? false,
+        footerEnabled: template.page.footerEnabled ?? false,
+        headerHeight,
+        footerHeight,
+      },
       components: template.components,
+      headerComponents: template.headerComponents || [],
+      footerComponents: template.footerComponents || [],
       selectedComponentId: null,
       zoomLevel: 100,
     });
@@ -169,11 +252,13 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
   clearCanvas: () => {
     set({
       components: [],
+      headerComponents: [],
+      footerComponents: [],
       selectedComponentId: null,
       selectedComponentIds: [],
       templateId: null,
       templateName: '未命名模板',
-      history: [[]],
+      history: [{ headerComponents: [], components: [], footerComponents: [] }],
       historyIndex: 0,
     });
   },
@@ -182,11 +267,12 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
   clipboard: [],
   copyComponents: (ids) => {
     const state = get();
-    const componentsToCopy = state.components.filter((c) => ids.includes(c.id));
+    const allComps = [...state.headerComponents, ...state.components, ...state.footerComponents];
+    const componentsToCopy = allComps.filter((c) => ids.includes(c.id));
     const copied = JSON.parse(JSON.stringify(componentsToCopy));
     set({ clipboard: copied });
   },
-  pasteComponents: () => {
+  pasteComponents: (section = 'content') => {
     set((state) => {
       if (state.clipboard.length === 0) return state;
 
@@ -195,25 +281,36 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
         id: `comp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         layout: {
           ...comp.layout,
-          xMm: snapToGrid((comp.layout.xMm || 0) + 10, state.gridEnabled, state.gridSize), // 向右偏移 10mm
-          yMm: snapToGrid((comp.layout.yMm || 0) + 10, state.gridEnabled, state.gridSize), // 向下偏移 10mm
+          xMm: snapToGrid((comp.layout.xMm || 0) + 10, state.gridEnabled, state.gridSize),
+          yMm: snapToGrid((comp.layout.yMm || 0) + 10, state.gridEnabled, state.gridSize),
         },
       }));
 
-      const allComponents = [...state.components, ...newComponents];
       const newIds = newComponents.map((c) => c.id);
 
+      let newState: Partial<DesignerStore>;
+      if (section === 'header') {
+        newState = { headerComponents: [...state.headerComponents, ...newComponents] };
+      } else if (section === 'footer') {
+        newState = { footerComponents: [...state.footerComponents, ...newComponents] };
+      } else {
+        newState = { components: [...state.components, ...newComponents] };
+      }
+
       return {
-        components: allComponents,
+        ...newState,
         selectedComponentIds: newIds,
         selectedComponentId: newIds.length === 1 ? newIds[0] : null,
-        ...saveHistory({ ...state, components: allComponents }),
+        ...saveHistory({ ...state, ...newState }),
       };
     });
   },
   duplicateComponent: (id) => {
     set((state) => {
-      const comp = state.components.find((c) => c.id === id);
+      const findIn = (list: ComponentNode[]) => {
+        return list.find((c) => c.id === id);
+      };
+      const comp = findIn(state.headerComponents) || findIn(state.components) || findIn(state.footerComponents);
       if (!comp) return state;
 
       const newComp = {
@@ -226,12 +323,23 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
         },
       };
 
-      const newComponents = [...state.components, newComp];
+      const dupIn = (list: ComponentNode[], sourceId: string) => {
+        const idx = list.findIndex((c) => c.id === sourceId);
+        if (idx === -1) return list;
+        return [...list.slice(0, idx + 1), newComp, ...list.slice(idx + 1)];
+      };
+
+      const newState = {
+        headerComponents: dupIn(state.headerComponents, id),
+        components: dupIn(state.components, id),
+        footerComponents: dupIn(state.footerComponents, id),
+      };
+
       return {
-        components: newComponents,
+        ...newState,
         selectedComponentId: newComp.id,
         selectedComponentIds: [newComp.id],
-        ...saveHistory({ ...state, components: newComponents }),
+        ...saveHistory({ ...state, ...newState }),
       };
     });
   },
@@ -249,75 +357,166 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
   zoomOutAction: () => set((state) => ({ zoomLevel: Math.max(25, state.zoomLevel - 25) })),
   resetZoom: () => set({ zoomLevel: 100 }),
 
-  // 层级管理
+  // 层级管理（区域感知）
   bringToFront: (id) => {
     set((state) => {
-      const index = state.components.findIndex((c) => c.id === id);
-      if (index === -1 || index === state.components.length - 1) return state;
+      const findInSection = (list: ComponentNode[]) => list.findIndex((c) => c.id === id);
+      const hIdx = findInSection(state.headerComponents);
+      const cIdx = findInSection(state.components);
+      const fIdx = findInSection(state.footerComponents);
 
-      const newComponents = [...state.components];
-      const [component] = newComponents.splice(index, 1);
-      newComponents.push(component);
-
-      return {
-        components: newComponents,
-        ...saveHistory({ ...state, components: newComponents }),
-      };
+      if (hIdx !== -1 && hIdx < state.headerComponents.length - 1) {
+        const newList = [...state.headerComponents];
+        const [comp] = newList.splice(hIdx, 1);
+        newList.push(comp);
+        return { headerComponents: newList, ...saveHistory({ ...state, headerComponents: newList }) };
+      }
+      if (cIdx !== -1 && cIdx < state.components.length - 1) {
+        const newList = [...state.components];
+        const [comp] = newList.splice(cIdx, 1);
+        newList.push(comp);
+        return { components: newList, ...saveHistory({ ...state, components: newList }) };
+      }
+      if (fIdx !== -1 && fIdx < state.footerComponents.length - 1) {
+        const newList = [...state.footerComponents];
+        const [comp] = newList.splice(fIdx, 1);
+        newList.push(comp);
+        return { footerComponents: newList, ...saveHistory({ ...state, footerComponents: newList }) };
+      }
+      return state;
     });
   },
   sendToBack: (id) => {
     set((state) => {
-      const index = state.components.findIndex((c) => c.id === id);
-      if (index === -1 || index === 0) return state;
+      const findInSection = (list: ComponentNode[]) => list.findIndex((c) => c.id === id);
+      const hIdx = findInSection(state.headerComponents);
+      const cIdx = findInSection(state.components);
+      const fIdx = findInSection(state.footerComponents);
 
-      const newComponents = [...state.components];
-      const [component] = newComponents.splice(index, 1);
-      newComponents.unshift(component);
-
-      return {
-        components: newComponents,
-        ...saveHistory({ ...state, components: newComponents }),
-      };
+      if (hIdx > 0) {
+        const newList = [...state.headerComponents];
+        const [comp] = newList.splice(hIdx, 1);
+        newList.unshift(comp);
+        return { headerComponents: newList, ...saveHistory({ ...state, headerComponents: newList }) };
+      }
+      if (cIdx > 0) {
+        const newList = [...state.components];
+        const [comp] = newList.splice(cIdx, 1);
+        newList.unshift(comp);
+        return { components: newList, ...saveHistory({ ...state, components: newList }) };
+      }
+      if (fIdx > 0) {
+        const newList = [...state.footerComponents];
+        const [comp] = newList.splice(fIdx, 1);
+        newList.unshift(comp);
+        return { footerComponents: newList, ...saveHistory({ ...state, footerComponents: newList }) };
+      }
+      return state;
     });
   },
   bringForward: (id) => {
     set((state) => {
-      const index = state.components.findIndex((c) => c.id === id);
-      if (index === -1 || index === state.components.length - 1) return state;
+      const findInSection = (list: ComponentNode[]) => list.findIndex((c) => c.id === id);
+      const hIdx = findInSection(state.headerComponents);
+      const cIdx = findInSection(state.components);
+      const fIdx = findInSection(state.footerComponents);
 
-      const newComponents = [...state.components];
-      [newComponents[index], newComponents[index + 1]] = [newComponents[index + 1], newComponents[index]];
-
-      return {
-        components: newComponents,
-        ...saveHistory({ ...state, components: newComponents }),
-      };
+      if (hIdx !== -1 && hIdx < state.headerComponents.length - 1) {
+        const newList = [...state.headerComponents];
+        [newList[hIdx], newList[hIdx + 1]] = [newList[hIdx + 1], newList[hIdx]];
+        return { headerComponents: newList, ...saveHistory({ ...state, headerComponents: newList }) };
+      }
+      if (cIdx !== -1 && cIdx < state.components.length - 1) {
+        const newList = [...state.components];
+        [newList[cIdx], newList[cIdx + 1]] = [newList[cIdx + 1], newList[cIdx]];
+        return { components: newList, ...saveHistory({ ...state, components: newList }) };
+      }
+      if (fIdx !== -1 && fIdx < state.footerComponents.length - 1) {
+        const newList = [...state.footerComponents];
+        [newList[fIdx], newList[fIdx + 1]] = [newList[fIdx + 1], newList[fIdx]];
+        return { footerComponents: newList, ...saveHistory({ ...state, footerComponents: newList }) };
+      }
+      return state;
     });
   },
   sendBackward: (id) => {
     set((state) => {
-      const index = state.components.findIndex((c) => c.id === id);
-      if (index === -1 || index === 0) return state;
+      const findInSection = (list: ComponentNode[]) => list.findIndex((c) => c.id === id);
+      const hIdx = findInSection(state.headerComponents);
+      const cIdx = findInSection(state.components);
+      const fIdx = findInSection(state.footerComponents);
 
-      const newComponents = [...state.components];
-      [newComponents[index], newComponents[index - 1]] = [newComponents[index - 1], newComponents[index]];
-
-      return {
-        components: newComponents,
-        ...saveHistory({ ...state, components: newComponents }),
-      };
+      if (hIdx > 0) {
+        const newList = [...state.headerComponents];
+        [newList[hIdx], newList[hIdx - 1]] = [newList[hIdx - 1], newList[hIdx]];
+        return { headerComponents: newList, ...saveHistory({ ...state, headerComponents: newList }) };
+      }
+      if (cIdx > 0) {
+        const newList = [...state.components];
+        [newList[cIdx], newList[cIdx - 1]] = [newList[cIdx - 1], newList[cIdx]];
+        return { components: newList, ...saveHistory({ ...state, components: newList }) };
+      }
+      if (fIdx > 0) {
+        const newList = [...state.footerComponents];
+        [newList[fIdx], newList[fIdx - 1]] = [newList[fIdx - 1], newList[fIdx]];
+        return { footerComponents: newList, ...saveHistory({ ...state, footerComponents: newList }) };
+      }
+      return state;
     });
   },
 
-  // 撤销/重做
-  history: [[]],
+  // ==== 区域移动 ====
+  moveComponentToSection: (id, targetSection, newYm) => {
+    set((state) => {
+      const findComp = (list: ComponentNode[]) => list.find((c) => c.id === id);
+
+      const found =
+        findComp(state.headerComponents) ||
+        findComp(state.components) ||
+        findComp(state.footerComponents);
+
+      if (!found) return state;
+
+      // 表格组件不允许放入页头/页脚
+      if (targetSection !== 'content' && found.type === 'table') return state;
+
+      const removeFrom = (list: ComponentNode[]) => list.filter((c) => c.id !== id);
+      const h = removeFrom(state.headerComponents);
+      const c = removeFrom(state.components);
+      const f = removeFrom(state.footerComponents);
+
+      const moved: ComponentNode = {
+        ...found,
+        layout: {
+          ...found.layout,
+          yMm: newYm !== undefined
+            ? snapToGrid(newYm, state.gridEnabled, state.gridSize)
+            : snapToGrid(0, state.gridEnabled, state.gridSize),
+        },
+      };
+
+      const newState = {
+        headerComponents: targetSection === 'header' ? [...h, moved] : h,
+        components: targetSection === 'content' ? [...c, moved] : c,
+        footerComponents: targetSection === 'footer' ? [...f, moved] : f,
+      };
+
+      return { ...newState, ...saveHistory({ ...state, ...newState }) };
+    });
+  },
+
+  // 撤销/重做 — 全量快照
+  history: [{ headerComponents: [], components: [], footerComponents: [] }],
   historyIndex: 0,
   undo: () => {
     set((state) => {
       if (state.historyIndex > 0) {
         const newIndex = state.historyIndex - 1;
+        const snapshot = state.history[newIndex];
         return {
-          components: JSON.parse(JSON.stringify(state.history[newIndex])),
+          headerComponents: JSON.parse(JSON.stringify(snapshot.headerComponents)),
+          components: JSON.parse(JSON.stringify(snapshot.components)),
+          footerComponents: JSON.parse(JSON.stringify(snapshot.footerComponents)),
           historyIndex: newIndex,
           selectedComponentId: null,
         };
@@ -329,8 +528,11 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
     set((state) => {
       if (state.historyIndex < state.history.length - 1) {
         const newIndex = state.historyIndex + 1;
+        const snapshot = state.history[newIndex];
         return {
-          components: JSON.parse(JSON.stringify(state.history[newIndex])),
+          headerComponents: JSON.parse(JSON.stringify(snapshot.headerComponents)),
+          components: JSON.parse(JSON.stringify(snapshot.components)),
+          footerComponents: JSON.parse(JSON.stringify(snapshot.footerComponents)),
           historyIndex: newIndex,
           selectedComponentId: null,
         };
@@ -345,153 +547,158 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
     return get().historyIndex < get().history.length - 1;
   },
 
-  // 对齐工具
+  // ==== 对齐工具（区域感知） ====
   alignComponents: (direction) => {
     set((state) => {
       const selectedIds = state.selectedComponentIds;
       if (selectedIds.length < 2) return state;
 
-      const selectedComps = state.components.filter((c) => selectedIds.includes(c.id));
-      const newComponents = [...state.components];
+      // 从三个区域中查找选中的组件
+      const allComps = [...state.headerComponents, ...state.components, ...state.footerComponents];
+      const selectedComps = allComps.filter((c) => selectedIds.includes(c.id));
+      if (selectedComps.length < 2) return state;
 
-      // 计算页面可用区域（扣除页边距）
+      // 垂直方向对齐（top/bottom/centerV）不允许跨区域操作
+      if (['top', 'bottom', 'centerV'].includes(direction)) {
+        const sections = new Set<string>();
+        selectedComps.forEach((c) => {
+          if (state.headerComponents.some((h) => h.id === c.id)) sections.add('header');
+          else if (state.footerComponents.some((f) => f.id === c.id)) sections.add('footer');
+          else sections.add('content');
+        });
+        if (sections.size > 1) return state; // 跨区域，不执行
+      }
+
       const { size, orientation, marginMm, widthMm, heightMm } = state.pageConfig;
-      let pageWidthMm: number;
-      let pageHeightMm: number;
-
-      if (size === 'CUSTOM') {
-        // 自定义尺寸
-        pageWidthMm = widthMm || 210;
-        pageHeightMm = heightMm || 297;
+      let pageW: number;
+      let pageH: number;
+      if (size === 'CONTINUOUS') {
+        pageW = widthMm || CONTINUOUS_PAPER_DEFAULT_WIDTH;
+        pageH = 10000; // 连续纸高度无限
+      } else if (size === 'CUSTOM') {
+        pageW = widthMm || 210;
+        pageH = heightMm || 297;
       } else {
-        // 预设尺寸
-        pageWidthMm = size === 'A4' ? 210 : 148;
-        pageHeightMm = size === 'A4' ? 297 : 210;
+        pageW = size === 'A4' ? 210 : 148;
+        pageH = size === 'A4' ? 297 : 210;
       }
+      // 连续纸不支持横版旋转
+      if (orientation === 'landscape' && size !== 'CONTINUOUS') { [pageW, pageH] = [pageH, pageW]; }
 
-      if (orientation === 'landscape') {
-        [pageWidthMm, pageHeightMm] = [pageHeightMm, pageWidthMm];
-      }
+      const availW = pageW - marginMm.left - marginMm.right;
 
-      const availableWidthMm = pageWidthMm - marginMm.left - marginMm.right;
-      const availableHeightMm = pageHeightMm - marginMm.top - marginMm.bottom;
-
-      // 边界限制函数
-      const constrainX = (x: number, width: number) => {
-        const minX = marginMm.left;
-        const maxX = marginMm.left + availableWidthMm - width;
-        return Math.max(minX, Math.min(maxX, x));
+      const constrainX = (x: number, w: number) => Math.max(marginMm.left, Math.min(marginMm.left + availW - w, x));
+      /** 根据组件所在区域返回 Y 约束函数（坐标系：区域相对，0 = 区域顶部） */
+      const constrainYFor = (section: 'header' | 'content' | 'footer', h: number) => {
+        if (section === 'header') {
+          const headerH = Math.max(15, state.pageConfig.headerHeight || 15);
+          return (y: number) => Math.max(0, Math.min(headerH - h, y));
+        }
+        if (section === 'footer') {
+          const footerH = Math.max(15, state.pageConfig.footerHeight || 15);
+          return (y: number) => Math.max(0, Math.min(footerH - h, y));
+        }
+        // content 区域：yMm 相对于内容区域顶部，范围 [0, contentAvailH - h]
+        const headerH = (state.pageConfig.headerEnabled ?? false)
+          ? Math.max(15, state.pageConfig.headerHeight || 15) : 0;
+        const footerH = (state.pageConfig.footerEnabled ?? false)
+          ? Math.max(15, state.pageConfig.footerHeight || 15) : 0;
+        const contentAvailH = pageH - marginMm.top - marginMm.bottom - headerH - footerH;
+        return (y: number) => Math.max(0, Math.min(contentAvailH - h, y));
       };
-      const constrainY = (y: number, height: number) => {
-        const minY = marginMm.top;
-        const maxY = marginMm.top + availableHeightMm - height;
-        return Math.max(minY, Math.min(maxY, y));
+
+      // 构建新的三个列表
+      const hList = [...state.headerComponents];
+      const cList = [...state.components];
+      const fList = [...state.footerComponents];
+
+      /** 判断组件所属区域 */
+      const getSection = (id: string): 'header' | 'content' | 'footer' => {
+        if (hList.some((c) => c.id === id)) return 'header';
+        if (fList.some((c) => c.id === id)) return 'footer';
+        return 'content';
+      };
+
+      const updateComp = (list: ComponentNode[], id: string, updater: (c: ComponentNode) => ComponentNode) => {
+        const idx = list.findIndex((c) => c.id === id);
+        if (idx !== -1) list[idx] = updater(list[idx]);
+        return list;
+      };
+
+      const apply = (id: string, fn: (c: ComponentNode) => ComponentNode) => {
+        updateComp(hList, id, fn);
+        updateComp(cList, id, fn);
+        updateComp(fList, id, fn);
       };
 
       switch (direction) {
         case 'left': {
           const minX = Math.min(...selectedComps.map((c) => c.layout.xMm || 0));
           selectedIds.forEach((id) => {
-            const idx = newComponents.findIndex((c) => c.id === id);
-            if (idx !== -1) {
-              const width = newComponents[idx].layout.widthMm || 0;
-              const constrainedX = constrainX(minX, width);
-              // 只修改 X，保持 Y 不变
-              newComponents[idx] = {
-                ...newComponents[idx],
-                layout: { ...newComponents[idx].layout, xMm: constrainedX },
-              };
-            }
+            const comp = allComps.find((c) => c.id === id);
+            if (!comp) return;
+            const w = comp.layout.widthMm || 0;
+            apply(id, (c) => ({ ...c, layout: { ...c.layout, xMm: constrainX(minX, w) } }));
           });
           break;
         }
         case 'right': {
-          const maxRight = Math.max(...selectedComps.map((c) => (c.layout.xMm || 0) + (c.layout.widthMm || 0)));
+          const maxR = Math.max(...selectedComps.map((c) => (c.layout.xMm || 0) + (c.layout.widthMm || 0)));
           selectedIds.forEach((id) => {
-            const idx = newComponents.findIndex((c) => c.id === id);
-            if (idx !== -1) {
-              const width = newComponents[idx].layout.widthMm || 0;
-              const targetX = maxRight - width;
-              const constrainedX = constrainX(targetX, width);
-              // 只修改 X，保持 Y 不变
-              newComponents[idx] = {
-                ...newComponents[idx],
-                layout: { ...newComponents[idx].layout, xMm: constrainedX },
-              };
-            }
+            const comp = allComps.find((c) => c.id === id);
+            if (!comp) return;
+            const w = comp.layout.widthMm || 0;
+            apply(id, (c) => ({ ...c, layout: { ...c.layout, xMm: constrainX(maxR - w, w) } }));
           });
           break;
         }
         case 'top': {
           const minY = Math.min(...selectedComps.map((c) => c.layout.yMm || 0));
           selectedIds.forEach((id) => {
-            const idx = newComponents.findIndex((c) => c.id === id);
-            if (idx !== -1) {
-              const height = newComponents[idx].layout.heightMm || 0;
-              const constrainedY = constrainY(minY, height);
-              // 只修改 Y，保持 X 不变
-              newComponents[idx] = {
-                ...newComponents[idx],
-                layout: { ...newComponents[idx].layout, yMm: constrainedY },
-              };
-            }
+            const comp = allComps.find((c) => c.id === id);
+            if (!comp) return;
+            const h = comp.layout.heightMm || 0;
+            const cyFn = constrainYFor(getSection(id), h);
+            apply(id, (c) => ({ ...c, layout: { ...c.layout, yMm: cyFn(minY) } }));
           });
           break;
         }
         case 'bottom': {
-          const maxBottom = Math.max(...selectedComps.map((c) => (c.layout.yMm || 0) + (c.layout.heightMm || 0)));
+          const maxB = Math.max(...selectedComps.map((c) => (c.layout.yMm || 0) + (c.layout.heightMm || 0)));
           selectedIds.forEach((id) => {
-            const idx = newComponents.findIndex((c) => c.id === id);
-            if (idx !== -1) {
-              const height = newComponents[idx].layout.heightMm || 0;
-              const targetY = maxBottom - height;
-              const constrainedY = constrainY(targetY, height);
-              // 只修改 Y，保持 X 不变
-              newComponents[idx] = {
-                ...newComponents[idx],
-                layout: { ...newComponents[idx].layout, yMm: constrainedY },
-              };
-            }
+            const comp = allComps.find((c) => c.id === id);
+            if (!comp) return;
+            const h = comp.layout.heightMm || 0;
+            const cyFn = constrainYFor(getSection(id), h);
+            apply(id, (c) => ({ ...c, layout: { ...c.layout, yMm: cyFn(maxB - h) } }));
           });
           break;
         }
         case 'centerH': {
-          const centerX = selectedComps.reduce((sum, c) => sum + (c.layout.xMm || 0) + (c.layout.widthMm || 0) / 2, 0) / selectedComps.length;
+          const cX = selectedComps.reduce((s, c) => s + (c.layout.xMm || 0) + (c.layout.widthMm || 0) / 2, 0) / selectedComps.length;
           selectedIds.forEach((id) => {
-            const idx = newComponents.findIndex((c) => c.id === id);
-            if (idx !== -1) {
-              const width = newComponents[idx].layout.widthMm || 0;
-              const targetX = centerX - width / 2;
-              const constrainedX = constrainX(targetX, width);
-              // 只修改 X，保持 Y 不变
-              newComponents[idx] = {
-                ...newComponents[idx],
-                layout: { ...newComponents[idx].layout, xMm: constrainedX },
-              };
-            }
+            const comp = allComps.find((c) => c.id === id);
+            if (!comp) return;
+            const w = comp.layout.widthMm || 0;
+            apply(id, (c) => ({ ...c, layout: { ...c.layout, xMm: constrainX(cX - w / 2, w) } }));
           });
           break;
         }
         case 'centerV': {
-          const centerY = selectedComps.reduce((sum, c) => sum + (c.layout.yMm || 0) + (c.layout.heightMm || 0) / 2, 0) / selectedComps.length;
+          const cY = selectedComps.reduce((s, c) => s + (c.layout.yMm || 0) + (c.layout.heightMm || 0) / 2, 0) / selectedComps.length;
           selectedIds.forEach((id) => {
-            const idx = newComponents.findIndex((c) => c.id === id);
-            if (idx !== -1) {
-              const height = newComponents[idx].layout.heightMm || 0;
-              const targetY = centerY - height / 2;
-              const constrainedY = constrainY(targetY, height);
-              // 只修改 Y，保持 X 不变
-              newComponents[idx] = {
-                ...newComponents[idx],
-                layout: { ...newComponents[idx].layout, yMm: constrainedY },
-              };
-            }
+            const comp = allComps.find((c) => c.id === id);
+            if (!comp) return;
+            const h = comp.layout.heightMm || 0;
+            const cyFn = constrainYFor(getSection(id), h);
+            apply(id, (c) => ({ ...c, layout: { ...c.layout, yMm: cyFn(cY - h / 2) } }));
           });
           break;
         }
       }
 
-      return { components: newComponents, ...saveHistory({ ...state, components: newComponents }) };
+      const newState = { headerComponents: hList, components: cList, footerComponents: fList };
+      return { ...newState, ...saveHistory({ ...state, ...newState }) };
     });
   },
 
@@ -500,54 +707,66 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
       const selectedIds = state.selectedComponentIds;
       if (selectedIds.length < 3) return state;
 
-      const selectedComps = state.components
+      // 从三个区域中查找选中的组件
+      const allComps = [...state.headerComponents, ...state.components, ...state.footerComponents];
+      const selectedComps = allComps
         .filter((c) => selectedIds.includes(c.id))
-        .sort((a, b) => {
-          if (direction === 'horizontal') {
-            return (a.layout.xMm || 0) - (b.layout.xMm || 0);
-          }
-          return (a.layout.yMm || 0) - (b.layout.yMm || 0);
-        });
+        .sort((a, b) =>
+          direction === 'horizontal'
+            ? (a.layout.xMm || 0) - (b.layout.xMm || 0)
+            : (a.layout.yMm || 0) - (b.layout.yMm || 0)
+        );
 
-      const newComponents = [...state.components];
+      // 垂直方向分布不允许跨区域操作
+      if (direction === 'vertical') {
+        const sections = new Set<string>();
+        selectedComps.forEach((c) => {
+          if (state.headerComponents.some((h) => h.id === c.id)) sections.add('header');
+          else if (state.footerComponents.some((f) => f.id === c.id)) sections.add('footer');
+          else sections.add('content');
+        });
+        if (sections.size > 1) return state; // 跨区域，不执行
+      }
+
+      const hList = [...state.headerComponents];
+      const cList = [...state.components];
+      const fList = [...state.footerComponents];
+
+      const updater = (list: ComponentNode[], id: string, fn: (c: ComponentNode) => ComponentNode) => {
+        const idx = list.findIndex((c) => c.id === id);
+        if (idx !== -1) list[idx] = fn(list[idx]);
+        return list;
+      };
+      const applyDist = (id: string, fn: (c: ComponentNode) => ComponentNode) => {
+        updater(hList, id, fn);
+        updater(cList, id, fn);
+        updater(fList, id, fn);
+      };
 
       if (direction === 'horizontal') {
         const firstX = selectedComps[0].layout.xMm || 0;
-        const lastX = (selectedComps[selectedComps.length - 1].layout.xMm || 0) + (selectedComps[selectedComps.length - 1].layout.widthMm || 0);
-        const totalWidth = selectedComps.reduce((sum, c) => sum + (c.layout.widthMm || 0), 0);
-        const gap = (lastX - firstX - totalWidth) / (selectedComps.length - 1);
-
-        let currentX = firstX;
+        const lastRight = (selectedComps[selectedComps.length - 1].layout.xMm || 0) + (selectedComps[selectedComps.length - 1].layout.widthMm || 0);
+        const totalW = selectedComps.reduce((s, c) => s + (c.layout.widthMm || 0), 0);
+        const gap = (lastRight - firstX - totalW) / (selectedComps.length - 1);
+        let curX = firstX;
         selectedComps.forEach((comp) => {
-          const idx = newComponents.findIndex((c) => c.id === comp.id);
-          if (idx !== -1) {
-            newComponents[idx] = {
-              ...newComponents[idx],
-              layout: { ...newComponents[idx].layout, xMm: currentX },
-            };
-            currentX += (comp.layout.widthMm || 0) + gap;
-          }
+          applyDist(comp.id, (c) => ({ ...c, layout: { ...c.layout, xMm: curX } }));
+          curX += (comp.layout.widthMm || 0) + gap;
         });
       } else {
         const firstY = selectedComps[0].layout.yMm || 0;
-        const lastY = (selectedComps[selectedComps.length - 1].layout.yMm || 0) + (selectedComps[selectedComps.length - 1].layout.heightMm || 0);
-        const totalHeight = selectedComps.reduce((sum, c) => sum + (c.layout.heightMm || 0), 0);
-        const gap = (lastY - firstY - totalHeight) / (selectedComps.length - 1);
-
-        let currentY = firstY;
+        const lastB = (selectedComps[selectedComps.length - 1].layout.yMm || 0) + (selectedComps[selectedComps.length - 1].layout.heightMm || 0);
+        const totalH = selectedComps.reduce((s, c) => s + (c.layout.heightMm || 0), 0);
+        const gap = (lastB - firstY - totalH) / (selectedComps.length - 1);
+        let curY = firstY;
         selectedComps.forEach((comp) => {
-          const idx = newComponents.findIndex((c) => c.id === comp.id);
-          if (idx !== -1) {
-            newComponents[idx] = {
-              ...newComponents[idx],
-              layout: { ...newComponents[idx].layout, yMm: currentY },
-            };
-            currentY += (comp.layout.heightMm || 0) + gap;
-          }
+          applyDist(comp.id, (c) => ({ ...c, layout: { ...c.layout, yMm: curY } }));
+          curY += (comp.layout.heightMm || 0) + gap;
         });
       }
 
-      return { components: newComponents, ...saveHistory({ ...state, components: newComponents }) };
+      const newState = { headerComponents: hList, components: cList, footerComponents: fList };
+      return { ...newState, ...saveHistory({ ...state, ...newState }) };
     });
   },
 }));

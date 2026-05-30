@@ -6,6 +6,7 @@
 import { Typography, Empty } from 'antd';
 import styles from './index.module.css';
 import { useDesignerStore } from '../../../../store/designer';
+import type { PageSection } from '../../../../types';
 import LayoutSection from './LayoutSection';
 import DataBindingSection from './DataBindingSection';
 import StyleSection from './StyleSection';
@@ -14,8 +15,12 @@ import TableColumnSection from './TableColumnSection';
 const { Title, Text } = Typography;
 
 const PropertyPanel = () => {
-  const { selectedComponentId, components, updateComponent } = useDesignerStore();
-  const selectedComponent = components.find((c) => c.id === selectedComponentId);
+  const { selectedComponentId, components, updateComponent,
+    headerComponents, footerComponents, pageConfig } = useDesignerStore();
+  const selectedComponent =
+    components.find((c) => c.id === selectedComponentId) ||
+    headerComponents.find((c) => c.id === selectedComponentId) ||
+    footerComponents.find((c) => c.id === selectedComponentId);
 
   if (!selectedComponent) {
     return (
@@ -95,6 +100,22 @@ const PropertyPanel = () => {
           {getComponentTypeName(selectedComponent.type)} - {selectedComponent.id}
         </Text>
       </div>
+
+      {/* 所属区域（只读展示） */}
+      {((pageConfig.headerEnabled ?? false) || (pageConfig.footerEnabled ?? false)) && (() => {
+        const getSection = (id: string): PageSection => {
+          if (headerComponents.some((c) => c.id === id)) return 'header';
+          if (footerComponents.some((c) => c.id === id)) return 'footer';
+          return 'content';
+        };
+        const sectionLabels: Record<PageSection, string> = { header: '页头', content: '内容', footer: '页脚' };
+        return (
+          <div style={{ padding: '0 16px 12px' }}>
+            <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>所属区域</Text>
+            <Text strong style={{ fontSize: 13 }}>{sectionLabels[getSection(selectedComponent.id)]}</Text>
+          </div>
+        );
+      })()}
 
       {/* 布局属性 */}
       <LayoutSection

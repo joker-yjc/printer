@@ -202,7 +202,14 @@ export class PrintEngine {
     }
 
     const context = this.createRenderContext();
-    return renderer.render(component, context);
+    let html = renderer.render(component, context);
+
+    // 页头/页脚组件统一注入 overflow: hidden，防止内容溢出区域边界
+    if (component._section === 'header' || component._section === 'footer') {
+      html = html.replace('style="', 'style="overflow: hidden; ');
+    }
+
+    return html;
   }
 
   /**
@@ -234,23 +241,23 @@ export class PrintEngine {
 
   /**
    * 判断是否需要换页
-   * @param currentHeight 当前页面累计高度（绝对坐标，含 marginTop）
+   * @param currentHeight 当前页面累计高度（绝对坐标，含页头）
    * @param componentHeight 组件高度
    * @param gap 组件间距
-   * @param availableHeight 可用高度（内容区高度，不含 marginTop）
-   * @param marginTop 页面上边距
+   * @param availableHeight 可用高度（内容区高度，不含页头/页脚）
+   * @param contentTop 内容区顶部绝对坐标（marginTop + headerHeight）
    */
   private shouldBreakPage(
     currentHeight: number,
     componentHeight: number,
     gap: number,
     availableHeight: number,
-    marginTop: number
+    contentTop: number
   ): boolean {
-    // currentHeight 是绝对坐标（含 marginTop），availableHeight 是不含 marginTop 的内容区高度
-    // 需要将 availableHeight 加上 marginTop 统一到绝对坐标系
+    // currentHeight 是绝对坐标（含页头），availableHeight 是不含页头/页脚的内容区高度
+    // 需要将 availableHeight 加上 contentTop 统一到绝对坐标系
     const needHeight = gap + componentHeight;
-    return currentHeight + needHeight > availableHeight + marginTop;
+    return currentHeight + needHeight > availableHeight + contentTop;
   }
 
   /**
@@ -392,13 +399,27 @@ export class PrintEngine {
   }
 
   /**
+   * 计算组件列表的最大底部坐标（yMm + heightMm），用于推算页头/页脚实际占用高度。
+   * 空列表返回 0。
+   * 注意：返回值是"最大底部位置"而非"最大高度"，命名保留为 measureMaxHeight 以兼容。
+   */
+  private measureMaxBottom(comps: ComponentNode[]): number {
+    if (comps.length === 0) return 0;
+    return Math.max(...comps.map(c => (c.layout.yMm || 0) + (c.layout.heightMm || 0)));
+  }
+
+  /**
    * 虚拟分页：基于相对间距的流式布局
    * 核心逻辑：
    * 1. 计算每个组件与上一个组件的间距 (gap)
    * 2. 按顺序累加高度，遇到表格就拆分
    * 3. 换页时从 marginTop 开始，忽略原 gap
    */
-  private async calculatePages(components: ComponentNode[]): Promise<ComponentNode[][]> {
+  private async calculatePages(
+    components: ComponentNode[],
+    headerComponents: ComponentNode[] = [],
+    footerComponents: ComponentNode[] = []
+  ): Promise<ComponentNode[][]> {
     const { page } = this.template;
     const { heightMm } = this.getPageSize();
 
@@ -407,10 +428,21 @@ export class PrintEngine {
       return [components];
     }
 
-    // 可用高度 = 页面高度 - 上下边距
     const marginTop = page.marginMm?.top || 0;
     const marginBottom = page.marginMm?.bottom || 0;
-    const availableHeightMm = heightMm - marginTop - marginBottom;
+
+    // 计算页头/页脚有效高度
+    const headerEnabled = page.headerEnabled ?? false;
+    const footerEnabled = page.footerEnabled ?? false;
+    const headerHeight = headerEnabled
+      ? Math.max(page.headerHeight || 0, this.measureMaxBottom(headerComponents))
+      : 0;
+    const footerHeight = footerEnabled
+      ? Math.max(page.footerHeight || 0, this.measureMaxBottom(footerComponents))
+      : 0;
+
+    const contentTop = marginTop + headerHeight;
+    const availableHeightMm = heightMm - marginTop - marginBottom - headerHeight - footerHeight;
 
     // 1. 按 yMm 排序（从上到下）
     const sortedComponents = [...components].sort((a, b) =>
@@ -443,7 +475,7 @@ export class PrintEngine {
     const context = this.createRenderContext();
     const pages: ComponentNode[][] = [];
     let currentPage: ComponentNode[] = [];
-    let currentPageHeight = marginTop;  // 当前页的累计高度
+    let currentPageHeight = contentTop;  // 当前页的累计高度（含页头）
     let isFirstComponentInPage = true;  // 标记当前页是否是第一个组件
 
     for (let i = 0; i < componentsWithGaps.length; i++) {
@@ -484,11 +516,11 @@ export class PrintEngine {
           isFirstComponentInPage = false;  // 表格后的组件不是页面第一个组件
         } else {
           // 空表格：按普通组件处理
-          if (this.shouldBreakPage(currentPageHeight, compHeightMm, actualGap, availableHeightMm, marginTop) && currentPage.length > 0) {
+          if (this.shouldBreakPage(currentPageHeight, compHeightMm, actualGap, availableHeightMm, contentTop) && currentPage.length > 0) {
             // 换页
             pages.push(currentPage);
             currentPage = [];
-            currentPageHeight = marginTop;
+            currentPageHeight = contentTop;
             isFirstComponentInPage = true;
           }
 
@@ -516,11 +548,11 @@ export class PrintEngine {
       // 4.2 普通组件：按相对间距累加高度
       else {
         // 使用辅助方法判断是否需要换页
-        if (this.shouldBreakPage(currentPageHeight, compHeightMm, actualGap, availableHeightMm, marginTop) && currentPage.length > 0) {
+        if (this.shouldBreakPage(currentPageHeight, compHeightMm, actualGap, availableHeightMm, contentTop) && currentPage.length > 0) {
           // 换页
           pages.push(currentPage);
           currentPage = [];
-          currentPageHeight = marginTop;
+          currentPageHeight = contentTop;
           isFirstComponentInPage = true;
         }
 
@@ -553,8 +585,38 @@ export class PrintEngine {
       pages.push(currentPage);
     }
 
-    // 6. 返回分页结果
-    return pages.length > 0 ? pages : [components];
+    // 6. 为每页添加页头/页脚组件
+    const finalPages = (pages.length > 0 ? pages : [components]).map((pageComps) => {
+      const result: ComponentNode[] = [];
+
+      if (headerEnabled && headerComponents.length > 0) {
+        for (const h of headerComponents) {
+          result.push({
+            ...h,
+            layout: { ...h.layout, yMm: (h.layout.yMm || 0) + marginTop },
+            _section: 'header' as const,
+          });
+        }
+      }
+
+      for (const c of pageComps) {
+        result.push(c);
+      }
+
+      if (footerEnabled && footerComponents.length > 0) {
+        for (const f of footerComponents) {
+          result.push({
+            ...f,
+            layout: { ...f.layout, yMm: (f.layout.yMm || 0) + heightMm - footerHeight - marginBottom },
+            _section: 'footer' as const,
+          });
+        }
+      }
+
+      return result;
+    });
+
+    return finalPages;
   }
 
   /**
@@ -710,6 +772,20 @@ export class PrintEngine {
     // 读取配置：是否重复表头（默认 true）
     const repeatHeader = tableComponent.props?.pagination?.repeatHeader !== false;
     const marginTop = this.template.page.marginMm?.top || 0;
+    const marginBottom = this.template.page.marginMm?.bottom || 0;
+    const { heightMm } = this.getPageSize();
+
+    // 计算页头/页脚高度（页面级别）
+    const headerEnabled = this.template.page.headerEnabled ?? false;
+    const footerEnabled = this.template.page.footerEnabled ?? false;
+    const pageHeaderHeight = headerEnabled
+      ? Math.max(this.template.page.headerHeight || 0, this.measureMaxBottom(this.template.headerComponents || []))
+      : 0;
+    const pageFooterHeight = footerEnabled
+      ? Math.max(this.template.page.footerHeight || 0, this.measureMaxBottom(this.template.footerComponents || []))
+      : 0;
+    const contentTop = marginTop + pageHeaderHeight;
+    const contentBottom = heightMm - marginBottom - pageFooterHeight;
 
     // 记录初始页面数，用于判断表格是否跨页
     const initialPagesLength = pages.length;
@@ -721,7 +797,7 @@ export class PrintEngine {
     }
 
     // ✅ 渲染后测量：获取表头、数据行和合计行的实际高度
-    let { headerHeight, rowHeights, summaryHeight: measuredSummaryHeight } = await this.measureTableRowHeights(
+    let { headerHeight: measuredHeaderHeight, rowHeights, summaryHeight: measuredSummaryHeight } = await this.measureTableRowHeights(
       tableComponent,
       tableData
     );
@@ -746,9 +822,8 @@ export class PrintEngine {
 
     // 循环处理：直到所有数据都分配完
     while (remainingData.length > 0) {
-      // 计算当前页剩余高度
-      // availableHeightMm 不含 marginTop，workingPageHeight 含 marginTop，需统一到绝对坐标系
-      let remainingHeight = availableHeightMm + marginTop - workingPageHeight;
+      // 计算当前页剩余高度（contentBottom 到 workingPageHeight 之间的距离）
+      let remainingHeight = contentBottom - workingPageHeight;
 
       // 第一个片段需要考虑 gap
       if (isFirstFragment && !isFirstComponentInPage) {
@@ -766,7 +841,7 @@ export class PrintEngine {
         ? (measuredSummaryHeight || this.calculateTableRowHeight(tableComponent))
         : 0;
 
-      let availableForRows = remainingHeight - (needHeader ? headerHeight : 0) - reserveSummaryHeight;
+      let availableForRows = remainingHeight - (needHeader ? measuredHeaderHeight : 0) - reserveSummaryHeight;
 
       // ✅ 使用实际测量的行高计算能放多少行
       let rowsCanFit = 0;
@@ -802,7 +877,7 @@ export class PrintEngine {
           pages.push(workingPage);
           workingPage = [];
         }
-        workingPageHeight = marginTop;
+        workingPageHeight = contentTop;
         isFirstFragment = false;
         continue;
       }
@@ -823,7 +898,7 @@ export class PrintEngine {
       // ✅ total 模式最后一页检查：如果加上合计行会溢出，减少一行数据
       if (showSummary && summaryMode === 'total' && isLastPage && rowsCanFit > 0) {
         const summaryHeight = measuredSummaryHeight || this.calculateTableRowHeight(tableComponent);
-        const usedHeight = (needHeader ? headerHeight : 0) + accumulatedHeight + summaryHeight;
+        const usedHeight = (needHeader ? measuredHeaderHeight : 0) + accumulatedHeight + summaryHeight;
         if (usedHeight > remainingHeight) {
           // 减少最后一行，为合计行腾出空间
           rowsCanFit--;
@@ -842,7 +917,7 @@ export class PrintEngine {
           pages.push(workingPage);
           workingPage = [];
         }
-        workingPageHeight = marginTop;
+        workingPageHeight = contentTop;
         isFirstFragment = false;
         // 强制至少放 1 行数据，避免死循环（会溢出，但比无限循环好）
         if (remainingData.length > 0) {
@@ -861,7 +936,7 @@ export class PrintEngine {
       // 创建当前页的表格片段
       const tableFragmentYMm = isFirstFragment
         ? (isFirstComponentInPage ? workingPageHeight : workingPageHeight + gap)
-        : marginTop;
+        : contentTop;
 
       const tableFragment: ComponentNode = {
         ...tableComponent,
@@ -894,7 +969,7 @@ export class PrintEngine {
       const summaryHeight = shouldShowSummaryOnThisPage ? (measuredSummaryHeight || avgRowHeight) : 0;
 
       // 更新当前页高度（使用实际测量的行高累加）
-      const tableFragmentHeight = (needHeader ? headerHeight : 0) + accumulatedHeight + summaryHeight;
+      const tableFragmentHeight = (needHeader ? measuredHeaderHeight : 0) + accumulatedHeight + summaryHeight;
       if (isFirstFragment && !isFirstComponentInPage) {
         workingPageHeight += gap + tableFragmentHeight;
       } else {
@@ -905,7 +980,7 @@ export class PrintEngine {
       if (remainingData.length > 0) {
         pages.push(workingPage);
         workingPage = [];
-        workingPageHeight = marginTop;
+        workingPageHeight = contentTop;
         isFirstFragment = false;
       }
     }
@@ -956,7 +1031,11 @@ export class PrintEngine {
     }
 
     // 标准页面模式：虚拟分页，生成多个独立的页面
-    const pages = await this.calculatePages(components);
+    const pages = await this.calculatePages(
+      components,
+      this.template.headerComponents || [],
+      this.template.footerComponents || []
+    );
     const totalPages = pages.length;
 
     // 渲染每个页面

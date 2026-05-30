@@ -265,9 +265,13 @@ const TemplateManagement = () => {
       title: '组件数',
       key: 'componentCount',
       width: 100,
-      render: (_: any, record: PrintTemplate) => (
-        <Tag>{record.components.length}</Tag>
-      ),
+      render: (_: any, record: PrintTemplate) => {
+        const total =
+          (record.headerComponents?.length || 0) +
+          record.components.length +
+          (record.footerComponents?.length || 0);
+        return <Tag>{total}</Tag>;
+      },
     },
     {
       title: '纸张尺寸',
