@@ -1,10 +1,10 @@
 import { message, Modal, Form, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import styles from './index.module.css';
 import { useDesignerStore } from '../../../../store/designer';
-import type { ComponentNode, PageConfig } from '../../../../types';
+import type { ComponentNode, PageConfig, PageSection } from '../../../../types';
 import PrintPreview from '../../../../components/PrintPreview';
 import { CONTINUOUS_PAPER_MIN_HEIGHT, CONTINUOUS_PAPER_DEFAULT_WIDTH } from '../../../../constants';
 import { snapToGrid as gridSnapToGrid } from '../../../../utils/grid';
@@ -22,6 +22,8 @@ import { detectAlignment } from './alignmentDetector';
 const CanvasArea = () => {
   const {
     components,
+    headerComponents,
+    footerComponents,
     addComponent,
     updateComponent,
     selectComponent,
@@ -49,6 +51,7 @@ const CanvasArea = () => {
     sendToBack,
     bringForward,
     sendBackward,
+    moveComponentToSection,
     zoomLevel,
   } = useDesignerStore();
   const [dragOver, setDragOver] = useState(false);
@@ -64,7 +67,34 @@ const CanvasArea = () => {
   const [pageForm] = Form.useForm();
   const [customSizeEnabled, setCustomSizeEnabled] = useState(false);
   const [continuousPaperEnabled, setContinuousPaperEnabled] = useState(false);
+  const [resizingSection, setResizingSection] = useState<'header' | 'footer' | null>(null);
+  const resizeStartYRef = useRef(0);
+  const resizeStartHeightRef = useRef(0);
   const [alignmentLines, setAlignmentLines] = useState<AlignmentLine[]>([]);
+
+  /** 跟踪拖拽时的鼠标位置，用于 mouseUp 时判断跨区域 */
+  const lastMousePosRef = useRef({ x: 0, y: 0 });
+
+  // === 拖拽 useEffect 的 useRef 缓存（避免频繁重绑事件监听器） ===
+  const headerComponentsRef = useRef(headerComponents);
+  headerComponentsRef.current = headerComponents;
+  const componentsRef = useRef(components);
+  componentsRef.current = components;
+  const footerComponentsRef = useRef(footerComponents);
+  footerComponentsRef.current = footerComponents;
+  const pageConfigRef = useRef(pageConfig);
+  pageConfigRef.current = pageConfig;
+  const zoomLevelRef = useRef(zoomLevel);
+  zoomLevelRef.current = zoomLevel;
+  const selectedComponentIdsRef = useRef(selectedComponentIds);
+  selectedComponentIdsRef.current = selectedComponentIds;
+  const updateComponentRef = useRef(updateComponent);
+  updateComponentRef.current = updateComponent;
+  const moveComponentToSectionRef = useRef(moveComponentToSection);
+  moveComponentToSectionRef.current = moveComponentToSection;
+  const dragStartPosRef = useRef(dragStartPos);
+  const dragStartLayoutRef = useRef(dragStartLayout);
+  const dragStartLayoutsRef = useRef(dragStartLayouts);
 
   // 网格吸附函数（使用通用工具函数）
   // 支持按住 Shift 键临时禁用吸附
@@ -100,7 +130,8 @@ const CanvasArea = () => {
 
   // 处理组件尺寸调整
   const handleComponentResize = (id: string, newLayout: { xMm?: number; yMm?: number; widthMm?: number; heightMm?: number }) => {
-    const comp = components.find(c => c.id === id);
+    const allComps = [...headerComponents, ...components, ...footerComponents];
+    const comp = allComps.find(c => c.id === id);
     if (!comp) return;
 
     updateComponent(id, {
@@ -137,7 +168,14 @@ const CanvasArea = () => {
       // 粘贴：Ctrl+V 或 Cmd+V
       if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !isEditableElement) {
         e.preventDefault();
-        pasteComponents();
+        // 根据当前选中组件推断目标 section
+        const store = useDesignerStore.getState();
+        let targetSection: 'header' | 'content' | 'footer' = 'content';
+        if (store.selectedComponentId) {
+          if (store.headerComponents.some((c) => c.id === store.selectedComponentId)) targetSection = 'header';
+          else if (store.footerComponents.some((c) => c.id === store.selectedComponentId)) targetSection = 'footer';
+        }
+        pasteComponents(targetSection);
       }
       // 撤销：Ctrl+Z 或 Cmd+Z
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
@@ -209,17 +247,43 @@ const CanvasArea = () => {
       return compRight > pageWidthMm;
     }
 
-    // 普通纸张：检测宽度和高度
-    return compRight > pageWidthMm || compBottom > pageHeightMm;
+    // 宽度越界（所有区域通用）
+    if (compRight > pageWidthMm) return true;
+
+    // 判断组件所属区域
+    const inHeader = headerComponents.some((c) => c.id === comp.id);
+    const inFooter = footerComponents.some((c) => c.id === comp.id);
+
+    const headerEnabled = pageConfig.headerEnabled ?? false;
+    const footerEnabled = pageConfig.footerEnabled ?? false;
+    const headerH = headerEnabled ? Math.max(15, pageConfig.headerHeight || 15) : 0;
+    const footerH = footerEnabled ? Math.max(15, pageConfig.footerHeight || 15) : 0;
+
+    if (inHeader) {
+      // 页头组件：超出页头区域高度
+      return compBottom > headerH;
+    } else if (inFooter) {
+      // 页脚组件：超出页脚区域高度
+      return compBottom > footerH;
+    } else {
+      // content 区域组件
+      if (headerEnabled || footerEnabled) {
+        // 有页头/页脚时：检测是否超出 content 区域范围
+        const contentH = pageHeightMm - pageConfig.marginMm.top - pageConfig.marginMm.bottom - headerH - footerH;
+        if ((comp.layout.yMm ?? 0) < 0) return true;
+        if (compBottom > contentH) return true;
+      }
+      // 无页头/页脚（旧模板）或已通过区域检查：检测是否超出整页高度
+      return compBottom > pageHeightMm;
+    }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent, section: PageSection = 'content') => {
     e.preventDefault();
     setDragOver(false);
 
-    // 计算相对于画布的坐标
-    const canvas = e.currentTarget as HTMLElement;
-    const rect = canvas.getBoundingClientRect();
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
     const rawXMm = pxToMm(e.clientX - rect.left - 30, zoomLevel);
     const rawYMm = pxToMm(e.clientY - rect.top - 30, zoomLevel);
 
@@ -231,6 +295,19 @@ const CanvasArea = () => {
     const componentType = e.dataTransfer.getData('componentType');
 
     if (componentType) {
+      // 拦截表格组件拖入页头/页脚
+      if (componentType === 'table' && section !== 'content') {
+        message.warning({ content: '表格组件不支持放入页头/页脚区域', duration: 5 });
+        return;
+      }
+      // 组件库拖拽用：计算有效页面宽度（考虑纸张尺寸和横版）
+      const pageWidthMmForDrop = pageConfig.size === 'CUSTOM'
+        ? (pageConfig.widthMm || 210)
+        : (pageConfig.size === 'CONTINUOUS' ? (pageConfig.widthMm || 210) : (pageConfig.size === 'A4' ? 210 : 148));
+      const effectivePageWForDrop = pageConfig.orientation === 'landscape'
+        ? (pageConfig.size === 'CUSTOM' ? (pageConfig.heightMm || 297) : (pageConfig.size === 'A4' ? 297 : 210))
+        : pageWidthMmForDrop;
+
       // 组件库拖拽：根据类型创建组件
       let defaultProps: any;
       let componentName = '';
@@ -253,9 +330,8 @@ const CanvasArea = () => {
           break;
         case 'table':
           componentName = '表格';
-          const pageWidthMm = pageConfig.size === 'A4' ? 210 : 148;
           const { left, right } = pageConfig.marginMm;
-          const availableWidth = pageWidthMm - left - right;
+          const availableWidth = effectivePageWForDrop - left - right;
           defaultProps = {
             layout: { mode: 'absolute' as const, xMm, yMm, widthMm: availableWidth, heightMm: 60 },
             style: { fontSize: 12 },
@@ -264,9 +340,8 @@ const CanvasArea = () => {
           break;
         case 'line':
           componentName = '线条';
-          const pageW = pageConfig.size === 'A4' ? 210 : 148;
           const { left: l, right: r } = pageConfig.marginMm;
-          const availW = pageW - l - r;
+          const availW = effectivePageWForDrop - l - r;
           defaultProps = {
             layout: { mode: 'absolute' as const, xMm: l, yMm, widthMm: availW, heightMm: 5 },
             style: { borderTopWidth: 1, borderTopColor: '#000', borderTopStyle: 'solid' },
@@ -304,7 +379,7 @@ const CanvasArea = () => {
         ...defaultProps,
       } as ComponentNode;
 
-      addComponent(newComponent);
+      addComponent(newComponent, section);
       selectComponent(newComponent.id);
       message.success(`已添加${componentName}组件`);
       return;
@@ -338,6 +413,11 @@ const CanvasArea = () => {
     let newComponent: ComponentNode;
 
     if (fieldType === 'array' && fieldChildren) {
+      // 数组类型（表格）不允许放入页头/页脚
+      if (section !== 'content') {
+        message.warning({ content: '表格组件不支持放入页头/页脚区域', duration: 5 });
+        return;
+      }
       // 数组类型：生成表格组件，宽度铺满可用区域
       const children = JSON.parse(fieldChildren);
       const columns = children.map((child: any) => ({
@@ -394,7 +474,7 @@ const CanvasArea = () => {
       message.success(`已添加组件：${fieldTitle}`);
     }
 
-    addComponent(newComponent);
+    addComponent(newComponent, section);
     selectComponent(newComponent.id);
   };
 
@@ -420,18 +500,17 @@ const CanvasArea = () => {
   };
 
   const handleComponentMouseDown = (id: string, e: React.MouseEvent) => {
-    if (e.button !== 0) return; // 只响应左键
+    if (e.button !== 0) return;
     e.stopPropagation();
 
-    const comp = components.find(c => c.id === id);
+    const allComps = [...headerComponents, ...components, ...footerComponents];
+    const comp = allComps.find(c => c.id === id);
     if (!comp) return;
 
-    // 如果是 Ctrl/Cmd + 点击，不要处理拖拽，只处理选中
     if (e.ctrlKey || e.metaKey) {
       return;
     }
 
-    // 如果点击的组件不在当前选中列表中，则单选
     if (!selectedComponentIds.includes(id)) {
       selectComponent(id);
     }
@@ -439,43 +518,60 @@ const CanvasArea = () => {
     setDraggingComponentId(id);
     setDragStartPos({ x: e.clientX, y: e.clientY });
     setDragStartLayout({ xMm: comp.layout.xMm || 0, yMm: comp.layout.yMm || 0 });
+    lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+    dragStartPosRef.current = { x: e.clientX, y: e.clientY };
+    dragStartLayoutRef.current = { xMm: comp.layout.xMm || 0, yMm: comp.layout.yMm || 0 };
 
-    // 保存所有选中组件的初始位置
     const layouts = new Map<string, { xMm: number; yMm: number }>();
     const idsToSave = selectedComponentIds.includes(id) ? selectedComponentIds : [id];
     idsToSave.forEach((cid) => {
-      const c = components.find((item) => item.id === cid);
+      const c = allComps.find((item) => item.id === cid);
       if (c) {
         layouts.set(cid, { xMm: c.layout.xMm || 0, yMm: c.layout.yMm || 0 });
       }
     });
     setDragStartLayouts(layouts);
+    dragStartLayoutsRef.current = layouts;
   };
 
-  // 监听全局鼠标移动和释放
+  // 监听全局鼠标移动和释放（使用 useRef 缓存状态值，仅依赖 draggingComponentId）
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!draggingComponentId) return;
+      lastMousePosRef.current = { x: e.clientX, y: e.clientY };
 
-      const deltaX = pxToMm(e.clientX - dragStartPos.x, zoomLevel);
-      const deltaY = pxToMm(e.clientY - dragStartPos.y, zoomLevel);
+      const curZoom = zoomLevelRef.current;
+      const curPageConfig = pageConfigRef.current;
+      const curSelectedIds = selectedComponentIdsRef.current;
+      const curHeaderComps = headerComponentsRef.current;
+      const curComps = componentsRef.current;
+      const curFooterComps = footerComponentsRef.current;
+      const curDragStartPos = dragStartPosRef.current;
+      const curDragStartLayout = dragStartLayoutRef.current;
+      const curDragStartLayouts = dragStartLayoutsRef.current;
 
-      const rawXMm = dragStartLayout.xMm + deltaX;
-      const rawYMm = dragStartLayout.yMm + deltaY;
+      const deltaX = pxToMm(e.clientX - curDragStartPos.x, curZoom);
+      const deltaY = pxToMm(e.clientY - curDragStartPos.y, curZoom);
 
-      // 计算纸张尺寸
+      const rawXMm = curDragStartLayout.xMm + deltaX;
+      const rawYMm = curDragStartLayout.yMm + deltaY;
+
+      // 计算纸张尺寸（基于 curPageConfig 内联计算，避免闭包过期）
       let pageWidthMm: number;
       let pageHeightMm: number;
 
-      if (pageConfig.size === 'CUSTOM') {
-        pageWidthMm = pageConfig.widthMm || 210;
-        pageHeightMm = pageConfig.heightMm || 297;
+      if (curPageConfig.size === 'CONTINUOUS') {
+        pageWidthMm = curPageConfig.widthMm || CONTINUOUS_PAPER_DEFAULT_WIDTH;
+        pageHeightMm = 10000;
+      } else if (curPageConfig.size === 'CUSTOM') {
+        pageWidthMm = curPageConfig.widthMm || 210;
+        pageHeightMm = curPageConfig.heightMm || 297;
       } else {
-        pageWidthMm = pageConfig.size === 'A4' ? 210 : 148;
-        pageHeightMm = pageConfig.size === 'A4' ? 297 : 210;
+        pageWidthMm = curPageConfig.size === 'A4' ? 210 : 148;
+        pageHeightMm = curPageConfig.size === 'A4' ? 297 : 210;
       }
 
-      if (pageConfig.orientation === 'landscape') {
+      if (curPageConfig.orientation === 'landscape' && curPageConfig.size !== 'CONTINUOUS') {
         [pageWidthMm, pageHeightMm] = [pageHeightMm, pageWidthMm];
       }
 
@@ -484,92 +580,112 @@ const CanvasArea = () => {
       let snappedYMm = snapToGrid(rawYMm);
 
       // 检测智能对齐（单个组件拖拽时）
-      if (selectedComponentIds.length === 1) {
-        const draggingComp = components.find((c) => c.id === draggingComponentId);
+      if (curSelectedIds.length === 1) {
+        const allComps = [...curHeaderComps, ...curComps, ...curFooterComps];
+        const draggingComp = allComps.find((c) => c.id === draggingComponentId);
         if (draggingComp) {
-          // 创建临时组件（带有当前位置）
           const tempComp = {
             ...draggingComp,
-            layout: {
-              ...draggingComp.layout,
-              xMm: snappedXMm,
-              yMm: snappedYMm,
-            },
+            layout: { ...draggingComp.layout, xMm: snappedXMm, yMm: snappedYMm },
           };
-
-          // 检测对齐
-          const alignment = detectAlignment(tempComp, components, 3.78, zoomLevel);
+          const alignment = detectAlignment(tempComp, allComps, 3.78, curZoom);
           setAlignmentLines(alignment.lines);
 
-          // 应用对齐吸附（优先级高于网格吸附）
-          if (alignment.snapX !== undefined) {
-            snappedXMm = alignment.snapX;
-          }
-          if (alignment.snapY !== undefined) {
-            snappedYMm = alignment.snapY;
-          }
+          if (alignment.snapX !== undefined) snappedXMm = alignment.snapX;
+          if (alignment.snapY !== undefined) snappedYMm = alignment.snapY;
         }
       } else {
-        // 多选拖拽时清空参考线
         setAlignmentLines([]);
       }
 
-      // 计算偏移量（相对于初始位置）
-      const offsetX = snappedXMm - dragStartLayout.xMm;
-      const offsetY = snappedYMm - dragStartLayout.yMm;
+      // 计算偏移量
+      const offsetX = snappedXMm - curDragStartLayout.xMm;
+      const offsetY = snappedYMm - curDragStartLayout.yMm;
 
-      // 如果是多选，同时移动所有选中的组件
-      if (selectedComponentIds.length > 1 && selectedComponentIds.includes(draggingComponentId)) {
-        selectedComponentIds.forEach((id) => {
-          const startLayout = dragStartLayouts.get(id);
-          const comp = components.find((c) => c.id === id);
+      // 多选拖拽
+      if (curSelectedIds.length > 1 && curSelectedIds.includes(draggingComponentId)) {
+        curSelectedIds.forEach((id) => {
+          const startLayout = curDragStartLayouts.get(id);
+          const allComps = [...curHeaderComps, ...curComps, ...curFooterComps];
+          const comp = allComps.find((c) => c.id === id);
           if (startLayout && comp) {
-            const newXMm = startLayout.xMm + offsetX;
-            const newYMm = startLayout.yMm + offsetY;
             const compWidth = comp.layout.widthMm || 0;
             const compHeight = comp.layout.heightMm || 0;
-
-            // 限制在纸张范围内
-            const clampedXMm = Math.max(0, Math.min(newXMm, pageWidthMm - compWidth));
-            const clampedYMm = Math.max(0, Math.min(newYMm, pageHeightMm - compHeight));
-
-            updateComponent(id, {
-              layout: {
-                ...comp.layout,
-                xMm: clampedXMm,
-                yMm: clampedYMm,
-              },
-            });
+            const clampedXMm = Math.max(0, Math.min(startLayout.xMm + offsetX, pageWidthMm - compWidth));
+            const clampedYMm = Math.max(0, Math.min(startLayout.yMm + offsetY, pageHeightMm - compHeight));
+            updateComponentRef.current(id, { layout: { ...comp.layout, xMm: clampedXMm, yMm: clampedYMm } });
           }
         });
       } else {
         // 单个组件拖拽
-        const comp = components.find((c) => c.id === draggingComponentId);
+        const comp = [...curHeaderComps, ...curComps, ...curFooterComps].find((c) => c.id === draggingComponentId);
         if (comp) {
           const compWidth = comp.layout.widthMm || 0;
           const compHeight = comp.layout.heightMm || 0;
-
-          // 限制在纸张范围内
           const clampedXMm = Math.max(0, Math.min(snappedXMm, pageWidthMm - compWidth));
           const clampedYMm = Math.max(0, Math.min(snappedYMm, pageHeightMm - compHeight));
-
-          updateComponent(draggingComponentId, {
-            layout: {
-              ...comp.layout,
-              xMm: clampedXMm,
-              yMm: clampedYMm,
-            },
-          });
+          updateComponentRef.current(draggingComponentId, { layout: { ...comp.layout, xMm: clampedXMm, yMm: clampedYMm } });
         }
       }
     };
 
     const handleMouseUp = () => {
-      if (draggingComponentId) {
-        setDraggingComponentId(null);
-        // 清空参考线
-        setAlignmentLines([]);
+      if (!draggingComponentId) return;
+
+      const curDragStartPos = dragStartPosRef.current;
+      const curHeaderComps = headerComponentsRef.current;
+      const curComps = componentsRef.current;
+      const curFooterComps = footerComponentsRef.current;
+      const curPageConfig = pageConfigRef.current;
+      const curZoom = zoomLevelRef.current;
+
+      const dx = Math.abs(lastMousePosRef.current.x - curDragStartPos.x);
+      const dy = Math.abs(lastMousePosRef.current.y - curDragStartPos.y);
+      const isRealDrag = dx > 3 || dy > 3;
+
+      if (isRealDrag) {
+        const comp = [...curHeaderComps, ...curComps, ...curFooterComps].find((c) => c.id === draggingComponentId);
+        if (comp) {
+          const source: PageSection =
+            curHeaderComps.some((c) => c.id === draggingComponentId) ? 'header' :
+              curFooterComps.some((c) => c.id === draggingComponentId) ? 'footer' :
+                'content';
+
+          const pageContent = document.querySelector(`.${styles['page-content']}`) as HTMLElement | null;
+          if (pageContent) {
+            const pageRect = pageContent.getBoundingClientRect();
+            const pageYMm = pxToMm(lastMousePosRef.current.y - pageRect.top, curZoom);
+
+            const headerH = (curPageConfig.headerEnabled ?? false) ? Math.max(15, curPageConfig.headerHeight || 15) : 0;
+            const footerH = (curPageConfig.footerEnabled ?? false) ? Math.max(15, curPageConfig.footerHeight || 15) : 0;
+            const contentTop = curPageConfig.marginMm.top + headerH;
+            // 基于 ref 计算页面高度，避免闭包过期
+            let curPageH: number;
+            if (curPageConfig.size === 'CONTINUOUS') { curPageH = 10000; }
+            else if (curPageConfig.size === 'CUSTOM') { curPageH = curPageConfig.heightMm || 297; }
+            else { curPageH = curPageConfig.size === 'A4' ? 297 : 210; }
+            if (curPageConfig.orientation === 'landscape' && curPageConfig.size !== 'CONTINUOUS') {
+              curPageH = curPageConfig.size === 'CUSTOM' ? (curPageConfig.widthMm || 210) : (curPageConfig.size === 'A4' ? 210 : 148);
+            }
+            const footerTop = curPageH - curPageConfig.marginMm.bottom - footerH;
+
+            let target: PageSection = 'content';
+            if ((curPageConfig.headerEnabled ?? false) && pageYMm < contentTop) target = 'header';
+            else if ((curPageConfig.footerEnabled ?? false) && pageYMm > footerTop) target = 'footer';
+
+            if (target !== source) {
+              let targetY = pageYMm;
+              if (target === 'header') targetY = pageYMm - curPageConfig.marginMm.top;
+              else if (target === 'content') targetY = pageYMm - contentTop;
+              else if (target === 'footer') targetY = pageYMm - footerTop;
+              moveComponentToSectionRef.current(draggingComponentId, target, Math.max(0, targetY));
+            }
+          }
+        }
       }
+
+      setDraggingComponentId(null);
+      setAlignmentLines([]);
     };
 
     if (draggingComponentId) {
@@ -580,7 +696,58 @@ const CanvasArea = () => {
         window.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [draggingComponentId, dragStartPos, dragStartLayout, components, updateComponent, selectedComponentIds, dragStartLayouts]);
+  }, [draggingComponentId]);
+
+  // 监听区域高度拖拽手柄（使用 useRef 缓存状态值）
+  useEffect(() => {
+    if (!resizingSection) return;
+
+    const handleResizeMove = (e: MouseEvent) => {
+      const curZoom = zoomLevelRef.current;
+      const curPageConfig = pageConfigRef.current;
+
+      const deltaPx = e.clientY - resizeStartYRef.current;
+      const deltaMm = pxToMm(deltaPx, curZoom);
+      // 页头手柄在底部，向下拖拽增加高度；页脚手柄在顶部，向下拖拽减少高度
+      let newHeight = resizeStartHeightRef.current + (resizingSection === 'header' ? deltaMm : -deltaMm);
+
+      // 最小高度 15mm
+      newHeight = Math.max(15, newHeight);
+
+      // 最大高度：确保内容区域至少保留 30mm
+      // 基于 ref 计算页面高度，避免闭包过期
+      let curPageH: number;
+      if (curPageConfig.size === 'CONTINUOUS') { curPageH = 10000; }
+      else if (curPageConfig.size === 'CUSTOM') { curPageH = curPageConfig.heightMm || 297; }
+      else { curPageH = curPageConfig.size === 'A4' ? 297 : 210; }
+      if (curPageConfig.orientation === 'landscape' && curPageConfig.size !== 'CONTINUOUS') {
+        curPageH = curPageConfig.size === 'CUSTOM' ? (curPageConfig.widthMm || 210) : (curPageConfig.size === 'A4' ? 210 : 148);
+      }
+      const maxAvailable = curPageH - curPageConfig.marginMm.top - curPageConfig.marginMm.bottom - 30;
+      const otherH = resizingSection === 'header'
+        ? Math.max(15, curPageConfig.footerHeight || 15)
+        : Math.max(15, curPageConfig.headerHeight || 15);
+      newHeight = Math.min(newHeight, maxAvailable - otherH);
+
+      // 应用网格吸附
+      newHeight = snapToGrid(newHeight);
+
+      setPageConfig({
+        [resizingSection === 'header' ? 'headerHeight' : 'footerHeight']: newHeight,
+      });
+    };
+
+    const handleResizeUp = () => {
+      setResizingSection(null);
+    };
+
+    window.addEventListener('mousemove', handleResizeMove);
+    window.addEventListener('mouseup', handleResizeUp);
+    return () => {
+      window.removeEventListener('mousemove', handleResizeMove);
+      window.removeEventListener('mouseup', handleResizeUp);
+    };
+  }, [resizingSection, setPageConfig]);
 
   const handleComponentRightClick = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -707,7 +874,7 @@ const CanvasArea = () => {
   };
 
   const handleQuickPrint = () => {
-    if (components.length === 0) {
+    if (components.length === 0 && headerComponents.length === 0 && footerComponents.length === 0) {
       message.warning('画布为空，请先添加组件');
       return;
     }
@@ -739,6 +906,11 @@ const CanvasArea = () => {
       pageNumberFontSize: pageConfig.pageNumber?.style?.fontSize || 12,
       pageNumberColor: pageConfig.pageNumber?.style?.color || '#666666',
       pageNumberFontWeight: pageConfig.pageNumber?.style?.fontWeight || 'normal',
+      // 页头/页脚开关
+      headerEnabled: pageConfig.headerEnabled ?? false,
+      headerHeight: pageConfig.headerHeight || undefined,
+      footerEnabled: pageConfig.footerEnabled ?? false,
+      footerHeight: pageConfig.footerHeight || undefined,
     });
     setCustomSizeEnabled(pageConfig.size === 'CUSTOM');
     setContinuousPaperEnabled(pageConfig.size === 'CONTINUOUS');
@@ -761,7 +933,8 @@ const CanvasArea = () => {
       width = pageConfig.widthMm || CONTINUOUS_PAPER_DEFAULT_WIDTH;
 
       // 计算所有组件的最大底部位置
-      const maxBottom = components.reduce((max, comp) => {
+      const allComps = [...headerComponents, ...components, ...footerComponents];
+      const maxBottom = allComps.reduce((max, comp) => {
         const bottom = (comp.layout.yMm || 0) + (comp.layout.heightMm || 0);
         return Math.max(max, bottom);
       }, 0);
@@ -814,7 +987,7 @@ const CanvasArea = () => {
       <div className={styles['canvas-wrapper']}>
         {/* 快捷键提示 */}
         <ShortcutHint />
-        <div className={styles['canvas-container']} style={{
+        <div className={`${styles['canvas-container']} ${dragOver ? styles['drag-over'] : ''}`} style={{
           width: `${(canvasSize.widthPx * zoomLevel / 100) + 30}px`,
           height: `${(canvasSize.heightPx * zoomLevel / 100) + 30}px`,
         }}>
@@ -828,9 +1001,9 @@ const CanvasArea = () => {
               transform: `scale(${zoomLevel / 100})`,
               transformOrigin: 'top left',
             }}
-            onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, 'content')}
             onClick={() => selectComponent(null)}
           >
             {/* 页边距可视化 */}
@@ -863,7 +1036,7 @@ const CanvasArea = () => {
               />
             </div>
 
-            {/* 页码位置可视化 */}
+            {/* 页边距可视化 */}
             {pageConfig.pageNumber?.enabled && (() => {
               const position = pageConfig.pageNumber.position;
               const offsetX = (pageConfig.pageNumber.offsetX || 0) * 3.78;
@@ -943,49 +1116,208 @@ const CanvasArea = () => {
                 </div>
               );
             })()}
-            {components.map((comp) => {
-              const baseStyle: React.CSSProperties = {
-                position: 'absolute',
-                left: `${(comp.layout.xMm || 0) * 3.78}px`,
-                top: `${(comp.layout.yMm || 0) * 3.78}px`,
-                width: `${(comp.layout.widthMm || 60) * 3.78}px`,
-                height: `${(comp.layout.heightMm || 10) * 3.78}px`,
-                cursor: 'move',
-              };
-
+            {/* ===== 页头区域（连续纸不显示） ===== */}
+            {pageConfig.headerEnabled && pageConfig.size !== 'CONTINUOUS' && (() => {
+              const sectionW = canvasSize.widthPx;
+              const sectionH = Math.max(15, pageConfig.headerHeight || 15) * 3.78;
+              const marginLeftPx = pageConfig.marginMm.left * 3.78;
+              const marginRightPx = pageConfig.marginMm.right * 3.78;
               return (
-                <Dropdown
-                  key={comp.id}
-                  menu={{ items: contextMenuItems }}
-                  trigger={['contextMenu']}
-                  open={contextMenuVisible && contextMenuComponentId === comp.id}
-                  onOpenChange={(visible) => {
-                    if (!visible) setContextMenuVisible(false);
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: pageConfig.marginMm.top * 3.78,
+                    left: 0,
+                    width: sectionW,
+                    height: sectionH,
+                    border: '1px dashed #d9d9d9',
+                    background: 'transparent',
                   }}
+                  onDrop={(e) => { e.stopPropagation(); handleDrop(e, 'header'); }}
+                  onDragOver={(e) => e.preventDefault()}
                 >
-                  <div
-                    className={`${styles.component} ${selectedComponentIds.includes(comp.id) ? styles.selected : ''} ${draggingComponentId === comp.id ? styles.dragging : ''} ${isComponentOutOfBounds(comp) ? styles['out-of-bounds'] : ''}`}
-                    style={baseStyle}
-                    onMouseDown={(e) => handleComponentMouseDown(comp.id, e)}
-                    onClick={(e) => handleComponentClick(comp.id, e)}
-                    onContextMenu={(e) => handleComponentRightClick(comp.id, e)}
-                  >
-                    <ComponentPreview component={comp} />
-                    {/* 只在单个组件选中时显示调整手柄 */}
-                    {selectedComponentIds.length === 1 && selectedComponentIds.includes(comp.id) && (
-                      <ResizeHandles
-                        component={comp}
-                        onResize={handleComponentResize}
-                        pageWidth={getPageSize().width}
-                        pageHeight={getPageSize().height}
-                        snapToGrid={snapToGrid}
-                        zoomLevel={zoomLevel}
-                      />
-                    )}
-                  </div>
-                </Dropdown>
+                  {headerComponents.length === 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      left: marginLeftPx,
+                      width: sectionW - marginLeftPx - marginRightPx,
+                      height: '100%',
+                      background: '#fafafa',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#bbb',
+                      fontSize: 12,
+                    }}>
+                      拖入页头组件
+                    </div>
+                  )}
+                  {headerComponents.map((comp) => (
+                    <Dropdown key={comp.id} menu={{ items: contextMenuItems }} trigger={['contextMenu']}
+                      open={contextMenuVisible && contextMenuComponentId === comp.id}
+                      onOpenChange={(visible) => { if (!visible) setContextMenuVisible(false); }}>
+                      <div
+                        className={`${styles.component} ${selectedComponentIds.includes(comp.id) ? styles.selected : ''} ${draggingComponentId === comp.id ? styles.dragging : ''} ${isComponentOutOfBounds(comp) ? styles['out-of-bounds'] : ''}`}
+                        style={{ position: 'absolute', left: (comp.layout.xMm || 0) * 3.78, top: (comp.layout.yMm || 0) * 3.78, width: (comp.layout.widthMm || 60) * 3.78, height: (comp.layout.heightMm || 10) * 3.78, cursor: 'move' }}
+                        onMouseDown={(e) => handleComponentMouseDown(comp.id, e)}
+                        onClick={(e) => handleComponentClick(comp.id, e)}
+                        onContextMenu={(e) => handleComponentRightClick(comp.id, e)}>
+                        <ComponentPreview component={comp} />
+                        {selectedComponentIds.length === 1 && selectedComponentIds.includes(comp.id) && (
+                          <ResizeHandles component={comp} onResize={handleComponentResize} pageWidth={getPageSize().width} pageHeight={getPageSize().height} snapToGrid={snapToGrid} zoomLevel={zoomLevel} />
+                        )}
+                      </div>
+                    </Dropdown>
+                  ))}
+                </div>
               );
-            })}
+            })()}
+
+            {/* ===== 内容区域 ===== */}
+            {(() => {
+              const headerEnabled = pageConfig.headerEnabled ?? false;
+              const headerH = headerEnabled ? Math.max(15, pageConfig.headerHeight || 15) : 0;
+              const footerEnabled = pageConfig.footerEnabled ?? false;
+              const footerH = footerEnabled ? Math.max(15, pageConfig.footerHeight || 15) : 0;
+              const contentTop = (pageConfig.marginMm.top + headerH) * 3.78;
+              const contentH = canvasSize.heightPx - (pageConfig.marginMm.top + pageConfig.marginMm.bottom) * 3.78 - headerH * 3.78 - footerH * 3.78;
+              const sectionW = canvasSize.widthPx;
+              return (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: contentTop,
+                    left: 0,
+                    width: sectionW,
+                    height: Math.max(0, contentH),
+                  }}
+                  onDrop={(e) => { e.stopPropagation(); handleDrop(e, 'content'); }}
+                  onDragOver={(e) => e.preventDefault()}
+                >
+                  {components.map((comp) => (
+                    <Dropdown key={comp.id} menu={{ items: contextMenuItems }} trigger={['contextMenu']}
+                      open={contextMenuVisible && contextMenuComponentId === comp.id}
+                      onOpenChange={(visible) => { if (!visible) setContextMenuVisible(false); }}>
+                      <div
+                        className={`${styles.component} ${selectedComponentIds.includes(comp.id) ? styles.selected : ''} ${draggingComponentId === comp.id ? styles.dragging : ''} ${isComponentOutOfBounds(comp) ? styles['out-of-bounds'] : ''}`}
+                        style={{ position: 'absolute', left: (comp.layout.xMm || 0) * 3.78, top: (comp.layout.yMm || 0) * 3.78, width: (comp.layout.widthMm || 60) * 3.78, height: (comp.layout.heightMm || 10) * 3.78, cursor: 'move' }}
+                        onMouseDown={(e) => handleComponentMouseDown(comp.id, e)}
+                        onClick={(e) => handleComponentClick(comp.id, e)}
+                        onContextMenu={(e) => handleComponentRightClick(comp.id, e)}>
+                        <ComponentPreview component={comp} />
+                        {selectedComponentIds.length === 1 && selectedComponentIds.includes(comp.id) && (
+                          <ResizeHandles component={comp} onResize={handleComponentResize} pageWidth={getPageSize().width} pageHeight={getPageSize().height} snapToGrid={snapToGrid} zoomLevel={zoomLevel} />
+                        )}
+                      </div>
+                    </Dropdown>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {/* ===== 页脚区域（连续纸不显示） ===== */}
+            {pageConfig.footerEnabled && pageConfig.size !== 'CONTINUOUS' && (() => {
+              const footerH = Math.max(15, pageConfig.footerHeight || 15);
+              const sectionW = canvasSize.widthPx;
+              const sectionTop = canvasSize.heightPx - pageConfig.marginMm.bottom * 3.78 - footerH * 3.78;
+              const marginLeftPx = pageConfig.marginMm.left * 3.78;
+              const marginRightPx = pageConfig.marginMm.right * 3.78;
+              return (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: sectionTop,
+                    left: 0,
+                    width: sectionW,
+                    height: footerH * 3.78,
+                    border: '1px dashed #d9d9d9',
+                    background: 'transparent',
+                  }}
+                  onDrop={(e) => { e.stopPropagation(); handleDrop(e, 'footer'); }}
+                  onDragOver={(e) => e.preventDefault()}
+                >
+                  {footerComponents.length === 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      left: marginLeftPx,
+                      width: sectionW - marginLeftPx - marginRightPx,
+                      height: '100%',
+                      background: '#fafafa',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#bbb',
+                      fontSize: 12,
+                    }}>
+                      拖入页脚组件
+                    </div>
+                  )}
+                  {footerComponents.map((comp) => (
+                    <Dropdown key={comp.id} menu={{ items: contextMenuItems }} trigger={['contextMenu']}
+                      open={contextMenuVisible && contextMenuComponentId === comp.id}
+                      onOpenChange={(visible) => { if (!visible) setContextMenuVisible(false); }}>
+                      <div
+                        className={`${styles.component} ${selectedComponentIds.includes(comp.id) ? styles.selected : ''} ${draggingComponentId === comp.id ? styles.dragging : ''} ${isComponentOutOfBounds(comp) ? styles['out-of-bounds'] : ''}`}
+                        style={{ position: 'absolute', left: (comp.layout.xMm || 0) * 3.78, top: (comp.layout.yMm || 0) * 3.78, width: (comp.layout.widthMm || 60) * 3.78, height: (comp.layout.heightMm || 10) * 3.78, cursor: 'move' }}
+                        onMouseDown={(e) => handleComponentMouseDown(comp.id, e)}
+                        onClick={(e) => handleComponentClick(comp.id, e)}
+                        onContextMenu={(e) => handleComponentRightClick(comp.id, e)}>
+                        <ComponentPreview component={comp} />
+                        {selectedComponentIds.length === 1 && selectedComponentIds.includes(comp.id) && (
+                          <ResizeHandles component={comp} onResize={handleComponentResize} pageWidth={getPageSize().width} pageHeight={getPageSize().height} snapToGrid={snapToGrid} zoomLevel={zoomLevel} />
+                        )}
+                      </div>
+                    </Dropdown>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {/* 页头区域高度拖拽手柄（连续纸不显示） */}
+            {pageConfig.headerEnabled && pageConfig.size !== 'CONTINUOUS' && (
+              <div
+                className={styles['section-resize-handle']}
+                style={{
+                  position: 'absolute',
+                  top: (pageConfig.marginMm.top + Math.max(15, pageConfig.headerHeight || 15)) * 3.78 - 3,
+                  left: 0,
+                  width: canvasSize.widthPx,
+                  height: 6,
+                  cursor: 'ns-resize',
+                  zIndex: 100,
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  setResizingSection('header');
+                  resizeStartYRef.current = e.clientY;
+                  resizeStartHeightRef.current = Math.max(15, pageConfig.headerHeight || 15);
+                }}
+                title="拖拽调整页头高度"
+              />
+            )}
+
+            {/* 页脚区域高度拖拽手柄（连续纸不显示） */}
+            {pageConfig.footerEnabled && pageConfig.size !== 'CONTINUOUS' && (
+              <div
+                className={styles['section-resize-handle']}
+                style={{
+                  position: 'absolute',
+                  top: (getPageSize().height - pageConfig.marginMm.bottom - Math.max(15, pageConfig.footerHeight || 15)) * 3.78 - 3,
+                  left: 0,
+                  width: canvasSize.widthPx,
+                  height: 6,
+                  cursor: 'ns-resize',
+                  zIndex: 100,
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  setResizingSection('footer');
+                  resizeStartYRef.current = e.clientY;
+                  resizeStartHeightRef.current = Math.max(15, pageConfig.footerHeight || 15);
+                }}
+                title="拖拽调整页脚高度"
+              />
+            )}
 
             {/* 智能对齐参考线 */}
             {alignmentLines.length > 0 && (

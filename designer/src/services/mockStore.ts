@@ -1,5 +1,5 @@
 import type { SchemaDictionary, PrintTemplate, MockData } from '../types';
-import { defaultSchemas, defaultTemplates, defaultMockData } from './mockData';
+import { defaultSchemas, defaultTemplates, defaultMockData } from './mock';
 
 /** 生成 UUID */
 function uuid(): string {

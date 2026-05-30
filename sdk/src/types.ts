@@ -59,9 +59,20 @@ export interface PageConfig {
     left: number;
   };
   pageNumber?: PageNumberConfig;  // 页码配置
+  /** 是否启用页头区域，默认 false */
+  headerEnabled?: boolean;
+  /** 页头区域高度（mm），默认自动计算；设置后作为最小高度 */
+  headerHeight?: number;
+  /** 是否启用页脚区域，默认 false */
+  footerEnabled?: boolean;
+  /** 页脚区域高度（mm），默认自动计算；设置后作为最小高度 */
+  footerHeight?: number;
 }
 
 export type ComponentType = 'text' | 'image' | 'rect' | 'container' | 'table' | 'line' | 'qrcode' | 'barcode';
+
+/** 组件所属的页面区域 */
+export type PageSection = 'header' | 'content' | 'footer';
 
 export interface PipeConfig {
   type: string;
@@ -186,6 +197,8 @@ export interface ComponentNode {
   binding?: DataBinding;
   props?: Record<string, any>;
   children?: ComponentNode[];
+  /** 内部使用：组件所属的页面区域 */
+  _section?: PageSection;
 }
 
 export interface PrintTemplate {
@@ -197,6 +210,10 @@ export interface PrintTemplate {
   page: PageConfig;
   layoutMode: 'absolute' | 'flow';
   components: ComponentNode[];
+  /** 页头区域组件，可选（老模板无此字段） */
+  headerComponents?: ComponentNode[];
+  /** 页脚区域组件，可选 */
+  footerComponents?: ComponentNode[];
 }
 
 // Mock 数据类型定义

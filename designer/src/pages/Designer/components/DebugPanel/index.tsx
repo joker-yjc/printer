@@ -8,7 +8,7 @@ const { Text } = Typography;
 
 const DebugPanel = () => {
   const [open, setOpen] = useState(false);
-  const { generateTemplate, components, templateName, schemaId } = useDesignerStore();
+  const { generateTemplate, components, headerComponents, footerComponents, templateName, schemaId } = useDesignerStore();
 
   const templateJson = generateTemplate();
 
@@ -56,7 +56,10 @@ const DebugPanel = () => {
           </div>
           <div className="debug-info">
             <Text strong>组件数量：</Text>
-            <Text>{components.length}</Text>
+            <Text>{components.length + headerComponents.length + footerComponents.length}</Text>
+            <Text type="secondary" style={{ marginLeft: 8 }}>
+              (页头 {headerComponents.length} / 内容 {components.length} / 页脚 {footerComponents.length})
+            </Text>
           </div>
 
           <div className="debug-divider" />

@@ -143,3 +143,16 @@
   color: #8c8c8c;
   font-size: 12px;
 }
+
+.section-resize-handle {
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.section-resize-handle:hover {
+  background: rgba(24, 144, 255, 0.6);
+}
+
+.section-resize-handle:active {
+  background: rgba(24, 144, 255, 0.9);
+}

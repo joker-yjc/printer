@@ -63,7 +63,12 @@ const TemplatePreviewModal = ({
                 </div>
               </Col>
               <Col span={8}>
-                <div><strong>组件数：</strong>{previewTemplate.components.length}</div>
+                <div>
+                  <strong>组件数：</strong>
+                  {(previewTemplate.headerComponents?.length || 0) +
+                    previewTemplate.components.length +
+                    (previewTemplate.footerComponents?.length || 0)}
+                </div>
               </Col>
             </Row>
             <Row gutter={16} style={{ marginTop: 12 }}>
@@ -93,23 +98,33 @@ const TemplatePreviewModal = ({
           </Card>
 
           <Card size="small" title="组件列表">
-            {previewTemplate.components.length > 0 ? (
-              <div style={{ maxHeight: 300, overflow: 'auto' }}>
-                {previewTemplate.components.map((comp) => (
-                  <div key={comp.id} style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                    <Tag color="blue">{comp.type}</Tag>
-                    <span style={{ marginLeft: 8 }}>
-                      位置: ({comp.layout.xMm || 0}, {comp.layout.yMm || 0})
-                      尺寸: {comp.layout.widthMm || 0}×{comp.layout.heightMm || 0}mm
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: 24, color: '#999' }}>
-                暂无组件
-              </div>
-            )}
+            {(() => {
+              const allComps = [
+                ...(previewTemplate.headerComponents || []).map((c) => ({ ...c, _displaySection: '页头' as const })),
+                ...previewTemplate.components.map((c) => ({ ...c, _displaySection: '内容' as const })),
+                ...(previewTemplate.footerComponents || []).map((c) => ({ ...c, _displaySection: '页脚' as const })),
+              ];
+              return allComps.length > 0 ? (
+                <div style={{ maxHeight: 300, overflow: 'auto' }}>
+                  {allComps.map((comp) => (
+                    <div key={comp.id} style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+                      <Tag color="blue">{comp.type}</Tag>
+                      <Tag color={comp._displaySection === '页头' ? 'orange' : comp._displaySection === '页脚' ? 'green' : 'default'}>
+                        {comp._displaySection}
+                      </Tag>
+                      <span style={{ marginLeft: 8 }}>
+                        位置: ({comp.layout.xMm || 0}, {comp.layout.yMm || 0})
+                        尺寸: {comp.layout.widthMm || 0}×{comp.layout.heightMm || 0}mm
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: 24, color: '#999' }}>
+                  暂无组件
+                </div>
+              );
+            })()}
           </Card>
         </div>
       )}

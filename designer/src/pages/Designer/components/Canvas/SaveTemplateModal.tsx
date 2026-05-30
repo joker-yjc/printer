@@ -20,6 +20,9 @@ const SaveTemplateModal = ({
   const location = useLocation();
   const {
     components,
+    headerComponents,
+    footerComponents,
+    pageConfig,
     generateTemplate,
     templateId,
     setTemplateInfo,
@@ -37,7 +40,6 @@ const SaveTemplateModal = ({
 
   // 检查组件是否超出边界
   const isComponentOutOfBounds = (comp: ComponentNode) => {
-    const { pageConfig } = useDesignerStore.getState();
     let pageWidthMm: number;
     let pageHeightMm: number;
 
@@ -63,7 +65,31 @@ const SaveTemplateModal = ({
       return compRight > pageWidthMm;
     }
 
-    return compRight > pageWidthMm || compBottom > pageHeightMm;
+    // 宽度越界（所有区域通用）
+    if (compRight > pageWidthMm) return true;
+
+    // 判断组件所属区域
+    const inHeader = headerComponents.some((c) => c.id === comp.id);
+    const inFooter = footerComponents.some((c) => c.id === comp.id);
+
+    const headerEnabled = pageConfig.headerEnabled ?? false;
+    const footerEnabled = pageConfig.footerEnabled ?? false;
+    const headerH = headerEnabled ? Math.max(15, pageConfig.headerHeight || 15) : 0;
+    const footerH = footerEnabled ? Math.max(15, pageConfig.footerHeight || 15) : 0;
+
+    if (inHeader) {
+      return compBottom > headerH;
+    } else if (inFooter) {
+      return compBottom > footerH;
+    } else {
+      // content 区域组件
+      if (headerEnabled || footerEnabled) {
+        const contentH = pageHeightMm - pageConfig.marginMm.top - pageConfig.marginMm.bottom - headerH - footerH;
+        if ((comp.layout.yMm ?? 0) < 0) return true;
+        if (compBottom > contentH) return true;
+      }
+      return compBottom > pageHeightMm;
+    }
   };
 
   // 执行保存
@@ -103,16 +129,18 @@ const SaveTemplateModal = ({
       return;
     }
 
-    // 检查是否有超出边界的组件
-    const outOfBoundsComponents = components.filter(comp => isComponentOutOfBounds(comp));
+    // 检查是否有超出边界的组件（三个区域都要检查）
+    const allComponents = [...headerComponents, ...components, ...footerComponents];
+    const outOfBoundsComponents = allComponents.filter(comp => isComponentOutOfBounds(comp));
 
     if (outOfBoundsComponents.length > 0) {
       Modal.confirm({
-        title: '检测到超出画布的组件',
+        title: '检测到位置异常的组件',
         content: (
           <div>
-            <p>当前有 {outOfBoundsComponents.length} 个组件超出了画布边界（已用红色虚线标记）。</p>
-            <p>超出的组件在打印时可能被截断或显示不完整。</p>
+            <p>当前有 {outOfBoundsComponents.length} 个组件位置超出其所属区域范围（已用红色虚线标记）。</p>
+            <p>可能的原因：超出页面边界、侵入页头/页脚区域、或页头/页脚内组件超出区域高度。</p>
+            <p>位置异常的组件在打印时可能被截断或显示不完整。</p>
             <p style={{ marginTop: 12, fontWeight: 'bold' }}>是否继续保存？</p>
           </div>
         ),

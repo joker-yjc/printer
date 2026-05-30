@@ -1,6 +1,6 @@
 /**
  * 组件树面板
- * 显示所有组件的层级结构，支持选中、定位、右键菜单
+ * 支持页头/内容/页脚三区域分组显示
  */
 
 import { Tree, Dropdown, Typography, Empty, Tooltip } from 'antd';
@@ -22,7 +22,6 @@ import styles from './index.module.css';
 
 const { Text } = Typography;
 
-// 组件类型图标映射
 const getComponentIcon = (type: string) => {
   const iconMap: Record<string, React.ReactNode> = {
     text: <FileTextOutlined style={{ color: '#1890ff' }} />,
@@ -36,21 +35,14 @@ const getComponentIcon = (type: string) => {
   return iconMap[type] || <FileTextOutlined />;
 };
 
-// 组件类型名称映射
 const getComponentTypeName = (type: string) => {
   const nameMap: Record<string, string> = {
-    text: '文本',
-    image: '图片',
-    qrcode: '二维码',
-    barcode: '条形码',
-    table: '表格',
-    rect: '矩形',
-    line: '线条',
+    text: '文本', image: '图片', qrcode: '二维码',
+    barcode: '条形码', table: '表格', rect: '矩形', line: '线条',
   };
   return nameMap[type] || type;
 };
 
-// 将组件列表转换为树形数据
 const convertComponentsToTree = (components: ComponentNode[]): TreeDataNode[] => {
   return components.map((comp, index) => ({
     key: comp.id,
@@ -67,86 +59,74 @@ const convertComponentsToTree = (components: ComponentNode[]): TreeDataNode[] =>
         )}
       </span>
     ),
-    icon: null, // 已经在 title 中显示了图标
+    icon: null,
   }));
 };
 
 const ComponentTreePanel = () => {
-  const { components, selectedComponentIds, selectComponent, removeComponent, duplicateComponent } =
-    useDesignerStore();
+  const {
+    components, headerComponents, footerComponents,
+    selectedComponentIds, selectComponent,
+    removeComponent, duplicateComponent,
+    pageConfig,
+  } = useDesignerStore();
 
-  // 转换为树形数据
-  const treeData = convertComponentsToTree(components);
+  const headerEnabled = pageConfig.headerEnabled ?? false;
+  const footerEnabled = pageConfig.footerEnabled ?? false;
 
-  // 处理选中节点
   const handleSelect: TreeProps['onSelect'] = (selectedKeys) => {
     if (selectedKeys.length > 0) {
-      const componentId = selectedKeys[0] as string;
-      selectComponent(componentId);
-
-      // 定位到组件（滚动到可视区域）
-      const element = document.getElementById(`component-${componentId}`);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      selectComponent(selectedKeys[0] as string);
+      const element = document.getElementById(`component-${selectedKeys[0]}`);
+      if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   };
 
-  // 右键菜单项
   const getContextMenuItems = (componentId: string): MenuProps['items'] => [
-    {
-      key: 'copy',
-      label: '复制组件',
-      icon: <CopyOutlined />,
-      onClick: () => {
-        duplicateComponent(componentId);
-      },
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: 'delete',
-      label: '删除组件',
-      icon: <DeleteOutlined />,
-      danger: true,
-      onClick: () => {
-        removeComponent(componentId);
-      },
-    },
+    { key: 'copy', label: '复制组件', icon: <CopyOutlined />, onClick: () => duplicateComponent(componentId) },
+    { type: 'divider' },
+    { key: 'delete', label: '删除组件', icon: <DeleteOutlined />, danger: true, onClick: () => removeComponent(componentId) },
   ];
 
-  // 渲染树节点的标题（支持右键菜单）
   const renderTreeNode = (node: TreeDataNode) => {
     const titleContent = typeof node.title === 'function' ? node.title(node as any) : node.title;
     return (
-      <Dropdown
-        menu={{ items: getContextMenuItems(node.key as string) }}
-        trigger={['contextMenu']}
-      >
+      <Dropdown menu={{ items: getContextMenuItems(node.key as string) }} trigger={['contextMenu']}>
         <div>{titleContent}</div>
       </Dropdown>
     );
   };
 
-  if (components.length === 0) {
+  const renderSection = (label: string, comps: ComponentNode[], key: string) => {
+    const treeData = convertComponentsToTree(comps);
     return (
-      <div className={styles['tree-panel']}>
-        <div className={styles['tree-header']}>
-          <Text strong>组件树</Text>
-          <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>
-            {components.length} 个组件
-          </Text>
+      <div key={key} style={{ marginBottom: 8 }}>
+        <div style={{
+          padding: '6px 12px', background: '#fafafa', borderBottom: '1px solid #f0f0f0',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <Text strong style={{ fontSize: 12 }}>{label}</Text>
+          <Text type="secondary" style={{ fontSize: 11 }}>{comps.length} 个</Text>
         </div>
-        <div className={styles['tree-empty']}>
-          <Empty
-            description="暂无组件"
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
+        {comps.length > 0 ? (
+          <Tree
+            treeData={treeData}
+            selectedKeys={selectedComponentIds}
+            onSelect={handleSelect}
+            showIcon={false}
+            blockNode
+            titleRender={renderTreeNode}
           />
-        </div>
+        ) : (
+          <div style={{ padding: '12px 16px', textAlign: 'center' }}>
+            <Text type="secondary" style={{ fontSize: 11 }}>拖入组件到{label}</Text>
+          </div>
+        )}
       </div>
     );
-  }
+  };
+
+  const totalCount = (headerEnabled ? headerComponents.length : 0) + components.length + (footerEnabled ? footerComponents.length : 0);
 
   return (
     <div className={styles['tree-panel']}>
@@ -154,19 +134,22 @@ const ComponentTreePanel = () => {
         <Text strong>组件树</Text>
         <Tooltip title="显示所有组件的层级结构">
           <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>
-            {components.length} 个组件
+            {totalCount} 个组件
           </Text>
         </Tooltip>
       </div>
       <div className={styles['tree-content']}>
-        <Tree
-          treeData={treeData}
-          selectedKeys={selectedComponentIds}
-          onSelect={handleSelect}
-          showIcon={false}
-          blockNode
-          titleRender={renderTreeNode}
-        />
+        {totalCount === 0 ? (
+          <div className={styles['tree-empty']}>
+            <Empty description="暂无组件" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          </div>
+        ) : (
+          <>
+            {headerEnabled && renderSection('页头区域', headerComponents, 'header')}
+            {renderSection('内容区域', components, 'content')}
+            {footerEnabled && renderSection('页脚区域', footerComponents, 'footer')}
+          </>
+        )}
       </div>
     </div>
   );

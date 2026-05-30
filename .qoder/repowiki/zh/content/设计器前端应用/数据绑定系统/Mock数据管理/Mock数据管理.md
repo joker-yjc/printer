@@ -49,6 +49,7 @@ Mock数据管理功能主要分布在以下模块：
 - 服务层：统一的mockStore中央存储服务，提供Schema、模板、Mock数据的CRUD操作
 - API层：mockApi前端Mock实现，支持USE_MOCK环境变量切换
 - 类型定义：Mock数据与Schema字段的类型约束
+- Mock存储系统：集中化的内存存储管理
 
 ```mermaid
 graph TB
@@ -334,7 +335,7 @@ API-->>UI : "Mock数据列表"
 - 默认数据：mockData.ts提供丰富的默认Schema、模板和Mock数据，覆盖多种业务场景。
 
 **章节来源**
-- [types/index.ts:303-316](file://designer/src/types/index.ts#L303-L316)
+- [types/index.ts:364-378](file://designer/src/types/index.ts#L364-L378)
 - [types/index.ts:18-33](file://designer/src/types/index.ts#L18-L33)
 - [mockData.ts:1-2040](file://designer/src/services/mockData.ts#L1-L2040)
 
@@ -474,6 +475,7 @@ Mock数据管理以中央存储架构为核心，结合智能生成器与可视�
   - 利用默认数据快速启动项目，减少初始化成本。
   - 在静态部署环境中充分利用前端Mock模式的优势。
   - 合理使用嵌套对象结构，提高数据表达能力。
+  - 通过mockStore统一管理数据，支持前后端共享。
 - 实际场景：
   - 模板设计阶段的快速预览与对比。
   - SDK集成时的离线测试与演示数据准备。
