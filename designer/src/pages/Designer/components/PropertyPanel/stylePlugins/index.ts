@@ -29,7 +29,12 @@ export function registerPlugin(plugin: StylePlugin): void {
  * @returns 对应的样式插件，如果未找到则返回默认插件
  */
 export function getPlugin(componentType: string): StylePlugin {
-  return pluginRegistry.get(componentType) || DefaultStylePlugin;
+  const plugin = pluginRegistry.get(componentType);
+  if (!plugin) {
+    console.warn(`[StylePlugin] 未注册类型 "${componentType}" 的样式插件，使用默认插件`);
+    return DefaultStylePlugin;
+  }
+  return plugin;
 }
 
 /**

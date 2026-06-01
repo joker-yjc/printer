@@ -8,7 +8,7 @@ interface LinePreviewProps {
  * 线条组件预览
  */
 export const LinePreview = ({ component }: LinePreviewProps) => {
-  const lineHeight = (component.style?.borderTopWidth || 1) / 3.78;
+  const lineHeight = component.style?.borderTopWidth || 1;
   const lineStyle = component.style?.borderTopStyle || 'solid';
   const lineColor = component.style?.borderTopColor || '#000';
 

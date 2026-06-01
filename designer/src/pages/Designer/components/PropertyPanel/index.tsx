@@ -123,11 +123,13 @@ const PropertyPanel = () => {
         onChange={handleLayoutChange}
       />
 
-      {/* 数据绑定 */}
-      <DataBindingSection
-        component={selectedComponent}
-        onBindingChange={handleBindingChange}
-      />
+      {/* 数据绑定（仅对有数据展示需求的组件显示，线条/矩形等装饰组件不需要） */}
+      {['text', 'image', 'qrcode', 'barcode', 'table'].includes(selectedComponent.type) && (
+        <DataBindingSection
+          component={selectedComponent}
+          onBindingChange={handleBindingChange}
+        />
+      )}
 
       {/* 样式属性（插件化） */}
       <StyleSection
