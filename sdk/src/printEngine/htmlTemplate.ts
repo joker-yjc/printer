@@ -148,6 +148,7 @@ export function generatePrintPageStyles(config: PrintStyleConfig): string {
         margin: 0 !important;
         box-shadow: none !important;
         page-break-after: always;
+        height: calc(${pageHeightMm}mm - 1mm) !important;
       }
 
       .print-page:last-child {
@@ -197,7 +198,7 @@ export function generateBatchPrintStyles(config: PrintStyleConfig): string {
     
     @media print {
       body { margin: 0 !important; padding: 0 !important; background: white !important; }
-      .print-page { margin: 0 !important; page-break-after: always; box-shadow: none !important; }
+      .print-page { margin: 0 !important; page-break-after: always; box-shadow: none !important; height: calc(${pageHeightMm}mm - 1mm) !important; }
       .print-page:last-child { page-break-after: auto; }
     }
     

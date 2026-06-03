@@ -841,7 +841,8 @@ export class PrintEngine {
         ? (measuredSummaryHeight || this.calculateTableRowHeight(tableComponent))
         : 0;
 
-      let availableForRows = remainingHeight - (needHeader ? measuredHeaderHeight : 0) - reserveSummaryHeight;
+      // ⚠️ 减去 1mm 安全边距，防止因浮点精度或行高累加导致末行溢出页底
+      let availableForRows = remainingHeight - (needHeader ? measuredHeaderHeight : 0) - reserveSummaryHeight - 1;
 
       // ✅ 使用实际测量的行高计算能放多少行
       let rowsCanFit = 0;

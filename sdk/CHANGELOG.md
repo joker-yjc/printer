@@ -2,6 +2,19 @@
 
 所有版本的变更记录都列在这里，遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 规范。
 
+## [1.5.1] - 2026-05-30
+
+### 🐛 问题修复
+
+| 问题 | 修复内容 |
+|------|----------|
+| 表格末行溢出页底边距 | `availableForRows` 减去 1mm 安全边距，防止浮点精度或行高累加导致末行超出内容区底边 |
+| 打印时表格内容溢出页面 | `@media print` 中 `.print-page` 高度设为 `calc(pageHeight - 1mm) !important`，与分页算法配合防止内容溢出物理页面底边 |
+
+**影响范围**：`sdk/src/printEngine.ts`（`splitTableWithGap` 分页计算）、`sdk/src/printEngine/htmlTemplate.ts`（`generatePrintPageStyles`、`generateBatchPrintStyles`）
+
+---
+
 ## [1.5.0] - 2026-05-30
 
 ### ✨ 新增功能

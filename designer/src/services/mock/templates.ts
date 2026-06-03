@@ -1279,5 +1279,324 @@ export const defaultTemplates: PrintTemplate[] = [
         props: {}
       }
     ]
-  }
+  },
+  {
+    "version": "1.0.0",
+    "name": "问题查找模板数据",
+    "id": "template-real-template",
+    schemaId: '',
+    "page": {
+        "size": "CUSTOM",
+        "orientation": "portrait",
+        "marginMm": {
+            "top": 5,
+            "right": 15,
+            "bottom": 5,
+            "left": 10
+        },
+        "widthMm": 241,
+        "heightMm": 140,
+        "pageNumber": {
+            "enabled": true,
+            "position": "top-right",
+            "format": "slash",
+            "prefix": "",
+            "suffix": "",
+            "separator": "/",
+            "offsetX": 0,
+            "offsetY": 0,
+            "style": {
+                "fontSize": 12,
+                "color": "#666666",
+                "fontWeight": "normal"
+            }
+        },
+        "headerEnabled": true,
+        "footerEnabled": true,
+        "headerHeight": 30,
+        "footerHeight": 30
+    },
+    "layoutMode": "absolute",
+    "components": [
+        {
+            "id": "comp-1778136415446",
+            "type": "table",
+            "layout": {
+                "mode": "absolute",
+                "xMm": 10.5,
+                "yMm": 0.5,
+                "widthMm": 215,
+                "heightMm": 60
+            },
+            "style": {
+                "fontSize": 13
+            },
+            "props": {
+                "columns": [
+                    {
+                        "title": "商品名称",
+                        "dataIndex": "materialName",
+                        "width": 53
+                    },
+                    {
+                        "title": "单位",
+                        "dataIndex": "saleUnitName",
+                        "width": 12
+                    },
+                    {
+                        "title": "数量",
+                        "dataIndex": "saleCount",
+                        "width": 17
+                    },
+                    {
+                        "title": "基准价",
+                        "dataIndex": "scmQuotationMaterialBasePrice",
+                        "width": 18
+                    },
+                    {
+                        "title": "折扣率",
+                        "dataIndex": "scmQuotationMaterialDiscountRate",
+                        "width": 15
+                    },
+                    {
+                        "title": "结算单价",
+                        "dataIndex": "price"
+                    },
+                    {
+                        "title": "金额",
+                        "dataIndex": "amount",
+                        "summary": {
+                            "type": "sum"
+                        },
+                        "width": 25
+                    },
+                    {
+                        "title": "备注",
+                        "dataIndex": "remark",
+                        "width": 42
+                    }
+                ],
+                "bordered": true,
+                "showHeader": true,
+                "showSummary": true,
+                "summaryMode": "page",
+                "showRowNumber": true,
+                "borderColor": "#000000",
+                "rowNumberLabel": "",
+                "rowNumberWidth": 12,
+                "summaryExtraRows": [
+                    {
+                        "items": [
+                            {
+                                "label": "大写合计：",
+                                "sourceColumn": "amount",
+                                "pipes": [
+                                    {
+                                        "type": "money",
+                                        "options": {
+                                            "format": "chineseUppercase",
+                                            "mode": "none"
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            "binding": {
+                "path": "root.orderItemList"
+            }
+        }
+    ],
+    "headerComponents": [
+        {
+            "id": "comp-1778136201561",
+            "type": "text",
+            "layout": {
+                "mode": "absolute",
+                "xMm": 70,
+                "yMm": 0,
+                "widthMm": 105,
+                "heightMm": 10
+            },
+            "style": {
+                "fontSize": 23,
+                "color": "#262626"
+            },
+            "props": {
+                "text": "广东国裕食品有限公司送货单"
+            }
+        },
+        {
+            "id": "comp-1778308422171-ixumpoceo",
+            "type": "text",
+            "layout": {
+                "mode": "absolute",
+                "xMm": 15,
+                "yMm": 10,
+                "widthMm": 140,
+                "heightMm": 10
+            },
+            "style": {
+                "fontSize": 16,
+                "color": "#262626"
+            },
+            "props": {
+                "text": "客户：",
+                "label": "客户："
+            },
+            "binding": {
+                "path": "settleCustomerName"
+            }
+        },
+        {
+            "id": "comp-1778750162493",
+            "type": "text",
+            "layout": {
+                "mode": "absolute",
+                "xMm": 15,
+                "yMm": 20,
+                "widthMm": 45,
+                "heightMm": 10
+            },
+            "binding": {
+                "path": "mealName"
+            },
+            "style": {
+                "fontSize": 16,
+                "color": "#262626"
+            },
+            "props": {
+                "label": "餐别："
+            }
+        },
+        {
+            "id": "comp-1778750227507-7htx37sgl",
+            "type": "text",
+            "layout": {
+                "mode": "absolute",
+                "xMm": 80,
+                "yMm": 20,
+                "widthMm": 95,
+                "heightMm": 10
+            },
+            "binding": {
+                "path": "root.orderItemList.0.customNameSuffix"
+            },
+            "style": {
+                "fontSize": 16,
+                "color": "#262626"
+            },
+            "props": {
+                "label": "类别：",
+                "text": ""
+            }
+        },
+        {
+            "id": "comp-1778308845292-p9f7z9wd1",
+            "type": "text",
+            "layout": {
+                "mode": "absolute",
+                "xMm": 160,
+                "yMm": 10,
+                "widthMm": 80,
+                "heightMm": 10
+            },
+            "style": {
+                "fontSize": 16,
+                "color": "#262626"
+            },
+            "props": {
+                "text": "单据编号：",
+                "label": "单据编号："
+            },
+            "binding": {
+                "path": "code"
+            }
+        },
+        {
+            "id": "comp-1778750232900-mrx9vnorj",
+            "type": "text",
+            "layout": {
+                "mode": "absolute",
+                "xMm": 160,
+                "yMm": 20,
+                "widthMm": 80,
+                "heightMm": 10
+            },
+            "binding": {
+                "path": "reconcileDate"
+            },
+            "style": {
+                "fontSize": 16,
+                "color": "#262626"
+            },
+            "props": {
+                "label": "送货日期："
+            }
+        }
+    ],
+    "footerComponents": [
+        {
+            "id": "comp-1778137152816-uv0cr7avo",
+            "type": "text",
+            "layout": {
+                "mode": "absolute",
+                "xMm": 20,
+                "yMm": 0,
+                "widthMm": 200,
+                "heightMm": 10
+            },
+            "style": {
+                "fontSize": 16,
+                "color": "#262626"
+            },
+            "props": {
+                "text": "第一联（白）：存根  第二联（红）：客户  第三联（蓝）：记账 第四联（绿）：对账 第五联（黄）：仓库"
+            }
+        },
+        {
+            "id": "comp-1778295350561-08y6ssdtj",
+            "type": "text",
+            "layout": {
+                "mode": "absolute",
+                "xMm": 15,
+                "yMm": 10,
+                "widthMm": 60,
+                "heightMm": 10
+            },
+            "style": {
+                "fontSize": 16,
+                "color": "#262626"
+            },
+            "props": {
+                "text": "",
+                "label": "送货单位及经手人："
+            },
+            "binding": {
+                "path": ""
+            }
+        },
+        {
+            "id": "comp-1778309040277-pi9yqwvev",
+            "type": "text",
+            "layout": {
+                "mode": "absolute",
+                "xMm": 105,
+                "yMm": 10,
+                "widthMm": 60,
+                "heightMm": 10
+            },
+            "style": {
+                "fontSize": 16,
+                "color": "#262626"
+            },
+            "props": {
+                "text": "",
+                "label": "收货单位及经手人："
+            }
+        }
+    ]
+}
 ];
