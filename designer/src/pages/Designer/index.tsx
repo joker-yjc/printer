@@ -1,5 +1,5 @@
 import { Layout, Button, Tooltip, Space, message, Tabs } from 'antd';
-import { ArrowLeftOutlined, CodeOutlined, MenuFoldOutlined, MenuUnfoldOutlined, SettingOutlined, AppstoreOutlined, ZoomInOutlined, ZoomOutOutlined, FullscreenOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CodeOutlined, MenuFoldOutlined, MenuUnfoldOutlined, SettingOutlined, AppstoreOutlined, ZoomInOutlined, ZoomOutOutlined, FullscreenOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import AssetPanel from './components/AssetPanel';
@@ -249,6 +249,17 @@ const Designer = () => {
               type="default"
               icon={<CodeOutlined />}
               onClick={() => setDebugOpen(true)}
+              size="large"
+              style={{
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              }}
+            />
+          </Tooltip>
+          <Tooltip title="用户手册" placement="left">
+            <Button
+              type="default"
+              icon={<QuestionCircleOutlined />}
+              onClick={() => navigate('/help#designer-basics')}
               size="large"
               style={{
                 boxShadow: '0 2px 8px rgba(0,0,0,0.15)',

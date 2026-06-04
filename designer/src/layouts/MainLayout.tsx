@@ -4,6 +4,7 @@ import {
   DatabaseOutlined,
   FileTextOutlined,
   TableOutlined,
+  BookOutlined,
 } from '@ant-design/icons';
 import styles from './MainLayout.module.css';
 
@@ -28,6 +29,11 @@ const MainLayout = () => {
       key: '/mock-data',
       icon: <TableOutlined />,
       label: 'Mock 数据',
+    },
+    {
+      key: '/help',
+      icon: <BookOutlined />,
+      label: '用户手册',
     },
   ];
 

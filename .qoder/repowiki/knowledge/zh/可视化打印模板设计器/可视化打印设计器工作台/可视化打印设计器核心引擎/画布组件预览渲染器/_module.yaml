@@ -7,8 +7,5 @@ source_files: []
 depends_on: []
 related_to:
     - path: sdk/print_engine
-    - path: designer/ui_library
-    - path: designer/designer_workspace/canvas_engine/canvas_ui
-    - path: designer/designer_workspace/canvas_engine/alignment_system
-    - path: designer/designer_workspace/design_panels/asset_panel
     - path: designer/designer_workspace/design_panels/property_panel
+    - path: designer/ui_library

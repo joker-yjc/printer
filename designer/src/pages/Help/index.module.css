@@ -1,0 +1,19 @@
+.help-page {
+  display: flex;
+  height: 100%;
+  background: #fff;
+}
+
+.content-area {
+  flex: 1;
+  overflow: auto;
+  padding: 32px 48px;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  color: #8c8c8c;
+}

@@ -7,5 +7,3 @@ source_files: []
 depends_on: []
 related_to:
     - path: designer/ui_library
-    - path: sdk/core
-    - path: sdk/print_engine

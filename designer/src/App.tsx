@@ -5,6 +5,7 @@ import MainLayout from './layouts/MainLayout';
 import SchemaManagement from './pages/SchemaManagement';
 import MockDataManagement from './pages/MockDataManagement';
 import TemplateManagement from './pages/TemplateManagement';
+import Help from './pages/Help';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/templates" element={<TemplateManagement />} />
           <Route path="/schemas" element={<SchemaManagement />} />
           <Route path="/mock-data" element={<MockDataManagement />} />
+          <Route path="/help" element={<Help />} />
         </Route>
 
         {/* 默认跳转到模板管理 */}
