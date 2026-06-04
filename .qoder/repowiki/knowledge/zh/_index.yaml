@@ -2,11 +2,11 @@
 schema_version: 1
 locale: zh-CN
 branch: master
-exported_at: "2026-06-04T05:24:51Z"
+exported_at: "2026-06-04T06:55:02Z"
 modules:
     "":
-        dir_name: 打印解决方案平台
-        title: 打印解决方案平台
+        dir_name: 浏览器端打印服务平台
+        title: 浏览器端打印服务平台
         scope:
             - .gitignore
             - README.md
@@ -24,10 +24,10 @@ modules:
             - designer/
         source_files: []
         children:
-            - designer/designer_infra
-            - designer/management_pages
-            - designer/help_docs
             - designer/designer_canvas
+            - designer/help_docs
+            - designer/management_pages
+            - designer/designer_infra
         depends_on: []
         related_to: []
     designer/designer_canvas:
@@ -59,7 +59,6 @@ modules:
         depends_on: []
         related_to:
             - path: sdk/pipes
-            - path: designer/management_pages
     designer/help_docs:
         dir_name: 帮助文档与用户手册
         title: 帮助文档与用户手册
@@ -81,22 +80,22 @@ modules:
         children: []
         depends_on: []
         related_to:
-            - path: designer/designer_infra
+            - path: sdk/core
     sdk:
-        dir_name: 浏览器端打印SDK
-        title: 浏览器端打印SDK
+        dir_name: 浏览器端打印SDK核心
+        title: 浏览器端打印SDK核心
         scope:
             - sdk/
         source_files: []
         children:
-            - sdk/pipes
-            - sdk/print_engine
             - sdk/core
+            - sdk/print_engine
+            - sdk/pipes
         depends_on: []
         related_to: []
     sdk/core:
-        dir_name: 打印SDK核心引擎
-        title: 打印SDK核心引擎
+        dir_name: 浏览器端打印SDK核心
+        title: 浏览器端打印SDK核心
         scope:
             - sdk/src/
         source_files: []
@@ -104,6 +103,7 @@ modules:
         depends_on: []
         related_to:
             - path: designer/designer_canvas
+            - path: designer/management_pages
     sdk/pipes:
         dir_name: 数据转换管道系统
         title: 数据转换管道系统
@@ -115,8 +115,8 @@ modules:
         related_to:
             - path: designer/designer_infra
     sdk/print_engine:
-        dir_name: HTML 打印渲染引擎
-        title: HTML 打印渲染引擎
+        dir_name: 打印引擎渲染核心
+        title: 打印引擎渲染核心
         scope:
             - sdk/src/printEngine/
         source_files: []

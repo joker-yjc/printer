@@ -13,4 +13,3 @@ source_files: []
 depends_on: []
 related_to:
     - path: sdk/pipes
-    - path: designer/management_pages

@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: sdk
-title: 浏览器端打印SDK
+title: 浏览器端打印SDK核心
 scope:
     - sdk/
 source_files: []

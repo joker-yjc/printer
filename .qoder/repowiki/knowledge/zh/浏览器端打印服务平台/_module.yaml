@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: ""
-title: 打印解决方案平台
+title: 浏览器端打印服务平台
 scope:
     - .gitignore
     - README.md

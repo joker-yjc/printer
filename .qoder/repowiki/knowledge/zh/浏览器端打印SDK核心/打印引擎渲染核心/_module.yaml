@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: sdk/print_engine
-title: HTML 打印渲染引擎
+title: 打印引擎渲染核心
 scope:
     - sdk/src/printEngine/
 source_files: []
