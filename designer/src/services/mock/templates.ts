@@ -1425,7 +1425,7 @@ export const defaultTemplates: PrintTemplate[] = [
                 "color": "#262626"
             },
             "props": {
-                "text": "广东国裕食品有限公司送货单"
+                "text": "xxxxx送货单"
             }
         },
         {
