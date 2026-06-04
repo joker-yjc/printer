@@ -1,0 +1,22 @@
+schema_version: 1
+module_path: designer/designer_workspace/canvas_engine/canvas_ui
+title: 画布交互与渲染引擎
+scope:
+    - designer/src/pages/Designer/components/Canvas/CanvasToolbar.tsx
+    - designer/src/pages/Designer/components/Canvas/ComponentPreview.tsx
+    - designer/src/pages/Designer/components/Canvas/PageSettingModal.tsx
+    - designer/src/pages/Designer/components/Canvas/ResizeHandles.module.css
+    - designer/src/pages/Designer/components/Canvas/ResizeHandles.tsx
+    - designer/src/pages/Designer/components/Canvas/SaveTemplateModal.tsx
+    - designer/src/pages/Designer/components/Canvas/ShortcutHint.tsx
+    - designer/src/pages/Designer/components/Canvas/index.module.css
+    - designer/src/pages/Designer/components/Canvas/index.tsx
+source_files: []
+depends_on: []
+related_to:
+    - path: designer/designer_workspace/canvas_engine/alignment_system
+    - path: designer/designer_workspace/canvas_engine/component_renderers
+    - path: designer/designer_workspace/design_panels/asset_panel
+    - path: designer/designer_workspace/design_panels/property_panel
+    - path: designer/designer_workspace/designer_layout
+    - path: sdk/core

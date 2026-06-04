@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: sdk/print_engine
+title: HTML 打印渲染引擎
+scope:
+    - sdk/src/printEngine/
+source_files: []
+depends_on: []
+related_to:
+    - path: designer/designer_workspace/canvas_engine/component_renderers
+    - path: sdk/core
+    - path: sdk/pipes
+    - path: designer/ui_library

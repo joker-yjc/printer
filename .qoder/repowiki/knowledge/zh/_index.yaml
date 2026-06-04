@@ -1,0 +1,262 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: zh-CN
+branch: master
+exported_at: "2026-06-03T17:05:54Z"
+modules:
+    "":
+        dir_name: 打印服务平台
+        title: 打印服务平台
+        scope:
+            - README.md
+            - .gitignore
+            - package.json
+            - package-lock.json
+            - pnpm-lock.yaml
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    designer:
+        dir_name: 可视化打印模板设计器
+        title: 可视化打印模板设计器
+        scope:
+            - designer/
+        source_files: []
+        children:
+            - designer/designer_workspace
+            - designer/management_area
+            - designer/ui_library
+        depends_on: []
+        related_to:
+            - path: sdk
+            - path: sdk/core
+    designer/designer_workspace:
+        dir_name: 可视化打印设计器工作台
+        title: 可视化打印设计器工作台
+        scope:
+            - designer/src/pages/Designer/
+        source_files: []
+        children:
+            - designer/designer_workspace/canvas_engine
+            - designer/designer_workspace/design_panels
+            - designer/designer_workspace/designer_layout
+        depends_on: []
+        related_to:
+            - path: designer/management_area
+            - path: designer/ui_library
+            - path: sdk/core
+    designer/designer_workspace/canvas_engine:
+        dir_name: 可视化打印设计器核心引擎
+        title: 可视化打印设计器核心引擎
+        scope:
+            - designer/src/pages/Designer/components/Canvas/
+        source_files: []
+        children:
+            - designer/designer_workspace/canvas_engine/alignment_system
+            - designer/designer_workspace/canvas_engine/canvas_ui
+            - designer/designer_workspace/canvas_engine/component_renderers
+        depends_on: []
+        related_to:
+            - path: designer/designer_workspace/design_panels/asset_panel
+            - path: designer/designer_workspace/design_panels/property_panel
+            - path: designer/designer_workspace/designer_layout
+            - path: designer/designer_workspace/design_panels
+    designer/designer_workspace/canvas_engine/alignment_system:
+        dir_name: 画布智能对齐与吸附系统
+        title: 画布智能对齐与吸附系统
+        scope:
+            - designer/src/pages/Designer/components/Canvas/AlignmentGuides.module.css
+            - designer/src/pages/Designer/components/Canvas/AlignmentGuides.tsx
+            - designer/src/pages/Designer/components/Canvas/alignmentDetector.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: designer/designer_workspace/canvas_engine/canvas_ui
+            - path: designer/designer_workspace/canvas_engine/component_renderers
+            - path: designer/designer_workspace/design_panels/asset_panel
+            - path: designer/designer_workspace/design_panels/property_panel
+    designer/designer_workspace/canvas_engine/canvas_ui:
+        dir_name: 画布交互与渲染引擎
+        title: 画布交互与渲染引擎
+        scope:
+            - designer/src/pages/Designer/components/Canvas/CanvasToolbar.tsx
+            - designer/src/pages/Designer/components/Canvas/ComponentPreview.tsx
+            - designer/src/pages/Designer/components/Canvas/PageSettingModal.tsx
+            - designer/src/pages/Designer/components/Canvas/ResizeHandles.module.css
+            - designer/src/pages/Designer/components/Canvas/ResizeHandles.tsx
+            - designer/src/pages/Designer/components/Canvas/SaveTemplateModal.tsx
+            - designer/src/pages/Designer/components/Canvas/ShortcutHint.tsx
+            - designer/src/pages/Designer/components/Canvas/index.module.css
+            - designer/src/pages/Designer/components/Canvas/index.tsx
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: designer/designer_workspace/canvas_engine/alignment_system
+            - path: designer/designer_workspace/canvas_engine/component_renderers
+            - path: designer/designer_workspace/design_panels/asset_panel
+            - path: designer/designer_workspace/design_panels/property_panel
+            - path: designer/designer_workspace/designer_layout
+            - path: sdk/core
+    designer/designer_workspace/canvas_engine/component_renderers:
+        dir_name: 画布组件预览渲染器
+        title: 画布组件预览渲染器
+        scope:
+            - designer/src/pages/Designer/components/Canvas/componentRenderers/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: sdk/print_engine
+            - path: designer/ui_library
+            - path: designer/designer_workspace/canvas_engine/canvas_ui
+            - path: designer/designer_workspace/canvas_engine/alignment_system
+            - path: designer/designer_workspace/design_panels/asset_panel
+            - path: designer/designer_workspace/design_panels/property_panel
+    designer/designer_workspace/design_panels:
+        dir_name: 设计器面板编排层
+        title: 设计器面板编排层
+        scope:
+            - designer/src/pages/Designer/components/AssetPanel/
+            - designer/src/pages/Designer/components/PropertyPanel/
+            - designer/src/pages/Designer/components/ComponentTreePanel/
+        source_files: []
+        children:
+            - designer/designer_workspace/design_panels/property_panel
+            - designer/designer_workspace/design_panels/asset_panel
+        depends_on: []
+        related_to:
+            - path: designer/designer_workspace/designer_layout
+            - path: designer/designer_workspace/canvas_engine
+    designer/designer_workspace/design_panels/asset_panel:
+        dir_name: 设计器资产面板
+        title: 设计器资产面板
+        scope:
+            - designer/src/pages/Designer/components/AssetPanel/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: designer/designer_workspace/canvas_engine
+            - path: designer/designer_workspace/design_panels/property_panel
+            - path: designer/designer_workspace/canvas_engine/component_renderers
+            - path: designer/designer_workspace/canvas_engine/canvas_ui
+            - path: designer/designer_workspace/designer_layout
+            - path: designer/designer_workspace/canvas_engine/alignment_system
+            - path: designer/management_area
+    designer/designer_workspace/design_panels/property_panel:
+        dir_name: 属性面板与样式插件系统
+        title: 属性面板与样式插件系统
+        scope:
+            - designer/src/pages/Designer/components/PropertyPanel/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: designer/designer_workspace/canvas_engine
+            - path: designer/designer_workspace/design_panels/asset_panel
+            - path: designer/designer_workspace/canvas_engine/component_renderers
+            - path: designer/designer_workspace/canvas_engine/canvas_ui
+            - path: designer/designer_workspace/designer_layout
+            - path: designer/designer_workspace/canvas_engine/alignment_system
+            - path: designer/management_area
+    designer/designer_workspace/designer_layout:
+        dir_name: 可视化模板设计器
+        title: 可视化模板设计器
+        scope:
+            - designer/src/pages/Designer/index.tsx
+            - designer/src/pages/Designer/index.module.css
+            - designer/src/pages/Designer/components/DebugPanel/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: designer/designer_workspace/design_panels
+            - path: designer/designer_workspace/canvas_engine
+            - path: designer/designer_workspace/canvas_engine/canvas_ui
+            - path: designer/designer_workspace/design_panels/asset_panel
+            - path: designer/designer_workspace/design_panels/property_panel
+    designer/management_area:
+        dir_name: 打印设计器元数据管理
+        title: 打印设计器元数据管理
+        scope:
+            - designer/src/pages/MockDataManagement/
+            - designer/src/pages/SchemaManagement/
+            - designer/src/pages/TemplateManagement/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: designer/designer_workspace
+            - path: designer/ui_library
+            - path: designer/designer_workspace/design_panels/asset_panel
+            - path: designer/designer_workspace/design_panels/property_panel
+    designer/ui_library:
+        dir_name: 打印预览与数据格式化组件库
+        title: 打印预览与数据格式化组件库
+        scope:
+            - designer/src/components/
+            - designer/src/pipes/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: sdk/pipes
+            - path: designer/designer_workspace/canvas_engine/component_renderers
+            - path: designer/management_area
+            - path: designer/designer_workspace
+            - path: sdk/print_engine
+    sdk:
+        dir_name: 浏览器端打印SDK
+        title: 浏览器端打印SDK
+        scope:
+            - sdk/
+        source_files: []
+        children:
+            - sdk/pipes
+            - sdk/print_engine
+            - sdk/core
+        depends_on: []
+        related_to:
+            - path: designer
+    sdk/core:
+        dir_name: 打印SDK核心引擎
+        title: 打印SDK核心引擎
+        scope:
+            - sdk/src/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: sdk/print_engine
+            - path: sdk/pipes
+            - path: designer/designer_workspace
+            - path: designer
+            - path: designer/designer_workspace/canvas_engine/canvas_ui
+    sdk/pipes:
+        dir_name: 数据转换管道系统
+        title: 数据转换管道系统
+        scope:
+            - sdk/src/pipes/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: designer/ui_library
+            - path: sdk/core
+            - path: sdk/print_engine
+    sdk/print_engine:
+        dir_name: HTML 打印渲染引擎
+        title: HTML 打印渲染引擎
+        scope:
+            - sdk/src/printEngine/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: designer/designer_workspace/canvas_engine/component_renderers
+            - path: sdk/core
+            - path: sdk/pipes
+            - path: designer/ui_library

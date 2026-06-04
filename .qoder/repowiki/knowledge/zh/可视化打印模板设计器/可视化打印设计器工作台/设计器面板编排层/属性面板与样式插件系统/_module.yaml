@@ -1,0 +1,15 @@
+schema_version: 1
+module_path: designer/designer_workspace/design_panels/property_panel
+title: 属性面板与样式插件系统
+scope:
+    - designer/src/pages/Designer/components/PropertyPanel/
+source_files: []
+depends_on: []
+related_to:
+    - path: designer/designer_workspace/canvas_engine
+    - path: designer/designer_workspace/design_panels/asset_panel
+    - path: designer/designer_workspace/canvas_engine/component_renderers
+    - path: designer/designer_workspace/canvas_engine/canvas_ui
+    - path: designer/designer_workspace/designer_layout
+    - path: designer/designer_workspace/canvas_engine/alignment_system
+    - path: designer/management_area

@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: designer/designer_workspace
+title: 可视化打印设计器工作台
+scope:
+    - designer/src/pages/Designer/
+source_files: []
+depends_on: []
+related_to:
+    - path: designer/management_area
+    - path: designer/ui_library
+    - path: sdk/core

@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: sdk/core
+title: 打印SDK核心引擎
+scope:
+    - sdk/src/
+source_files: []
+depends_on: []
+related_to:
+    - path: sdk/print_engine
+    - path: sdk/pipes
+    - path: designer/designer_workspace
+    - path: designer
+    - path: designer/designer_workspace/canvas_engine/canvas_ui

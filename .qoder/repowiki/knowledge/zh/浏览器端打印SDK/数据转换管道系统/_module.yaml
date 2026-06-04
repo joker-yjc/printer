@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: sdk/pipes
+title: 数据转换管道系统
+scope:
+    - sdk/src/pipes/
+source_files: []
+depends_on: []
+related_to:
+    - path: designer/ui_library
+    - path: sdk/core
+    - path: sdk/print_engine

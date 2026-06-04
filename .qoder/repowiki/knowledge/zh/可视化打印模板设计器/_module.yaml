@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: designer
+title: 可视化打印模板设计器
+scope:
+    - designer/
+source_files: []
+depends_on: []
+related_to:
+    - path: sdk
+    - path: sdk/core
