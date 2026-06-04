@@ -5,6 +5,7 @@
 import { InputNumber, Select, Typography, Tooltip } from 'antd';
 import styles from '../index.module.css';
 import type { StylePlugin } from './types';
+import { FONT_SIZE_MIN } from '../../../../../constants';
 
 const { Text } = Typography;
 
@@ -22,6 +23,7 @@ export const TableStylePlugin: StylePlugin = {
             style={{ width: '100%' }}
             value={component.style?.fontSize || 12}
             onChange={(val) => onStyleChange('fontSize', val || 12)}
+            min={FONT_SIZE_MIN}
             precision={0}
             step={1}
           />

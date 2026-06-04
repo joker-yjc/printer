@@ -78,11 +78,25 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
   const rowNumberLabel = component.props?.rowNumberLabel || '序号';
   const tableTextAlign = component.style?.textAlign || 'left';
 
+  const tableHeaderStyle = component.props?.headerStyle || {};
+  const headerDefaultBg = tableHeaderStyle.backgroundColor ?? '#fafafa';
+  const headerDefaultFw = tableHeaderStyle.fontWeight ?? 600;
+  const headerDefaultAlign = tableHeaderStyle.textAlign;
+  const headerDefaultFontSize = tableHeaderStyle.fontSize;
+  const headerDefaultColor = tableHeaderStyle.color;
+
   // 从 pageConfig 计算表格可用宽度，与 SDK 动态计算保持一致
   const pageConfig = useDesignerStore(s => s.pageConfig);
   const tableWidthMm = getTableContentWidth(pageConfig, component.layout);
   const displayCols = showRowNumber
-    ? [{ dataIndex: '__row_number__', title: rowNumberLabel, width: component.props?.rowNumberWidth }, ...visibleColumns]
+    ? [{
+        dataIndex: '__row_number__',
+        title: rowNumberLabel,
+        width: component.props?.rowNumberWidth,
+        align: 'center',
+        style: component.props?.rowNumberStyle,
+        headerStyle: component.props?.rowNumberHeaderStyle,
+      } as any, ...visibleColumns]
     : visibleColumns;
   const colWidths = computeColWidths(displayCols, tableWidthMm);
 
@@ -126,15 +140,23 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
           <thead>
             <tr>
               {displayCols.map((col: any, idx: number) => {
-                const isRowNum = col.dataIndex === '__row_number__';
                 const colMm = Math.round(parseFloat(colWidths[idx]) / 100 * tableWidthMm * 10) / 10;
                 const maxW = Math.round(computeColumnMaxWidth(displayCols, idx, tableWidthMm) * 10) / 10;
+                const colHeaderStyle = col.headerStyle || {};
+                // 对齐优先级：列级 headerStyle.textAlign > col.align > 表格级 headerStyle.textAlign > 表格级 textAlign
+                const hAlign = colHeaderStyle.textAlign
+                  || col.align
+                  || headerDefaultAlign
+                  || tableTextAlign;
                 return (
                   <th key={idx} style={{
                     width: colWidths[idx],
                     border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
-                    padding: '8px', background: '#fafafa', fontWeight: 600,
-                    textAlign: isRowNum ? 'center' : (tableTextAlign as any),
+                    padding: '8px', background: colHeaderStyle.backgroundColor ?? headerDefaultBg,
+                    fontWeight: colHeaderStyle.fontWeight ?? headerDefaultFw,
+                    fontSize: colHeaderStyle.fontSize ?? headerDefaultFontSize,
+                    color: colHeaderStyle.color ?? headerDefaultColor,
+                    textAlign: hAlign as any,
                     position: 'relative',
                   }}>
                     {col.title || col.dataIndex}

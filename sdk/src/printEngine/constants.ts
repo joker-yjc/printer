@@ -85,10 +85,20 @@ export const TABLE_STYLE_DEFAULT = {
   FONT_SIZE: 12,
   /** 表格边框颜色 */
   BORDER_COLOR: '#d9d9d9',
-  /** 表头背景色 */
+  /** @deprecated 请使用 TABLE_HEADER_STYLE_DEFAULT.BACKGROUND */
   HEADER_BACKGROUND: '#fafafa',
   /** 单元格内边距 */
   CELL_PADDING: '4px 8px',
+} as const;
+
+/**
+ * 表头默认样式（可被 tableProps.headerStyle 和列级 headerStyle 覆盖）
+ */
+export const TABLE_HEADER_STYLE_DEFAULT = {
+  /** 表头背景色 */
+  BACKGROUND: '#fafafa',
+  /** 表头字重 */
+  FONT_WEIGHT: 600,
 } as const;
 
 /**

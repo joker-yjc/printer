@@ -105,9 +105,48 @@ export interface TableColumn {
   dataIndex: string;       // 字段名
   title: string;           // 列标题
   width?: number;          // 列宽度
+  /** 对齐方式（保留兼容，优先级低于 style.textAlign） */
   align?: 'left' | 'center' | 'right';  // 对齐方式
   hidden?: boolean;        // 是否隐藏
   summary?: TableColumnSummary;  // 合计配置
+  /** 数据单元格样式（覆盖默认值） */
+  style?: TableColumnStyle;
+  /** 表头单元格样式（优先级高于 tableHeaderStyle） */
+  headerStyle?: TableColumnStyle;
+}
+
+/**
+ * 列级单元格样式配置
+ * 用于覆盖表头或数据单元格的默认样式，所有字段可选
+ */
+export interface TableColumnStyle {
+  /** 字体大小（px） */
+  fontSize?: number;
+  /** 字重，如 'normal'、'bold'、600 */
+  fontWeight?: string | number;
+  /** 文字颜色 */
+  color?: string;
+  /** 背景颜色（类型保留，设计器暂不开放 UI） */
+  backgroundColor?: string;
+  /** 对齐方式 */
+  textAlign?: 'left' | 'center' | 'right';
+}
+
+/**
+ * 表格表头默认样式（表格级配置）
+ * 会被列级 headerStyle 覆盖
+ */
+export interface TableHeaderStyle {
+  /** 表头背景色，默认 '#fafafa' */
+  backgroundColor?: string;
+  /** 表头字重，默认 600 */
+  fontWeight?: string | number;
+  /** 表头字体大小（px） */
+  fontSize?: number;
+  /** 表头文字颜色 */
+  color?: string;
+  /** 表头对齐方式 */
+  textAlign?: 'left' | 'center' | 'right';
 }
 
 // 表格合计行样式
@@ -150,6 +189,12 @@ export interface TableProps {
   rowNumberLabel?: string;
   /** 行号列宽度（mm），不设置时自动分配 */
   rowNumberWidth?: number;
+  /** 表头默认样式（表格级），会被列级 headerStyle 覆盖 */
+  headerStyle?: TableHeaderStyle;
+  /** 序号列数据单元格样式 */
+  rowNumberStyle?: TableColumnStyle;
+  /** 序号列表头单元格样式 */
+  rowNumberHeaderStyle?: TableColumnStyle;
   _pageData?: any[];                // 分页数据（内部使用）
   _showHeader?: boolean;            // 是否显示表头（内部使用）
   _isLastPage?: boolean;            // 是否为最后一页（内部使用）

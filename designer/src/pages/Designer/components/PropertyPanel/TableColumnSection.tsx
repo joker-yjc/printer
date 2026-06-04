@@ -11,6 +11,7 @@ import { getAllPipes, computeColumnMaxWidth } from '@jcyao/print-sdk';
 import { getConfigurator } from '../../../../pipes/configurators';
 import { useDesignerStore } from '../../../../store/designer';
 import { getTableContentWidth } from '../../../../utils/pageSize';
+import { FONT_SIZE_MIN } from '../../../../constants';
 
 const { Text } = Typography;
 
@@ -84,6 +85,65 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
     const columns = [...(component.props?.columns || [])];
     columns.splice(index, 1);
     onPropsChange('columns', columns);
+  };
+
+  /** 更新列的 style 属性 */
+  const handleColumnStyleChange = (index: number, field: string, value: any) => {
+    const columns = [...(component.props?.columns || [])];
+    const shouldRemove = value === undefined || value === null || value === '';
+    columns[index] = {
+      ...columns[index],
+      style: shouldRemove
+        ? (() => { const { [field]: _, ...rest } = (columns[index].style || {}); return Object.keys(rest).length > 0 ? rest : undefined; })()
+        : { ...columns[index].style, [field]: value },
+    };
+    onPropsChange('columns', columns);
+  };
+
+  /** 更新列的 headerStyle 属性 */
+  const handleColumnHeaderStyleChange = (index: number, field: string, value: any) => {
+    const columns = [...(component.props?.columns || [])];
+    const shouldRemove = value === undefined || value === null || value === '';
+    columns[index] = {
+      ...columns[index],
+      headerStyle: shouldRemove
+        ? (() => { const { [field]: _, ...rest } = (columns[index].headerStyle || {}); return Object.keys(rest).length > 0 ? rest : undefined; })()
+        : { ...columns[index].headerStyle, [field]: value },
+    };
+    onPropsChange('columns', columns);
+  };
+
+  /** 更新 TableProps 中的样式对象 */
+  const handleTableStyleChange = (propKey: string, field: string, value: any) => {
+    const currentStyle = component.props?.[propKey] || {};
+    const shouldRemove = value === undefined || value === null || value === '';
+    const newStyle = shouldRemove
+      ? (() => { const { [field]: _, ...rest } = currentStyle; return Object.keys(rest).length > 0 ? rest : undefined; })()
+      : { ...currentStyle, [field]: value };
+    onPropsChange(propKey, newStyle);
+  };
+
+  /** 清除列 style 中的某个字段（恢复继承） */
+  const clearColumnStyleField = (index: number, field: string) => {
+    const columns = [...(component.props?.columns || [])];
+    const { [field]: _, ...rest } = (columns[index].style || {});
+    columns[index] = { ...columns[index], style: Object.keys(rest).length > 0 ? rest : undefined };
+    onPropsChange('columns', columns);
+  };
+
+  /** 清除列 headerStyle 中的某个字段（恢复继承） */
+  const clearColumnHeaderStyleField = (index: number, field: string) => {
+    const columns = [...(component.props?.columns || [])];
+    const { [field]: _, ...rest } = (columns[index].headerStyle || {});
+    columns[index] = { ...columns[index], headerStyle: Object.keys(rest).length > 0 ? rest : undefined };
+    onPropsChange('columns', columns);
+  };
+
+  /** 清除 TableProps 样式对象中的某个字段（恢复继承） */
+  const clearTableStyleField = (propKey: string, field: string) => {
+    const currentStyle = component.props?.[propKey] || {};
+    const { [field]: _, ...rest } = currentStyle;
+    onPropsChange(propKey, Object.keys(rest).length > 0 ? rest : undefined);
   };
 
   // ========== 合计额外行操作 ==========
@@ -443,6 +503,146 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                   onChange={(v) => onPropsChange('rowNumberWidth', v ?? undefined)}
                 />
               </div>
+              <div className={styles["property-item-full"]}>
+                <Text strong className={styles["property-label"]}>
+                  序号列表头样式
+                </Text>
+              </div>
+              <div className={styles["property-item"]}>
+                <Text className={styles["property-label"]}>表头字重</Text>
+                <Select
+                  size="small"
+                  style={{ width: '100%' }}
+                  allowClear
+                  placeholder="继承"
+                  value={component.props?.rowNumberHeaderStyle?.fontWeight}
+                  onChange={(v) => handleTableStyleChange('rowNumberHeaderStyle', 'fontWeight', v)}
+                  options={[
+                    { label: '正常', value: 'normal' },
+                    { label: '粗体', value: 'bold' },
+                  ]}
+                />
+              </div>
+              <div className={styles["property-item"]}>
+                <Text className={styles["property-label"]}>表头字号</Text>
+                <InputNumber
+                  size="small"
+                  style={{ width: '100%' }}
+                  min={FONT_SIZE_MIN}
+                  precision={0}
+                  step={1}
+                  placeholder="继承"
+                  value={component.props?.rowNumberHeaderStyle?.fontSize}
+                  onChange={(v) => handleTableStyleChange('rowNumberHeaderStyle', 'fontSize', v)}
+                />
+              </div>
+              <div className={styles["property-item"]}>
+                <Text className={styles["property-label"]}>表头颜色</Text>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <input
+                    type="color"
+                    value={component.props?.rowNumberHeaderStyle?.color || '#000000'}
+                    disabled={!component.props?.rowNumberHeaderStyle?.color}
+                    onChange={(e) => handleTableStyleChange('rowNumberHeaderStyle', 'color', e.target.value)}
+                    style={{ width: 32, height: 32, border: '1px solid #d9d9d9', borderRadius: 4, padding: 2, cursor: 'pointer' }}
+                  />
+                  <Checkbox
+                    checked={!!component.props?.rowNumberHeaderStyle?.color}
+                    onChange={(e) => e.target.checked
+                      ? handleTableStyleChange('rowNumberHeaderStyle', 'color', '#000000')
+                      : clearTableStyleField('rowNumberHeaderStyle', 'color')
+                    }
+                  >
+                    <Text style={{ fontSize: 11 }}>自定义</Text>
+                  </Checkbox>
+                </div>
+              </div>
+              <div className={styles["property-item"]}>
+                <Text className={styles["property-label"]}>表头对齐</Text>
+                <Select
+                  size="small"
+                  style={{ width: '100%' }}
+                  allowClear
+                  placeholder="默认：居中"
+                  value={component.props?.rowNumberHeaderStyle?.textAlign}
+                  onChange={(v) => handleTableStyleChange('rowNumberHeaderStyle', 'textAlign', v)}
+                  options={[
+                    { label: '左对齐', value: 'left' },
+                    { label: '居中', value: 'center' },
+                    { label: '右对齐', value: 'right' },
+                  ]}
+                />
+              </div>
+              <div className={styles["property-item-full"]}>
+                <Text strong className={styles["property-label"]}>
+                  序号列数据样式
+                </Text>
+              </div>
+              <div className={styles["property-item"]}>
+                <Text className={styles["property-label"]}>数据字重</Text>
+                <Select
+                  size="small"
+                  style={{ width: '100%' }}
+                  allowClear
+                  placeholder="继承"
+                  value={component.props?.rowNumberStyle?.fontWeight}
+                  onChange={(v) => handleTableStyleChange('rowNumberStyle', 'fontWeight', v)}
+                  options={[
+                    { label: '正常', value: 'normal' },
+                    { label: '粗体', value: 'bold' },
+                  ]}
+                />
+              </div>
+              <div className={styles["property-item"]}>
+                <Text className={styles["property-label"]}>数据字号</Text>
+                <InputNumber
+                  size="small"
+                  style={{ width: '100%' }}
+                  min={FONT_SIZE_MIN}
+                  precision={0}
+                  step={1}
+                  placeholder="继承"
+                  value={component.props?.rowNumberStyle?.fontSize}
+                  onChange={(v) => handleTableStyleChange('rowNumberStyle', 'fontSize', v)}
+                />
+              </div>
+              <div className={styles["property-item"]}>
+                <Text className={styles["property-label"]}>数据颜色</Text>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <input
+                    type="color"
+                    value={component.props?.rowNumberStyle?.color || '#000000'}
+                    disabled={!component.props?.rowNumberStyle?.color}
+                    onChange={(e) => handleTableStyleChange('rowNumberStyle', 'color', e.target.value)}
+                    style={{ width: 32, height: 32, border: '1px solid #d9d9d9', borderRadius: 4, padding: 2, cursor: 'pointer' }}
+                  />
+                  <Checkbox
+                    checked={!!component.props?.rowNumberStyle?.color}
+                    onChange={(e) => e.target.checked
+                      ? handleTableStyleChange('rowNumberStyle', 'color', '#000000')
+                      : clearTableStyleField('rowNumberStyle', 'color')
+                    }
+                  >
+                    <Text style={{ fontSize: 11 }}>自定义</Text>
+                  </Checkbox>
+                </div>
+              </div>
+              <div className={styles["property-item"]}>
+                <Text className={styles["property-label"]}>数据对齐</Text>
+                <Select
+                  size="small"
+                  style={{ width: '100%' }}
+                  allowClear
+                  placeholder="默认：居中"
+                  value={component.props?.rowNumberStyle?.textAlign}
+                  onChange={(v) => handleTableStyleChange('rowNumberStyle', 'textAlign', v)}
+                  options={[
+                    { label: '左对齐', value: 'left' },
+                    { label: '居中', value: 'center' },
+                    { label: '右对齐', value: 'right' },
+                  ]}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -548,6 +748,163 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                       />
                     </Tooltip>
                   </div>
+                  <Collapse
+                    size="small"
+                    ghost
+                    style={{ marginTop: 4 }}
+                    items={[
+                      {
+                        key: 'colStyle',
+                        label: <Text type="secondary" style={{ fontSize: 12 }}>列样式</Text>,
+                        children: (
+                          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                            <Text type="secondary" style={{ fontSize: 11 }}>表头样式</Text>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <div style={{ flex: 1 }}>
+                                <Text className={styles["property-label"]}>字重</Text>
+                                <Select
+                                  size="small"
+                                  style={{ width: '100%', marginTop: 4 }}
+                                  allowClear
+                                  placeholder="继承"
+                                  value={col.headerStyle?.fontWeight}
+                                  onChange={(v) => handleColumnHeaderStyleChange(index, 'fontWeight', v)}
+                                  options={[
+                                    { label: '正常', value: 'normal' },
+                                    { label: '粗体', value: 'bold' },
+                                  ]}
+                                />
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <Text className={styles["property-label"]}>字号</Text>
+                                <InputNumber
+                                  size="small"
+                                  style={{ width: '100%', marginTop: 4 }}
+                                  min={FONT_SIZE_MIN}
+                                  precision={0}
+                                  step={1}
+                                  placeholder="继承"
+                                  value={col.headerStyle?.fontSize}
+                                  onChange={(v) => handleColumnHeaderStyleChange(index, 'fontSize', v)}
+                                />
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <div style={{ flex: 1 }}>
+                                <Text className={styles["property-label"]}>颜色</Text>
+                                <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginTop: 4 }}>
+                                  <input
+                                    type="color"
+                                    value={col.headerStyle?.color || '#000000'}
+                                    disabled={!col.headerStyle?.color}
+                                    onChange={(e) => handleColumnHeaderStyleChange(index, 'color', e.target.value)}
+                                    style={{ width: 32, height: 32, border: '1px solid #d9d9d9', borderRadius: 4, padding: 2, cursor: 'pointer' }}
+                                  />
+                                  <Checkbox
+                                    checked={!!col.headerStyle?.color}
+                                    onChange={(e) => e.target.checked
+                                      ? handleColumnHeaderStyleChange(index, 'color', '#000000')
+                                      : clearColumnHeaderStyleField(index, 'color')
+                                    }
+                                  >
+                                    <Text style={{ fontSize: 11 }}>自定义</Text>
+                                  </Checkbox>
+                                </div>
+                              </div>
+                            </div>
+                            <div>
+                              <Text className={styles["property-label"]}>对齐</Text>
+                              <Select
+                                size="small"
+                                style={{ width: '100%', marginTop: 4 }}
+                                allowClear
+                                placeholder="继承"
+                                value={col.headerStyle?.textAlign}
+                                onChange={(v) => handleColumnHeaderStyleChange(index, 'textAlign', v)}
+                                options={[
+                                  { label: '左对齐', value: 'left' },
+                                  { label: '居中', value: 'center' },
+                                  { label: '右对齐', value: 'right' },
+                                ]}
+                              />
+                            </div>
+                            <div style={{ borderTop: '1px solid #e8e8e8', paddingTop: 8, marginTop: 4 }}>
+                              <Text type="secondary" style={{ fontSize: 11 }}>数据样式</Text>
+                            </div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <div style={{ flex: 1 }}>
+                                <Text className={styles["property-label"]}>字重</Text>
+                                <Select
+                                  size="small"
+                                  style={{ width: '100%', marginTop: 4 }}
+                                  allowClear
+                                  placeholder="继承"
+                                  value={col.style?.fontWeight}
+                                  onChange={(v) => handleColumnStyleChange(index, 'fontWeight', v)}
+                                  options={[
+                                    { label: '正常', value: 'normal' },
+                                    { label: '粗体', value: 'bold' },
+                                  ]}
+                                />
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <Text className={styles["property-label"]}>字号</Text>
+                                <InputNumber
+                                  size="small"
+                                  style={{ width: '100%', marginTop: 4 }}
+                                  min={FONT_SIZE_MIN}
+                                  precision={0}
+                                  step={1}
+                                  placeholder="继承"
+                                  value={col.style?.fontSize}
+                                  onChange={(v) => handleColumnStyleChange(index, 'fontSize', v)}
+                                />
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <div style={{ flex: 1 }}>
+                                <Text className={styles["property-label"]}>颜色</Text>
+                                <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginTop: 4 }}>
+                                  <input
+                                    type="color"
+                                    value={col.style?.color || '#000000'}
+                                    disabled={!col.style?.color}
+                                    onChange={(e) => handleColumnStyleChange(index, 'color', e.target.value)}
+                                    style={{ width: 32, height: 32, border: '1px solid #d9d9d9', borderRadius: 4, padding: 2, cursor: 'pointer' }}
+                                  />
+                                  <Checkbox
+                                    checked={!!col.style?.color}
+                                    onChange={(e) => e.target.checked
+                                      ? handleColumnStyleChange(index, 'color', '#000000')
+                                      : clearColumnStyleField(index, 'color')
+                                    }
+                                  >
+                                    <Text style={{ fontSize: 11 }}>自定义</Text>
+                                  </Checkbox>
+                                </div>
+                              </div>
+                            </div>
+                            <div>
+                              <Text className={styles["property-label"]}>对齐</Text>
+                              <Select
+                                size="small"
+                                style={{ width: '100%', marginTop: 4 }}
+                                allowClear
+                                placeholder="继承"
+                                value={col.style?.textAlign}
+                                onChange={(v) => handleColumnStyleChange(index, 'textAlign', v)}
+                                options={[
+                                  { label: '左对齐', value: 'left' },
+                                  { label: '居中', value: 'center' },
+                                  { label: '右对齐', value: 'right' },
+                                ]}
+                              />
+                            </div>
+                          </Space>
+                        ),
+                      },
+                    ]}
+                  />
                   {component.props?.showSummary && (
                     <Collapse
                       size="small"

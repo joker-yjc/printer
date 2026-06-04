@@ -17,3 +17,6 @@ export const CONTINUOUS_PAPER_DEFAULT_WIDTH = 80;
  * 基于 CSS 标准：96px/inch ÷ 25.4mm/inch
  */
 export const MM_TO_PX_RATIO = 3.78;
+
+/** 打印场景下字体最小可读字号（px） */
+export const FONT_SIZE_MIN = 8;

@@ -6,7 +6,7 @@ import Decimal from 'decimal.js';
 import type { ComponentNode, TableColumn, TableProps, SummaryExtraRow } from '../../types';
 import type { ComponentRenderer, RenderContext, StyleObject } from '../types';
 import { buildStyleString, buildPositionStyle } from '../utils/styleBuilder';
-import { COMPONENT_DEFAULT_SIZE, TABLE_DEFAULT, TABLE_STYLE_DEFAULT, STYLE_DEFAULT } from '../constants';
+import { COMPONENT_DEFAULT_SIZE, TABLE_DEFAULT, TABLE_STYLE_DEFAULT, TABLE_HEADER_STYLE_DEFAULT, STYLE_DEFAULT } from '../constants';
 import { getExecutor } from '../../pipes/registry';
 
 /**
@@ -37,6 +37,39 @@ function getByPath(obj: any, path: string): any {
     value = value[key];
   }
   return value;
+}
+
+/** 列级单元格样式字段名与 CSS 属性的映射 */
+const COL_STYLE_MAP: Record<string, string> = {
+  fontSize: 'font-size',
+  fontWeight: 'font-weight',
+  color: 'color',
+  backgroundColor: 'background-color',
+  textAlign: 'text-align',
+};
+
+/**
+ * 将列级样式合并到基础样式对象中
+ * @param colStyle - 列级样式
+ * @param base - 基础样式对象
+ * @returns 合并后的样式对象
+ */
+function mergeColumnStyle(
+  colStyle: Record<string, any> | undefined,
+  base: Record<string, string | number>
+): Record<string, string | number> {
+  if (!colStyle) return base;
+  const merged = { ...base };
+  for (const [key, cssKey] of Object.entries(COL_STYLE_MAP)) {
+    const val = colStyle[key];
+    if (val === undefined || val === null || val === '') continue;
+    if (key === 'fontSize') {
+      merged[cssKey] = `${val}px`;
+    } else {
+      merged[cssKey] = val;
+    }
+  }
+  return merged;
 }
 
 /**
@@ -170,6 +203,8 @@ export class TableRenderer implements ComponentRenderer {
       dataIndex: '__row_number__',
       title: props?.rowNumberLabel || '序号',
       align: 'center',
+      style: props?.rowNumberStyle,
+      headerStyle: props?.rowNumberHeaderStyle,
     };
 
     const rowNumberCol = showRowNumber ? [{ ...rowNumberColumn, width: props?.rowNumberWidth }] : [];
@@ -267,13 +302,47 @@ export class TableRenderer implements ComponentRenderer {
     const headerHeightPx = TABLE_DEFAULT.HEADER_HEIGHT * fontScale * context.mmToPx;
     const rowHeightPx = TABLE_DEFAULT.MIN_ROW_HEIGHT * TABLE_DEFAULT.ROW_HEIGHT_FACTOR * fontScale * context.mmToPx;
 
+    // 表头默认样式（表格级 → 常量回退）
+    const tableHeaderStyle = props?.headerStyle;
+    const headerDefaultBg = tableHeaderStyle?.backgroundColor ?? TABLE_HEADER_STYLE_DEFAULT.BACKGROUND;
+    const headerDefaultFw = tableHeaderStyle?.fontWeight ?? TABLE_HEADER_STYLE_DEFAULT.FONT_WEIGHT;
+    const headerDefaultFontSize = tableHeaderStyle?.fontSize;
+    const headerDefaultColor = tableHeaderStyle?.color;
+
     // 渲染表头
     let headerHtml = '';
     if (showHeader && displayColumns.length > 0) {
       const headerCells = displayColumns
         .map((col: any, idx: number) => {
           const title = col.title || col.dataIndex;
-          return `<th style="${cellBorder} ${cellPadding} ${cellTextStyle} background: ${TABLE_STYLE_DEFAULT.HEADER_BACKGROUND}; font-weight: 600; text-align: ${textAlign}; width: ${colWidths[idx]}; min-height: ${headerHeightPx}px; box-sizing: border-box;">${escapeHtml(title)}</th>`;
+          // 对齐优先级：列级 headerStyle.textAlign > col.align > 表格级 headerStyle > 表格级 textAlign
+          const hAlign = col.headerStyle?.textAlign
+            || col.align
+            || tableHeaderStyle?.textAlign
+            || textAlign;
+          const baseHeaderStyle: Record<string, string | number> = {
+            border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
+            padding: '4px 8px',
+            'white-space': 'normal',
+            'word-break': 'break-word',
+            'line-height': STYLE_DEFAULT.LINE_HEIGHT,
+            'vertical-align': 'middle',
+            'text-align': hAlign,
+            background: headerDefaultBg,
+            'font-weight': headerDefaultFw,
+            width: colWidths[idx],
+            'min-height': `${headerHeightPx}px`,
+            'box-sizing': 'border-box',
+          };
+          if (headerDefaultFontSize !== undefined) {
+            baseHeaderStyle['font-size'] = `${headerDefaultFontSize}px`;
+          }
+          if (headerDefaultColor !== undefined) {
+            baseHeaderStyle['color'] = headerDefaultColor;
+          }
+          const mergedStyle = mergeColumnStyle(col.headerStyle, baseHeaderStyle);
+          const styleStr = buildStyleString(mergedStyle);
+          return `<th style="${styleStr}">${escapeHtml(title)}</th>`;
         })
         .join('');
       // 表头使用固定高度，表体使用 min-height
@@ -290,10 +359,40 @@ export class TableRenderer implements ComponentRenderer {
             .map((col: any, idx: number) => {
               if (col.dataIndex === '__row_number__') {
                 const rowNumber = startRowIndex + rowIndex + 1;
-                return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} text-align: center; width: ${colWidths[idx]}; min-height: ${rowHeightPx}px; box-sizing: border-box;">${rowNumber}</td>`;
+                const baseRowNumStyle: Record<string, string | number> = {
+                  border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
+                  padding: '4px 8px',
+                  'white-space': 'normal',
+                  'word-break': 'break-word',
+                  'line-height': STYLE_DEFAULT.LINE_HEIGHT,
+                  'vertical-align': 'middle',
+                  'text-align': col.style?.textAlign || col.align || 'center',
+                  width: colWidths[idx],
+                  'min-height': `${rowHeightPx}px`,
+                  'box-sizing': 'border-box',
+                };
+                const rowNumStyle = mergeColumnStyle(col.style, baseRowNumStyle);
+                const rowNumStyleStr = buildStyleString(rowNumStyle);
+                return `<td style="${rowNumStyleStr}">${rowNumber}</td>`;
               }
               const value = getByPath(row, col.dataIndex) ?? '';
-              return `<td style="${cellBorder} ${cellPadding} ${cellTextStyle} text-align: ${textAlign}; width: ${colWidths[idx]}; min-height: ${rowHeightPx}px; box-sizing: border-box;">${escapeHtml(String(value))}</td>`;
+              // 对齐优先级：列级 style.textAlign > col.align > 表格级 textAlign
+              const dAlign = col.style?.textAlign || col.align || textAlign;
+              const baseDataStyle: Record<string, string | number> = {
+                border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
+                padding: '4px 8px',
+                'white-space': 'normal',
+                'word-break': 'break-word',
+                'line-height': STYLE_DEFAULT.LINE_HEIGHT,
+                'vertical-align': 'middle',
+                'text-align': dAlign,
+                width: colWidths[idx],
+                'min-height': `${rowHeightPx}px`,
+                'box-sizing': 'border-box',
+              };
+              const dataStyle = mergeColumnStyle(col.style, baseDataStyle);
+              const dataStyleStr = buildStyleString(dataStyle);
+              return `<td style="${dataStyleStr}">${escapeHtml(String(value))}</td>`;
             })
             .join('');
           return `<tr style="min-height: ${rowHeightPx}px;">${cells}</tr>`;

@@ -200,12 +200,50 @@ export interface TableColumn {
   title: string;
   /** 列宽度（单位：mm） */
   width?: number;
-  /** 文本对齐方式 */
+  /** 对齐方式（保留兼容，优先级低于 style.textAlign） */
   align?: 'left' | 'center' | 'right';
   /** 是否隐藏该列 */
   hidden?: boolean;
   /** 合计配置 */
   summary?: TableColumnSummary;
+  /** 数据单元格样式（覆盖默认值） */
+  style?: TableColumnStyle;
+  /** 表头单元格样式（优先级高于 tableHeaderStyle） */
+  headerStyle?: TableColumnStyle;
+}
+
+/**
+ * 列级单元格样式配置
+ * 用于覆盖表头或数据单元格的默认样式，所有字段可选
+ */
+export interface TableColumnStyle {
+  /** 字体大小（px） */
+  fontSize?: number;
+  /** 字重，如 'normal'、'bold'、600 */
+  fontWeight?: string | number;
+  /** 文字颜色 */
+  color?: string;
+  /** 背景颜色 */
+  backgroundColor?: string;
+  /** 对齐方式 */
+  textAlign?: 'left' | 'center' | 'right';
+}
+
+/**
+ * 表格表头默认样式（表格级配置）
+ * 会被列级 headerStyle 覆盖
+ */
+export interface TableHeaderStyle {
+  /** 表头背景色，默认 '#fafafa' */
+  backgroundColor?: string;
+  /** 表头字重，默认 600 */
+  fontWeight?: string | number;
+  /** 表头字体大小（px） */
+  fontSize?: number;
+  /** 表头文字颜色 */
+  color?: string;
+  /** 表头对齐方式 */
+  textAlign?: 'left' | 'center' | 'right';
 }
 
 /**
@@ -282,6 +320,12 @@ export interface TableProps {
   rowNumberLabel?: string;
   /** 行号列宽度（mm），不设置时自动分配 */
   rowNumberWidth?: number;
+  /** 表头默认样式（表格级），会被列级 headerStyle 覆盖 */
+  headerStyle?: TableHeaderStyle;
+  /** 序号列数据单元格样式 */
+  rowNumberStyle?: TableColumnStyle;
+  /** 序号列表头单元格样式 */
+  rowNumberHeaderStyle?: TableColumnStyle;
   /** 当前页数据（SDK 内部使用） */
   _pageData?: any[];
   /** 是否显示表头（SDK 内部使用，用于控制跨页表头） */

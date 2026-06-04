@@ -25,6 +25,7 @@ export {
   TABLE_DEFAULT,
   STYLE_DEFAULT,
   TABLE_STYLE_DEFAULT,
+  TABLE_HEADER_STYLE_DEFAULT,
   BARCODE_CONFIG,
   QRCODE_CONFIG
 } from './printEngine/constants';
@@ -62,4 +63,9 @@ export type {
   MockData,
   TableProps,
   TableColumn,
+  TableColumnStyle,
+  TableHeaderStyle,
+  TableSummaryStyle,
+  SummaryExtraRow,
+  SummaryExtraRowItem,
 } from './types';

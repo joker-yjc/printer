@@ -2,6 +2,30 @@
 
 所有版本的变更记录都列在这里，遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 规范。
 
+## [1.6.0] - 2026-06-04
+
+### ✨ 新增功能
+
+- **表格列级样式控制**
+  - 新增 `TableColumnStyle` 类型，支持每列数据单元格独立设置 fontSize、fontWeight、color、textAlign
+  - 新增 `TableHeaderStyle` 类型，支持表头逐列样式覆盖
+  - `TableColumn` 新增 `style`（数据单元格）和 `headerStyle`（表头单元格）可选字段
+  - `TableProps` 新增 `headerStyle`（表格级表头默认样式）、`rowNumberStyle`（序号列数据样式）、`rowNumberHeaderStyle`（序号列表头样式）
+  - `TableRenderer` 新增 `mergeColumnStyle` 样式合并逻辑，优先级：列级 > 表格级 > 常量默认值
+  - 序号列也支持 style/headerStyle 配置
+
+- **表头样式默认值常量化**
+  - 新增 `TABLE_HEADER_STYLE_DEFAULT` 常量，统一控制表头默认背景色和字重
+  - `TABLE_STYLE_DEFAULT.HEADER_BACKGROUND` 已废弃，由 `TABLE_HEADER_STYLE_DEFAULT.BACKGROUND` 替代
+
+### ⚠️ 行为变更
+
+- `TableColumn.align` 字段此前未在表头和数据单元格中生效，现已纳入对齐优先级链（低于 `style.textAlign` / `headerStyle.textAlign`）
+
+**影响范围**：`sdk/src/types.ts`、`sdk/src/sdk.ts`、`sdk/src/printEngine/constants.ts`、`sdk/src/printEngine/renderers/TableRenderer.ts`
+
+---
+
 ## [1.5.1] - 2026-05-30
 
 ### 🐛 问题修复
