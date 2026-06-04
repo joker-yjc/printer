@@ -5,7 +5,7 @@
 
 通用打印 SDK - 客户端打印解决方案
 
-**当前版本**: v1.5.0
+**当前版本**: v1.5.1
 
 ## 🎨 在线演示
 
@@ -13,63 +13,9 @@
 
 拖拽式设计打印模板，生成模板 JSON 后直接配合 SDK 使用。内置示例数据，无需搭建环境即可体验。
 
-## 🆕 v1.5.0 新增功能
+## 📋 更新日志
 
-- ✨ **页头/页脚支持**：`PageConfig` 新增 `headerEnabled`/`headerHeight`/`footerEnabled`/`footerHeight` 配置，每页自动注入页头/页脚组件并转换坐标
-- ✨ **`ComponentNode._section`**：新增运行时属性，标识组件所属区域（header/content/footer）
-- ✨ **`PrintTemplate.headerComponents/footerComponents`**：模板支持三区域组件列表
-- 🐛 **分页精度提升**：`shouldBreakPage` 参数统一为 `contentTop` 绝对坐标系，header/footer 高度变化后分页计算正确
-- 🐛 **overflow 溢出控制**：页头/页脚组件统一包裹 `overflow: hidden`
-- ✨ **SDK 类型扩展**：`ComponentNode` 新增 `_section?: PageSection`
-
-## 🆕 v1.4.0 新增功能
-
-- ✨ **表格列宽自定义**：新增 `TableColumn.width` 字段支持为每列指定固定宽度，`computeColWidths` 智能列宽计算（均分/固定+均分混合/超出缩放），设计器表格预览支持拖拽调整列宽
-- ✨ **行号列宽度自定义**：新增 `rowNumberWidth` 属性，支持自定义行号列宽度
-- ✨ **表格边框自定义**：新增 `borderStyle`（solid/dashed）、`borderColor`、`borderWidth` 属性
-- 🐛 **修复列宽精度**：修复百分比重复计算、舍入误差、溢出边缘情况等多项列宽问题
-
-## 🆕 v1.3.0 新增功能
-
-- ✨ **表格合计额外行**：支持在合计行下方添加自定义额外行（如金额大写、备注说明），支持绑定列合计值并通过管道格式化
-- ✨ **表格行号列**：支持显示行号列，可自定义标题
-- 🐛 **分页精度提升**：修复宽度计算公式不一致、`shouldBreakPage` 坐标系统一，优化分页计算精度
-- 🐛 **稳定性增强**：修复 total 模式空片段、防御检查精度混合、SSR 回退缺少额外行等多项问题
-
-## 🆕 v1.2.0 新增功能
-
-- ✨ **ChineseNumberPipe 增强**：支持小数转换（`3.14` → `叁点壹肆`）、负数、自定义连接符
-- ✨ **MoneyPipe 中文大写金额**：新增 `chineseUppercase` 格式，支持会计规范金额大写（`壹佰贰拾叁元肆角伍分`）
-- ✨ **表格合计管道化**：合计字段通过 `summary.pipe` 接入管道系统
-
-## 🆕 v1.1.3 新增功能
-
-- ✨ **多模板批量打印**：新增 `printMultiTemplate` 方法，支持一次打印操作组合多个不同模板及各自对应的数据列表（一客一模板场景）
-- ✨ **设计器多模板模式**：打印预览弹窗新增「多模板模式」，可自由组合已保存模板和当前画布模板进行混合打印
-
-## 🆕 v1.1.2 问题修复
-
-- 🐛 **打印内容偏移修复**：`@media print` 中 `.print-page` 的 `margin` 完全覆盖，解决打印内容偏左问题
-- 🐛 **批量打印边距修复**：`generateBatchPrintStyles` 增加 `padding` 设置，批量打印边距功能正常生效
-
-## 🆕 v1.1.1 新增功能
-
-- ✨ **表格嵌套对象数据支持**：表格打印支持嵌套对象格式的数据源
-- 🔧 **服务架构简化**：移除独立 server 服务，改用 Vite mock 集成
-
-## 🆕 v1.1.0 重大改进
-
-- ⭐ **表格分页精度大幅提升**：引入「渲染后测量」方案，彻底解决长文本换行导致的分页截断问题
-- ⭐ **组件定位优化**：支持负 gap（组件重叠），表格跨页后后续组件精确定位
-- ⭐ **表格渲染改进**：列宽均分、单元格垂直居中、使用 min-height 替代固定高度
-- 🔧 **错误处理增强**：iframe 使用 afterprint 事件、DOMParser 替代正则、Decimal.js 错误友好提示
-
-## 📋 历史版本
-
-### v1.0.1
-- 页码功能：支持6种位置、3种格式、自定义样式
-- 批量打印预览：支持多份文档一次性预览和打印
-- PageNumberRenderer：新增页码渲染器插件
+详见 [CHANGELOG.md](https://github.com/joker-yjc/printer/blob/master/sdk/CHANGELOG.md)。
 
 ## ✨ 特性
 
@@ -95,8 +41,8 @@ import { createPrintSDK } from '@jcyao/print-sdk';
 // 创建 SDK 实例（无需配置）
 const sdk = createPrintSDK();
 
-// 打印
-sdk.print({
+// 打印（异步方法，建议 await）
+await sdk.print({
   template: {
     pageConfig: {
       size: 'A4',
@@ -113,7 +59,6 @@ sdk.print({
         id: 'text-1',
         type: 'text',
         layout: {
-          mode: 'absolute',
           xMm: 20,
           yMm: 20,
           widthMm: 170,
@@ -145,8 +90,9 @@ sdk.print({
 
 ```typescript
 interface PrintOptions {
-  template: Template;  // 打印模板
-  data: any;           // 数据对象
+  template: PrintTemplate;  // 打印模板
+  data: any;                // 数据对象
+  preview?: boolean;        // 是否预览（默认 false）
 }
 ```
 
@@ -348,7 +294,7 @@ interface MultiTemplatePrintProgress {
 }
 ```
 
-> ⭐ **v1.4.0 新增**：`rowNumberWidth`、`borderStyle`、`borderColor`、`borderWidth`
+> 支持 `rowNumberWidth`、`borderStyle`、`borderColor`、`borderWidth` 等高级属性
 
 ### 表格合计额外行
 
@@ -391,7 +337,7 @@ interface MultiTemplatePrintProgress {
 }
 ```
 
-### 表格行号列 ⭐ **v1.4.0 新增：行号列宽度自定义**
+### 表格行号列
 
 ```typescript
 {
@@ -399,13 +345,13 @@ interface MultiTemplatePrintProgress {
   props: {
     showRowNumber: true,      // 显示行号列
     rowNumberLabel: '序号',   // 自定义行号列标题（默认"序号"）
-    rowNumberWidth: 15,       // v1.4.0：行号列宽度（mm）
+    rowNumberWidth: 15,       // 行号列宽度（mm）
     columns: [...]
   }
 }
 ```
 
-### 表格列宽自定义 ⭐ **v1.4.0 新增**
+### 表格列宽自定义
 
 ```typescript
 {
@@ -438,7 +384,7 @@ interface MultiTemplatePrintProgress {
 2. **部分设置** → 固定列用指定宽度，未设置列均分剩余空间
 3. **固定列总和超表格宽度** → 全部固定则按比例缩放，部分固定则固定列缩放 + 未固定列最小 1% 份额
 
-### 表格边框自定义 ⭐ **v1.4.0 新增**
+### 表格边框自定义
 
 ```typescript
 {
@@ -461,7 +407,7 @@ interface MultiTemplatePrintProgress {
 | 中文金额大写 | `{ type: 'money', options: { mode: 'none', format: 'chineseUppercase' } }` |
 | 金额大写 + 原值 | `{ type: 'money', options: { mode: 'none', format: 'chineseUppercase', uppercaseMode: 'both', separator: '  大写：' } }` |
 
-## 🔢 页码功能配置 ⭐ **v1.0.1 新增**
+## 🔢 页码功能配置
 
 页码功能通过页面配置实现，而非作为组件添加：
 
@@ -637,7 +583,7 @@ MIT © joke_yao
 - [GitHub 仓库](https://github.com/joker-yjc/printer)
 - [在线演示](https://printer-pi-five.vercel.app) - 可视化模板设计器，拖拽生成模板 JSON
 - [问题反馈](https://github.com/joker-yjc/printer/issues)
-- [更新日志](https://github.com/joker-yjc/printer/blob/master/CHANGELOG.md)
+- [更新日志](https://github.com/joker-yjc/printer/blob/master/sdk/CHANGELOG.md)
 
 ## 🤝 贡献
 
