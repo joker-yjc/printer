@@ -2,11 +2,11 @@
 schema_version: 1
 locale: zh-CN
 branch: master
-exported_at: "2026-06-04T06:55:02Z"
+exported_at: "2026-06-04T08:58:02Z"
 modules:
     "":
-        dir_name: 浏览器端打印服务平台
-        title: 浏览器端打印服务平台
+        dir_name: 打印服务平台
+        title: 打印服务平台
         scope:
             - .gitignore
             - README.md
@@ -17,33 +17,7 @@ modules:
         children: []
         depends_on: []
         related_to: []
-    designer:
-        dir_name: 打印模板可视化设计平台
-        title: 打印模板可视化设计平台
-        scope:
-            - designer/
-        source_files: []
-        children:
-            - designer/designer_canvas
-            - designer/help_docs
-            - designer/management_pages
-            - designer/designer_infra
-        depends_on: []
-        related_to: []
-    designer/designer_canvas:
-        dir_name: 打印模板可视化设计器
-        title: 打印模板可视化设计器
-        scope:
-            - designer/src/pages/Designer/
-            - designer/src/store/designer.ts
-            - designer/src/types/index.ts
-        source_files: []
-        children: []
-        depends_on: []
-        related_to:
-            - path: sdk/core
-            - path: sdk/print_engine
-    designer/designer_infra:
+    4f9d9d8ef3ea626c77e89e22c32d2001:
         dir_name: 打印设计器基础设施与预览服务
         title: 打印设计器基础设施与预览服务
         scope:
@@ -59,6 +33,145 @@ modules:
         depends_on: []
         related_to:
             - path: sdk/pipes
+    8ebf639b4330193629f226248433f1e7:
+        dir_name: 打印模板可视化设计器
+        title: 打印模板可视化设计器
+        scope:
+            - designer/src/pages/Designer/
+            - designer/src/store/designer.ts
+            - designer/src/types/index.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: sdk/core
+            - path: sdk/print_engine
+    cbd7bd750a341317671e06231eff5f96:
+        dir_name: 浏览器端打印SDK核心_2
+        title: 浏览器端打印SDK核心
+        scope:
+            - sdk/src/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: designer/designer_canvas
+            - path: designer/management_pages
+    designer:
+        dir_name: 打印模板设计与管理平台
+        title: 打印模板设计与管理平台
+        scope:
+            - designer/
+        source_files: []
+        children:
+            - designer/template_management
+            - 8ebf639b4330193629f226248433f1e7
+            - ee4044d9f38f1a9bb1476a26314a7492
+            - designer/help_docs
+            - 4f9d9d8ef3ea626c77e89e22c32d2001
+            - designer/designer_canvas
+            - designer/schema_management
+        depends_on: []
+        related_to: []
+    designer/designer_canvas:
+        dir_name: 打印模板可视化设计器_2
+        title: 打印模板可视化设计器
+        scope:
+            - designer/src/pages/Designer/
+        source_files: []
+        children:
+            - designer/designer_canvas/canvas_core
+            - designer/designer_canvas/property_panel
+            - designer/designer_canvas/asset_panel
+        depends_on: []
+        related_to: []
+    designer/designer_canvas/asset_panel:
+        dir_name: 设计器资产面板
+        title: 设计器资产面板
+        scope:
+            - designer/src/pages/Designer/components/AssetPanel/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    designer/designer_canvas/canvas_core:
+        dir_name: 打印设计器画布核心
+        title: 打印设计器画布核心
+        scope:
+            - designer/src/pages/Designer/components/Canvas/
+        source_files: []
+        children:
+            - designer/designer_canvas/canvas_core/canvas_ui
+            - designer/designer_canvas/canvas_core/alignment_resize
+            - designer/designer_canvas/canvas_core/component_renderers
+        depends_on: []
+        related_to: []
+    designer/designer_canvas/canvas_core/alignment_resize:
+        dir_name: 组件对齐与尺寸调整
+        title: 组件对齐与尺寸调整
+        scope:
+            - designer/src/pages/Designer/components/Canvas/AlignmentGuides.module.css
+            - designer/src/pages/Designer/components/Canvas/AlignmentGuides.tsx
+            - designer/src/pages/Designer/components/Canvas/ResizeHandles.module.css
+            - designer/src/pages/Designer/components/Canvas/ResizeHandles.tsx
+            - designer/src/pages/Designer/components/Canvas/alignmentDetector.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    designer/designer_canvas/canvas_core/canvas_ui:
+        dir_name: 画布交互与渲染核心
+        title: 画布交互与渲染核心
+        scope:
+            - designer/src/pages/Designer/components/Canvas/CanvasToolbar.tsx
+            - designer/src/pages/Designer/components/Canvas/ComponentPreview.tsx
+            - designer/src/pages/Designer/components/Canvas/PageSettingModal.tsx
+            - designer/src/pages/Designer/components/Canvas/SaveTemplateModal.tsx
+            - designer/src/pages/Designer/components/Canvas/ShortcutHint.tsx
+            - designer/src/pages/Designer/components/Canvas/index.module.css
+            - designer/src/pages/Designer/components/Canvas/index.tsx
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    designer/designer_canvas/canvas_core/component_renderers:
+        dir_name: 设计器组件预览渲染器
+        title: 设计器组件预览渲染器
+        scope:
+            - designer/src/pages/Designer/components/Canvas/componentRenderers/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    designer/designer_canvas/property_panel:
+        dir_name: 属性面板编排器
+        title: 属性面板编排器
+        scope:
+            - designer/src/pages/Designer/components/PropertyPanel/
+        source_files: []
+        children:
+            - designer/designer_canvas/property_panel/property_sections
+            - designer/designer_canvas/property_panel/style_plugins
+        depends_on: []
+        related_to: []
+    designer/designer_canvas/property_panel/property_sections:
+        dir_name: 属性面板配置区域
+        title: 属性面板配置区域
+        scope:
+            - designer/src/pages/Designer/components/PropertyPanel/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    designer/designer_canvas/property_panel/style_plugins:
+        dir_name: 样式插件系统
+        title: 样式插件系统
+        scope:
+            - designer/src/pages/Designer/components/PropertyPanel/stylePlugins/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
     designer/help_docs:
         dir_name: 帮助文档与用户手册
         title: 帮助文档与用户手册
@@ -69,7 +182,25 @@ modules:
         children: []
         depends_on: []
         related_to: []
-    designer/management_pages:
+    designer/schema_management:
+        dir_name: Schema 字典管理
+        title: Schema 字典管理
+        scope:
+            - designer/src/pages/SchemaManagement/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    designer/template_management:
+        dir_name: 打印模板管理
+        title: 打印模板管理
+        scope:
+            - designer/src/pages/TemplateManagement/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    ee4044d9f38f1a9bb1476a26314a7492:
         dir_name: 打印设计器管理后台模块
         title: 打印设计器管理后台模块
         scope:
@@ -82,28 +213,31 @@ modules:
         related_to:
             - path: sdk/core
     sdk:
-        dir_name: 浏览器端打印SDK核心
-        title: 浏览器端打印SDK核心
+        dir_name: 浏览器端打印SDK
+        title: 浏览器端打印SDK
         scope:
             - sdk/
         source_files: []
         children:
-            - sdk/core
-            - sdk/print_engine
+            - sdk/core_api
             - sdk/pipes
+            - cbd7bd750a341317671e06231eff5f96
+            - sdk/print_engine
         depends_on: []
         related_to: []
-    sdk/core:
+    sdk/core_api:
         dir_name: 浏览器端打印SDK核心
         title: 浏览器端打印SDK核心
         scope:
-            - sdk/src/
+            - sdk/src/PrintSDK.ts
+            - sdk/src/sdk.ts
+            - sdk/src/index.ts
+            - sdk/src/types.ts
+            - sdk/src/printEngine.ts
         source_files: []
         children: []
         depends_on: []
-        related_to:
-            - path: designer/designer_canvas
-            - path: designer/management_pages
+        related_to: []
     sdk/pipes:
         dir_name: 数据转换管道系统
         title: 数据转换管道系统
@@ -122,5 +256,4 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to:
-            - path: designer/designer_canvas
+        related_to: []

@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: designer/designer_canvas/canvas_core
+title: 打印设计器画布核心
+scope:
+    - designer/src/pages/Designer/components/Canvas/
+source_files: []
+depends_on: []
+related_to: []

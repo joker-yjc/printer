@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: designer/designer_canvas/property_panel
+title: 属性面板编排器
+scope:
+    - designer/src/pages/Designer/components/PropertyPanel/
+source_files: []
+depends_on: []
+related_to: []

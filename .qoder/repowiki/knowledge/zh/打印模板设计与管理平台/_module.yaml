@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: designer
+title: 打印模板设计与管理平台
+scope:
+    - designer/
+source_files: []
+depends_on: []
+related_to: []

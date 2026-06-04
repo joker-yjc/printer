@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: cbd7bd750a341317671e06231eff5f96
+title: 浏览器端打印SDK核心
+scope:
+    - sdk/src/
+source_files: []
+depends_on: []
+related_to:
+    - path: designer/designer_canvas
+    - path: designer/management_pages

@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: ee4044d9f38f1a9bb1476a26314a7492
+title: 打印设计器管理后台模块
+scope:
+    - designer/src/pages/SchemaManagement/
+    - designer/src/pages/TemplateManagement/
+    - designer/src/pages/MockDataManagement/
+source_files: []
+depends_on: []
+related_to:
+    - path: sdk/core

@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: ""
+title: 打印服务平台
+scope:
+    - .gitignore
+    - README.md
+    - package-lock.json
+    - package.json
+    - pnpm-lock.yaml
+source_files: []
+depends_on: []
+related_to: []
