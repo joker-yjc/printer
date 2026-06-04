@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: designer/help_docs
+title: 帮助文档与用户手册
+scope:
+    - designer/src/pages/Help/
+    - designer/src/help/
+source_files: []
+depends_on: []
+related_to: []

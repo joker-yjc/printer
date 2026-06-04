@@ -1,9 +1,0 @@
-schema_version: 1
-module_path: designer/designer_workspace/canvas_engine
-title: 可视化打印设计器核心引擎
-scope:
-    - designer/src/pages/Designer/components/Canvas/
-source_files: []
-depends_on: []
-related_to:
-    - path: designer/designer_workspace/design_panels

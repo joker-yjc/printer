@@ -189,7 +189,7 @@ export function generateBatchPrintStyles(config: PrintStyleConfig): string {
 
   return `
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { margin: 0; padding: 0; background: #f5f5f5; }
+    body { margin: 0; padding: 0; background: #f5f5f5; font-family: Arial, sans-serif; }
     
     @page {
       size: ${pageWidthMm}mm ${pageHeightMm}mm;

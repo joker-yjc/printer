@@ -6,4 +6,4 @@ scope:
 source_files: []
 depends_on: []
 related_to:
-    - path: designer/designer_workspace
+    - path: designer/designer_canvas

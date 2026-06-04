@@ -5,7 +5,7 @@
 
 import type { PrintTemplate, ComponentNode, DataBinding, PipeConfig } from './types';
 import type { ComponentRenderer, RenderContext } from './printEngine/types';
-import { MM_TO_PX, TABLE_DEFAULT, COMPONENT_DEFAULT_SIZE } from './printEngine/constants';
+import { MM_TO_PX, TABLE_DEFAULT, TABLE_STYLE_DEFAULT, COMPONENT_DEFAULT_SIZE } from './printEngine/constants';
 import {
   generatePrintPageStyles,
   generatePrintHTML,
@@ -268,16 +268,20 @@ export class PrintEngine {
     if (comp.props?.showHeader === false) {
       return 0;
     }
-    // 使用 TABLE_DEFAULT.HEADER_HEIGHT 作为表头高度
-    return TABLE_DEFAULT.HEADER_HEIGHT;
+    // 根据字体大小等比缩放表头高度（默认字体 12px 对应 10mm）
+    const fontSize = comp.style?.fontSize || TABLE_STYLE_DEFAULT.FONT_SIZE;
+    const scale = Math.max(1, fontSize / TABLE_STYLE_DEFAULT.FONT_SIZE);
+    return TABLE_DEFAULT.HEADER_HEIGHT * scale;
   }
 
   /**
    * 计算表格行高度（mm）
    */
   private calculateTableRowHeight(comp: ComponentNode): number {
-    // 使用 MIN_ROW_HEIGHT * ROW_HEIGHT_FACTOR 作为行高
-    return TABLE_DEFAULT.MIN_ROW_HEIGHT * TABLE_DEFAULT.ROW_HEIGHT_FACTOR;
+    // 根据字体大小等比缩放行高（默认字体 12px 对应 8mm）
+    const fontSize = comp.style?.fontSize || TABLE_STYLE_DEFAULT.FONT_SIZE;
+    const scale = Math.max(1, fontSize / TABLE_STYLE_DEFAULT.FONT_SIZE);
+    return TABLE_DEFAULT.MIN_ROW_HEIGHT * TABLE_DEFAULT.ROW_HEIGHT_FACTOR * scale;
   }
 
   /**
@@ -675,7 +679,7 @@ export class PrintEngine {
       tableWidthMm = COMPONENT_DEFAULT_SIZE.TABLE_WIDTH;
     }
 
-    // 创建隐藏测量容器
+    // 创建隐藏测量容器（使用与打印输出一致的字体和基础样式，确保测量准确）
     const measureContainer = document.createElement('div');
     measureContainer.style.cssText = `
       position: absolute;
@@ -684,6 +688,8 @@ export class PrintEngine {
       top: 0;
       width: ${tableWidthMm}mm;
       pointer-events: none;
+      font-family: Arial, sans-serif;
+      box-sizing: border-box;
     `;
 
     // 创建完整的表格组件用于测量（包含合计行）
@@ -701,7 +707,7 @@ export class PrintEngine {
     const tableHtml = renderer.render(measureComponent, context);
 
     measureContainer.innerHTML = `
-      <div style="width: ${tableWidthMm}mm; position: relative;">
+      <div style="width: ${tableWidthMm}mm; position: relative; font-family: Arial, sans-serif; box-sizing: border-box;">
         ${tableHtml}
       </div>
     `;

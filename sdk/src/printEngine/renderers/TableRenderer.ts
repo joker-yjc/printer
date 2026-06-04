@@ -261,9 +261,11 @@ export class TableRenderer implements ComponentRenderer {
     const colWidths = computeColWidths(displayColumns, tableWidthMm);
 
     // ✅ 计算表头和数据行的高度（mm 转 px）
-    // 使用全局常量 ROW_HEIGHT_FACTOR，实际高度由内容自然撑开（min-height）
-    const headerHeightPx = TABLE_DEFAULT.HEADER_HEIGHT * context.mmToPx;
-    const rowHeightPx = TABLE_DEFAULT.MIN_ROW_HEIGHT * TABLE_DEFAULT.ROW_HEIGHT_FACTOR * context.mmToPx;
+    // 根据字体大小等比缩放（默认 12px 对应基准高度），实际高度由内容自然撑开（min-height）
+    const fontSize = style?.fontSize || TABLE_STYLE_DEFAULT.FONT_SIZE;
+    const fontScale = Math.max(1, fontSize / TABLE_STYLE_DEFAULT.FONT_SIZE);
+    const headerHeightPx = TABLE_DEFAULT.HEADER_HEIGHT * fontScale * context.mmToPx;
+    const rowHeightPx = TABLE_DEFAULT.MIN_ROW_HEIGHT * TABLE_DEFAULT.ROW_HEIGHT_FACTOR * fontScale * context.mmToPx;
 
     // 渲染表头
     let headerHtml = '';
@@ -584,18 +586,25 @@ export class TableRenderer implements ComponentRenderer {
       ? (component.props?.summaryExtraRows?.length || 0)
       : 0;
 
+    // 与 calculateTableRowHeight / calculateTableHeaderHeight 保持一致：按字体等比缩放
+    const fontSize = component.style?.fontSize || TABLE_STYLE_DEFAULT.FONT_SIZE;
+    const scale = Math.max(1, fontSize / TABLE_STYLE_DEFAULT.FONT_SIZE);
+
     if (component.binding?.path) {
       const data = context.getValueByPath(component.binding.path);
       if (Array.isArray(data) && data.length > 0) {
-        const headerHeight = component.props?.showHeader !== false ? TABLE_DEFAULT.HEADER_HEIGHT : 0;
-        const rowHeight = TABLE_DEFAULT.MIN_ROW_HEIGHT * TABLE_DEFAULT.ROW_HEIGHT_FACTOR;
+        const headerHeight = component.props?.showHeader !== false
+          ? TABLE_DEFAULT.HEADER_HEIGHT * scale
+          : 0;
+        const rowHeight = TABLE_DEFAULT.MIN_ROW_HEIGHT * TABLE_DEFAULT.ROW_HEIGHT_FACTOR * scale;
         const summaryHeight = component.props?.showSummary === true ? rowHeight : 0;
 
         return headerHeight + data.length * rowHeight + summaryHeight + extraRowsCount * rowHeight;
       }
     }
 
-    // 无 binding 回退：使用布局高度 + 额外行估算
-    return (component.layout.heightMm || COMPONENT_DEFAULT_SIZE.TABLE_HEIGHT) + extraRowsCount * TABLE_DEFAULT.MIN_ROW_HEIGHT;
+    // 无 binding 回退：使用布局高度 + 额外行估算（按字体缩放）
+    const baseHeight = component.layout.heightMm || COMPONENT_DEFAULT_SIZE.TABLE_HEIGHT;
+    return baseHeight * scale + extraRowsCount * TABLE_DEFAULT.MIN_ROW_HEIGHT * scale;
   }
 }

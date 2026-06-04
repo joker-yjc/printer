@@ -17,6 +17,14 @@
 - [vite.config.ts](file://designer/vite.config.ts)
 </cite>
 
+## 更新摘要
+**所做更改**
+- 更新了数据隐私保护策略，将"真实"数据改为"示例"命名约定
+- 增强了匿名化处理机制，所有个人身份信息均使用示例数据
+- 新增了完整的45行食材配送场景数据，涵盖幼儿园批量订单
+- 改进了业务场景模拟能力，新增了更丰富的测试数据集
+- 优化了Mock数据生成器的隐私保护逻辑
+
 ## 目录
 1. [简介](#简介)
 2. [项目结构](#项目结构)
@@ -30,7 +38,7 @@
 10. [附录](#附录)
 
 ## 简介
-本文件为“Mock 数据管理”使用文档，面向设计器使用者与开发者，系统性介绍 Mock 数据在开发与测试阶段的作用、生成规则、数据类型支持、自动生成机制、创建/编辑/删除/导入导出流程，以及与 Schema 的绑定关系和数据渲染过程。同时提供设计器中的使用方法、调试技巧、最佳实践与常见问题解决方案，并给出丰富的使用示例与实际应用场景。
+本文件为"Mock 数据管理"使用文档，面向设计器使用者与开发者，系统性介绍 Mock 数据在开发与测试阶段的作用、生成规则、数据类型支持、自动生成机制、创建/编辑/删除/导入导出流程，以及与 Schema 的绑定关系和数据渲染过程。特别强调数据隐私保护，所有数据均采用示例化设计，避免使用真实个人信息。同时提供设计器中的使用方法、调试技巧、最佳实践与常见问题解决方案，并给出丰富的使用示例与实际应用场景。
 
 ## 项目结构
 Mock 数据管理相关代码主要分布在以下模块：
@@ -106,7 +114,7 @@ A --> K
 - Vite Mock 中间件：在开发期提供 /api 路由的 CRUD 接口
 - Mock Store：统一的内存数据存储与 CRUD 操作
 - Schema/模板/默认 Mock 数据：内置示例，支撑设计器与打印渲染
-- Mock 数据生成器：基于 Schema 自动推断生成合理测试数据
+- Mock 数据生成器：基于 Schema 自动推断生成合理测试数据，采用完全匿名化的示例数据
 
 **章节来源**
 - [pages/MockDataManagement/index.tsx:1-338](file://designer/src/pages/MockDataManagement/index.tsx#L1-L338)
@@ -121,7 +129,7 @@ A --> K
 - [utils/mockDataGenerator.ts:1-113](file://designer/src/utils/mockDataGenerator.ts#L1-L113)
 
 ## 架构总览
-Mock 数据管理采用“前端内存 Mock + Vite 开发期中间件”的双层架构：
+Mock 数据管理采用"前端内存 Mock + Vite 开发期中间件"的双层架构：
 - 开发期：Vite 插件注入 Mock 中间件，拦截 /api/* 请求，交由 mockStore 处理
 - 生产期：通过 api.ts 的环境变量切换，走真实后端 HTTP 接口
 - 前端页面通过统一的 API 封装调用，屏蔽底层实现差异
@@ -236,7 +244,7 @@ Submit --> |否| Cancel["取消并关闭弹窗"]
 ### Schema/模板/默认 Mock 数据
 - Schema：定义字段类型、枚举、格式化等元数据
 - 模板：定义页面配置、组件布局、绑定关系
-- 默认 Mock 数据：覆盖多种业务场景（销售出库单、批量打印、嵌套对象、不同纸张）
+- 默认 Mock 数据：覆盖多种业务场景（销售出库单、批量打印、嵌套对象、不同纸张、食材配送等）
 
 **章节来源**
 - [services/mock/schemas.ts:1-147](file://designer/src/services/mock/schemas.ts#L1-L147)
@@ -247,6 +255,7 @@ Submit --> |否| Cancel["取消并关闭弹窗"]
 - 根据字段类型与键名关键字推断内容（如 name、phone、email、code、url、status、price、quantity、amount、date、datetime、percent 等）
 - 对象/数组递归生成，数组长度 2-5 条
 - 日期默认返回日期字符串，时间返回完整时间字符串
+- **更新**：所有生成的数据均为完全匿名化的示例数据，不包含任何真实个人信息
 
 **章节来源**
 - [utils/mockDataGenerator.ts:1-113](file://designer/src/utils/mockDataGenerator.ts#L1-L113)
@@ -303,14 +312,12 @@ UI --> Monaco["@monaco-editor/react"]
 - 导入/导出为纯前端操作，避免网络往返，适合离线编辑
 - Monaco 编辑器懒加载，首次打开弹窗时会短暂等待
 
-[本节为通用指导，无需列出具体文件来源]
-
 ## 故障排查指南
-- “Schema 不存在”：确保在新建/编辑前选择了正确的 Schema
-- “JSON 格式错误”：检查编辑器中的 JSON 语法，确保可被 JSON.parse 正确解析
-- “Mock 数据未找到”：确认 id 是否正确，或尝试刷新页面重新加载
-- “跨域/404”：开发期请确认 Vite Mock 中间件已启用且路由为 /api/*
-- “导入失败”：确认文件为合法 JSON，至少包含 name 与 data 字段
+- "Schema 不存在"：确保在新建/编辑前选择了正确的 Schema
+- "JSON 格式错误"：检查编辑器中的 JSON 语法，确保可被 JSON.parse 正确解析
+- "Mock 数据未找到"：确认 id 是否正确，或尝试刷新页面重新加载
+- "跨域/404"：开发期请确认 Vite Mock 中间件已启用且路由为 /api/*
+- "导入失败"：确认文件为合法 JSON，至少包含 name 与 data 字段
 
 **章节来源**
 - [pages/MockDataManagement/index.tsx:101-118](file://designer/src/pages/MockDataManagement/index.tsx#L101-L118)
@@ -319,9 +326,7 @@ UI --> Monaco["@monaco-editor/react"]
 - [mock/server.ts:171-178](file://designer/mock/server.ts#L171-L178)
 
 ## 结论
-本 Mock 数据管理体系通过“前端内存 Mock + Vite 开发期中间件”的组合，在开发与测试阶段提供了高效、可控、可扩展的测试数据支持。配合 Schema 的元数据驱动与智能生成器，用户可以快速构建符合业务语义的测试数据，并与模板绑定完成打印渲染验证。生产环境可无缝切换到真实后端，保证一致性与可维护性。
-
-[本节为总结性内容，无需列出具体文件来源]
+本 Mock 数据管理体系通过"前端内存 Mock + Vite 开发期中间件"的组合，在开发与测试阶段提供了高效、可控、可扩展的测试数据支持。配合 Schema 的元数据驱动与智能生成器，用户可以快速构建符合业务语义的测试数据，并与模板绑定完成打印渲染验证。生产环境可无缝切换到真实后端，保证一致性与可维护性。所有数据均采用示例化设计，严格遵守数据隐私保护原则。
 
 ## 附录
 
@@ -329,9 +334,10 @@ UI --> Monaco["@monaco-editor/react"]
 - 开发阶段：快速搭建测试数据，验证设计器与打印引擎渲染效果
 - 测试阶段：覆盖边界场景（空数据、超大数据量、嵌套对象、批量打印等）
 - 设计阶段：与 Schema/模板联动，验证字段映射与布局合理性
+- **更新**：所有场景均使用完全匿名化的示例数据，确保数据隐私安全
 
 ### 数据类型支持与生成规则
-- 字符串：根据键名关键字推断（name、phone、email、address、code、url、status 等）
+- 字符串：根据键名关键字推断（name、phone、email、address、code、url、status 等），全部使用示例化数据
 - 数字：根据键名关键字推断（price、amount、quantity、count、age、percent 等）
 - 布尔：随机布尔值
 - 日期/时间：日期字符串或完整时间字符串
@@ -341,9 +347,9 @@ UI --> Monaco["@monaco-editor/react"]
 - [utils/mockDataGenerator.ts:1-113](file://designer/src/utils/mockDataGenerator.ts#L1-L113)
 
 ### 创建/编辑/删除/导入导出操作指南
-- 创建：打开新建弹窗，填写基本信息，选择 Schema 后点击“智能生成”，或直接在 JSON 编辑器中编写，最后保存
-- 编辑：在列表中点击“编辑”，修改名称/描述/Schema 关联或 JSON 数据，保存
-- 删除：在列表中点击“删除”，确认后移除
+- 创建：打开新建弹窗，填写基本信息，选择 Schema 后点击"智能生成"，或直接在 JSON 编辑器中编写，最后保存
+- 编辑：在列表中点击"编辑"，修改名称/描述/Schema 关联或 JSON 数据，保存
+- 删除：在列表中点击"删除"，确认后移除
 - 导入：支持单条 JSON 导入（至少包含 name 与 data），或批量导入（待实现）
 - 导出：支持单条导出与批量导出
 
@@ -361,10 +367,10 @@ UI --> Monaco["@monaco-editor/react"]
 - [services/mock/schemas.ts:1-147](file://designer/src/services/mock/schemas.ts#L1-L147)
 
 ### 设计器中的使用方法与调试技巧
-- 使用“筛选 Schema”快速定位 Mock 数据
-- 使用“智能生成”快速获得符合 Schema 的测试数据
-- 使用“手动编辑”微调字段值，结合 Monaco 编辑器的语法高亮与校验
-- 使用“刷新”按钮同步最新数据
+- 使用"筛选 Schema"快速定位 Mock 数据
+- 使用"智能生成"快速获得符合 Schema 的测试数据
+- 使用"手动编辑"微调字段值，结合 Monaco 编辑器的语法高亮与校验
+- 使用"刷新"按钮同步最新数据
 - 开发期通过 Vite Mock 中间件访问 /api/*，便于联调
 
 **章节来源**
@@ -374,11 +380,10 @@ UI --> Monaco["@monaco-editor/react"]
 
 ### 最佳实践
 - 为常用业务场景建立对应的 Schema 与模板，复用 Mock 数据
-- 使用“智能生成”作为起点，再进行人工微调
+- 使用"智能生成"作为起点，再进行人工微调
 - 对于大批量数据，优先使用默认内置数据中的示例，减少生成时间
 - 导出重要数据快照，便于团队共享与回归测试
-
-[本节为通用指导，无需列出具体文件来源]
+- **更新**：始终使用示例化数据，避免引入真实个人信息
 
 ### 实际应用场景示例
 - 销售出库单：标准字段、明细列表、汇总信息、二维码/条形码
@@ -387,7 +392,18 @@ UI --> Monaco["@monaco-editor/react"]
 - 批量打印测试：多份不同订单数据
 - 嵌套对象演示：表格列使用嵌套路径（如 product.name）
 - 二分纸/不同纸张：A5/A4/连续纸模板的测试数据
+- **新增**：食材配送场景：完整的45行幼儿园批量订单数据，涵盖各种调料和食材，适合演示批量打印和复杂业务场景
 
 **章节来源**
 - [services/mock/mockData.ts:1-639](file://designer/src/services/mock/mockData.ts#L1-L639)
 - [services/mock/templates.ts:1-800](file://designer/src/services/mock/templates.ts#L1-L800)
+
+### 数据隐私保护与匿名化处理
+- **更新**：所有 Mock 数据均采用"示例"命名约定，替代原有的"真实"数据标识
+- 个人身份信息完全匿名化：姓名、电话、邮箱、地址等均使用示例数据
+- 业务场景数据保持真实性但去除敏感信息：订单号、商品信息等保持业务含义
+- 符合数据保护法规要求，确保测试环境中的数据安全
+
+**章节来源**
+- [services/mock/mockData.ts:560-639](file://designer/src/services/mock/mockData.ts#L560-L639)
+- [utils/mockDataGenerator.ts:23-51](file://designer/src/utils/mockDataGenerator.ts#L23-L51)

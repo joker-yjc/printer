@@ -1176,7 +1176,7 @@ export const defaultTemplates: PrintTemplate[] = [
         id: 'itemsTable',
         type: 'table',
         layout: { mode: 'absolute', xMm: 10, yMm: 5, widthMm: 190, heightMm: 80 },
-        style: { fontSize: 10, textAlign: 'center' },
+        style: { fontSize: 18, textAlign: 'center' },
         binding: { path: 'items' },
         props: {
           bordered: true,

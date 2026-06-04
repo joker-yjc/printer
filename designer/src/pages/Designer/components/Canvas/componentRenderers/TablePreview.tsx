@@ -108,7 +108,7 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
   const { resizing, currentWidth, handleMouseDown } = useColumnResize(handleColumnWidthChange);
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       {resizing && (
         <div style={{
           position: 'fixed', top: 40, left: '50%', transform: 'translateX(-50%)',

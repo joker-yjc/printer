@@ -6,4 +6,4 @@ scope:
 source_files: []
 depends_on: []
 related_to:
-    - path: designer/ui_library
+    - path: designer/designer_infra

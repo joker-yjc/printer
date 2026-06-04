@@ -1,0 +1,16 @@
+schema_version: 1
+module_path: designer/designer_infra
+title: 打印设计器基础设施与预览服务
+scope:
+    - designer/src/components/
+    - designer/src/pipes/
+    - designer/src/utils/
+    - designer/src/constants/
+    - designer/src/layouts/
+    - designer/src/services/
+    - designer/mock/
+source_files: []
+depends_on: []
+related_to:
+    - path: sdk/pipes
+    - path: designer/management_pages
