@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: designer/template_management
+title: 打印模板管理
+scope:
+    - designer/src/pages/TemplateManagement/
+source_files: []
+depends_on: []
+related_to:
+    - path: designer/schema_management
+    - path: designer/designer_canvas
+    - path: sdk/core_api

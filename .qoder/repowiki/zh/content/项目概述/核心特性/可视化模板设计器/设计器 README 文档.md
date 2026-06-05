@@ -17,7 +17,17 @@
 - [src/pages/Designer/components/Canvas/index.tsx](file://designer/src/pages/Designer/components/Canvas/index.tsx)
 - [src/pages/Designer/components/PropertyPanel/index.tsx](file://designer/src/pages/Designer/components/PropertyPanel/index.tsx)
 - [src/pages/Designer/components/AssetPanel/index.tsx](file://designer/src/pages/Designer/components/AssetPanel/index.tsx)
+- [src/pages/Designer/components/Canvas/ResizeHandles.tsx](file://designer/src/pages/Designer/components/Canvas/ResizeHandles.tsx)
+- [src/constants/index.ts](file://designer/src/constants/index.ts)
+- [src/pages/Designer/components/Canvas/PageSettingModal.tsx](file://designer/src/pages/Designer/components/Canvas/PageSettingModal.tsx)
 </cite>
+
+## 更新摘要
+**所做更改**
+- 更新了最小高度要求规范：从 15mm 调整为 1mm
+- 更新了页头/页脚最小高度常量定义
+- 更新了设计器基础文档中的设计规范说明
+- 新增了连续纸张最小高度的相关说明
 
 ## 目录
 1. [简介](#简介)
@@ -35,6 +45,8 @@
 可视化打印模板设计器是一个基于 React + Vite 的现代化打印模板设计工具，配合 `@jcyao/print-sdk` 使用。用户可以通过直观的拖拽界面设计打印模板，生成标准化的模板 JSON，然后交由 SDK 执行实际的打印任务。
 
 该设计器提供了完整的模板设计工作流，包括组件库拖拽、属性配置、数据绑定、实时预览和批量打印等功能。系统采用模块化架构设计，支持多种页面配置和组件类型，满足各种打印场景的需求。
+
+**更新** 最小高度要求已从 15mm 调整为 1mm，以适应更精细的打印需求和提高设计灵活性。
 
 ## 项目结构
 
@@ -68,6 +80,7 @@ subgraph "工具层"
 Grid[网格工具]
 Zoom[缩放工具]
 Utils[通用工具]
+Constants[常量定义]
 end
 App --> MainLayout
 MainLayout --> Designer
@@ -82,15 +95,18 @@ Designer --> DebugPanel
 Canvas --> API
 PropertyPanel --> Store
 AssetPanel --> API
+Constants --> Grid
+Constants --> Zoom
 ```
 
 **图表来源**
-- [src/App.tsx:1-31](file://designer/src/App.tsx#L1-L31)
-- [src/pages/Designer/index.tsx:1-365](file://designer/src/pages/Designer/index.tsx#L1-L365)
+- [src/App.tsx:1-31](file://src/App.tsx#L1-L31)
+- [src/pages/Designer/index.tsx:1-365](file://src/pages/Designer/index.tsx#L1-L365)
+- [src/constants/index.ts:1-25](file://src/constants/index.ts#L1-L25)
 
 **章节来源**
-- [README.md:47-72](file://designer/README.md#L47-L72)
-- [package.json:1-46](file://designer/package.json#L1-L46)
+- [README.md:47-72](file://README.md#L47-L72)
+- [package.json:1-46](file://package.json#L1-L46)
 
 ## 核心组件
 
@@ -121,6 +137,7 @@ class Canvas {
 +dragAndDrop : true
 +gridEnabled : boolean
 +zoomLevel : number
++minSizeMM : 1
 }
 class PropertyPanel {
 +selectedComponent : ComponentNode
@@ -136,8 +153,9 @@ PropertyPanel --> Store[useDesignerStore]
 ```
 
 **图表来源**
-- [src/pages/Designer/index.tsx:17-365](file://designer/src/pages/Designer/index.tsx#L17-L365)
-- [src/store/designer.ts:108-773](file://designer/src/store/designer.ts#L108-L773)
+- [src/pages/Designer/index.tsx:17-365](file://src/pages/Designer/index.tsx#L17-L365)
+- [src/store/designer.ts:108-773](file://src/store/designer.ts#L108-L773)
+- [src/constants/index.ts:24-25](file://src/constants/index.ts#L24-L25)
 
 ### 状态管理系统
 
@@ -160,10 +178,10 @@ stateDiagram-v2
 ```
 
 **图表来源**
-- [src/store/designer.ts:84-106](file://designer/src/store/designer.ts#L84-L106)
+- [src/store/designer.ts:84-106](file://src/store/designer.ts#L84-L106)
 
 **章节来源**
-- [src/store/designer.ts:1-773](file://designer/src/store/designer.ts#L1-L773)
+- [src/store/designer.ts:1-773](file://src/store/designer.ts#L1-L773)
 
 ## 架构概览
 
@@ -204,8 +222,8 @@ Build --> ESLint
 ```
 
 **图表来源**
-- [README.md:7-17](file://designer/README.md#L7-L17)
-- [package.json:13-29](file://designer/package.json#L13-L29)
+- [README.md:7-17](file://README.md#L7-L17)
+- [package.json:13-29](file://package.json#L13-L29)
 
 ### 数据流架构
 
@@ -236,11 +254,11 @@ SDK-->>User : 显示预览结果
 ```
 
 **图表来源**
-- [src/pages/Designer/components/Canvas/index.tsx:281-479](file://designer/src/pages/Designer/components/Canvas/index.tsx#L281-L479)
-- [src/store/designer.ts:113-149](file://designer/src/store/designer.ts#L113-L149)
+- [src/pages/Designer/components/Canvas/index.tsx:281-479](file://src/pages/Designer/components/Canvas/index.tsx#L281-L479)
+- [src/store/designer.ts:113-149](file://src/store/designer.ts#L113-L149)
 
 **章节来源**
-- [README.md:1-81](file://designer/README.md#L1-L81)
+- [README.md:1-81](file://README.md#L1-L81)
 
 ## 详细组件分析
 
@@ -275,7 +293,7 @@ MoveSection --> End
 ```
 
 **图表来源**
-- [src/pages/Designer/components/Canvas/index.tsx:502-699](file://designer/src/pages/Designer/components/Canvas/index.tsx#L502-L699)
+- [src/pages/Designer/components/Canvas/index.tsx:502-699](file://src/pages/Designer/components/Canvas/index.tsx#L502-L699)
 
 #### 区域管理
 
@@ -283,12 +301,15 @@ MoveSection --> End
 
 | 区域类型 | 特性 | 约束 | 功能 |
 |---------|------|------|------|
-| 页头(header) | 顶部区域 | 高度可配置，最多占用内容区域30% | 支持组件拖拽，智能对齐 |
+| 页头(header) | 顶部区域 | 高度可配置，最少 1mm，最多占用内容区域30% | 支持组件拖拽，智能对齐 |
 | 内容(content) | 主要区域 | 受页边距和页头/页脚高度限制 | 支持所有组件类型 |
-| 页脚(footer) | 底部区域 | 高度可配置，最多占用内容区域30% | 支持组件拖拽，智能对齐 |
+| 页脚(footer) | 底部区域 | 高度可配置，最少 1mm，最多占用内容区域30% | 支持组件拖拽，智能对齐 |
+
+**更新** 页头和页脚的最小高度要求已从 15mm 降低至 1mm，提高了设计的灵活性和精确度。
 
 **章节来源**
-- [src/pages/Designer/components/Canvas/index.tsx:1-800](file://designer/src/pages/Designer/components/Canvas/index.tsx#L1-L800)
+- [src/pages/Designer/components/Canvas/index.tsx:1-800](file://src/pages/Designer/components/Canvas/index.tsx#L1-L800)
+- [src/constants/index.ts:24-25](file://src/constants/index.ts#L24-L25)
 
 ### 属性面板
 
@@ -311,6 +332,7 @@ class LayoutSection {
 +widthMm : number
 +heightMm : number
 +zIndex : number
++minSizeMM : 1
 }
 class StyleSection {
 +fontSize : number
@@ -334,13 +356,15 @@ PropertyPanel --> LayoutSection
 PropertyPanel --> StyleSection
 PropertyPanel --> DataBindingSection
 PropertyPanel --> TableColumnSection
+LayoutSection --> MinSize[最小尺寸限制]
 ```
 
 **图表来源**
-- [src/pages/Designer/components/PropertyPanel/index.tsx:17-152](file://designer/src/pages/Designer/components/PropertyPanel/index.tsx#L17-L152)
+- [src/pages/Designer/components/PropertyPanel/index.tsx:17-152](file://src/pages/Designer/components/PropertyPanel/index.tsx#L17-L152)
+- [src/constants/index.ts:24-25](file://src/constants/index.ts#L24-L25)
 
 **章节来源**
-- [src/pages/Designer/components/PropertyPanel/index.tsx:1-152](file://designer/src/pages/Designer/components/PropertyPanel/index.tsx#L1-L152)
+- [src/pages/Designer/components/PropertyPanel/index.tsx:1-152](file://src/pages/Designer/components/PropertyPanel/index.tsx#L1-L152)
 
 ### 资产面板
 
@@ -379,10 +403,10 @@ CompTab --> RectComp
 ```
 
 **图表来源**
-- [src/pages/Designer/components/AssetPanel/index.tsx:7-32](file://designer/src/pages/Designer/components/AssetPanel/index.tsx#L7-L32)
+- [src/pages/Designer/components/AssetPanel/index.tsx:7-32](file://src/pages/Designer/components/AssetPanel/index.tsx#L7-L32)
 
 **章节来源**
-- [src/pages/Designer/components/AssetPanel/index.tsx:1-32](file://designer/src/pages/Designer/components/AssetPanel/index.tsx#L1-L32)
+- [src/pages/Designer/components/AssetPanel/index.tsx:1-32](file://src/pages/Designer/components/AssetPanel/index.tsx#L1-L32)
 
 ### 打印预览组件
 
@@ -411,10 +435,35 @@ DisplayPreview --> End([结束])
 ```
 
 **图表来源**
-- [src/components/PrintPreview/index.tsx:174-304](file://designer/src/components/PrintPreview/index.tsx#L174-L304)
+- [src/components/PrintPreview/index.tsx:174-304](file://src/components/PrintPreview/index.tsx#L174-L304)
 
 **章节来源**
-- [src/components/PrintPreview/index.tsx:1-624](file://designer/src/components/PrintPreview/index.tsx#L1-L624)
+- [src/components/PrintPreview/index.tsx:1-624](file://src/components/PrintPreview/index.tsx#L1-L624)
+
+### 最小尺寸控制
+
+设计器实现了严格的最小尺寸控制机制，确保组件在设计过程中不会变得过小：
+
+```mermaid
+flowchart TD
+MouseDown[鼠标按下拖拽] --> Calculate[计算新尺寸]
+Calculate --> CheckWidth{检查宽度}
+CheckWidth --> |小于1mm| SetMinWidth[设置为1mm]
+CheckWidth --> |大于等于1mm| CheckHeight{检查高度}
+SetMinWidth --> CheckHeight
+CheckHeight --> |小于1mm| SetMinHeight[设置为1mm]
+CheckHeight --> |大于等于1mm| ApplyChanges[应用尺寸变化]
+SetMinHeight --> ApplyChanges
+ApplyChanges --> UpdatePosition[更新位置信息]
+UpdatePosition --> End[完成拖拽]
+```
+
+**图表来源**
+- [src/pages/Designer/components/Canvas/ResizeHandles.tsx:102-116](file://src/pages/Designer/components/Canvas/ResizeHandles.tsx#L102-L116)
+
+**章节来源**
+- [src/pages/Designer/components/Canvas/ResizeHandles.tsx:85-116](file://src/pages/Designer/components/Canvas/ResizeHandles.tsx#L85-L116)
+- [src/constants/index.ts:24-25](file://src/constants/index.ts#L24-L25)
 
 ## 依赖分析
 
@@ -437,6 +486,7 @@ subgraph "工具类依赖"
 Grid[grid.ts] --> Utils[通用工具]
 Zoom[zoom.ts] --> Utils
 PageSize[pageSize.ts] --> Utils
+Constants[constants.ts] --> Utils
 end
 subgraph "外部SDK依赖"
 SDK[@jcyao/print-sdk] --> PrintEngine[打印引擎]
@@ -454,8 +504,9 @@ App --> Vite
 ```
 
 **图表来源**
-- [package.json:13-29](file://designer/package.json#L13-L29)
-- [vite.config.ts:1-29](file://designer/vite.config.ts#L1-L29)
+- [package.json:13-29](file://package.json#L13-L29)
+- [vite.config.ts:1-29](file://vite.config.ts#L1-L29)
+- [src/constants/index.ts:1-25](file://src/constants/index.ts#L1-L25)
 
 ### 环境配置
 
@@ -468,8 +519,8 @@ App --> Vite
 | NODE_ENV | development/production | 环境模式 | 构建配置切换 |
 
 **章节来源**
-- [src/services/api.ts:13-20](file://designer/src/services/api.ts#L13-L20)
-- [vite.config.ts:8-14](file://designer/vite.config.ts#L8-L14)
+- [src/services/api.ts:13-20](file://src/services/api.ts#L13-L20)
+- [vite.config.ts:8-14](file://vite.config.ts#L8-L14)
 
 ## 性能考虑
 
@@ -539,9 +590,23 @@ App --> Vite
 3. 查看浏览器控制台错误信息
 4. 确认跨域设置正确
 
+#### 最小尺寸限制问题
+
+**问题描述**：组件无法调整到期望的很小尺寸
+**可能原因**：
+- 最小尺寸限制生效
+- 拖拽方向影响位置计算
+
+**解决步骤**：
+1. 确认当前最小尺寸限制为 1mm
+2. 检查拖拽方向是否正确
+3. 验证组件是否处于允许的最小尺寸范围内
+4. 查看控制台是否有相关错误信息
+
 **章节来源**
-- [src/services/api.ts:131-134](file://designer/src/services/api.ts#L131-L134)
-- [src/components/PrintPreview/index.tsx:174-304](file://designer/src/components/PrintPreview/index.tsx#L174-L304)
+- [src/services/api.ts:131-134](file://src/services/api.ts#L131-L134)
+- [src/components/PrintPreview/index.tsx:174-304](file://src/components/PrintPreview/index.tsx#L174-L304)
+- [src/pages/Designer/components/Canvas/ResizeHandles.tsx:102-116](file://src/pages/Designer/components/Canvas/ResizeHandles.tsx#L102-L116)
 
 ## 结论
 
@@ -554,13 +619,17 @@ App --> Vite
 3. **功能完整性**：涵盖从设计到打印的完整工作流
 4. **扩展性强**：支持自定义组件和数据绑定
 5. **性能优化**：合理的状态管理和渲染优化
+6. **设计规范严格**：最小高度要求精确到 1mm，确保打印质量
 
 ### 技术亮点
 
-- 采用React Hooks和Zustand实现高效的状态管理
-- 集成Monaco Editor提供代码编辑能力
+- 采用 React Hooks 和 Zustand 实现高效的状态管理
+- 集成 Monaco Editor 提供代码编辑能力
 - 支持多种页面配置和组件类型
 - 实现智能对齐和网格吸附功能
 - 提供完整的预览和打印功能
+- **更新** 最小高度要求精确控制，提升设计精度
 
 该设计器为打印模板的设计和管理提供了强有力的技术支撑，是企业级打印解决方案的重要组成部分。
+
+**更新** 最新的设计规范将最小高度要求从 15mm 降低至 1mm，这一变更显著提升了设计器的精度和灵活性，能够更好地满足精细打印需求。同时，连续纸张的最小高度仍保持为 100mm，确保特殊打印场景的稳定性。

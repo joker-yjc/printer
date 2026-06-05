@@ -9,4 +9,7 @@ scope:
     - sdk/src/printEngine.ts
 source_files: []
 depends_on: []
-related_to: []
+related_to:
+    - path: sdk/pipes
+    - path: sdk/print_engine
+    - path: designer/template_management

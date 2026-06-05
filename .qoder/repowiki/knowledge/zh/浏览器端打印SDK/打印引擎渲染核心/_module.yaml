@@ -5,4 +5,7 @@ scope:
     - sdk/src/printEngine/
 source_files: []
 depends_on: []
-related_to: []
+related_to:
+    - path: sdk/pipes
+    - path: sdk/core_api
+    - path: designer/designer_canvas/canvas_core/component_renderers

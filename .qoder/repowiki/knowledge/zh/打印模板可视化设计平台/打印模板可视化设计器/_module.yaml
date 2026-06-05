@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: designer/designer_canvas
+title: 打印模板可视化设计器
+scope:
+    - designer/src/pages/Designer/
+source_files: []
+depends_on: []
+related_to:
+    - path: designer/template_management
+    - path: designer/schema_management

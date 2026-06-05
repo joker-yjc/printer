@@ -6,4 +6,6 @@ scope:
 source_files: []
 depends_on: []
 related_to:
-    - path: designer/designer_infra
+    - path: sdk/core_api
+    - path: sdk/print_engine
+    - path: designer/schema_management

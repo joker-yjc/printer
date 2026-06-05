@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: designer/designer_canvas/canvas_core/component_renderers
+title: 设计器组件预览渲染器
+scope:
+    - designer/src/pages/Designer/components/Canvas/componentRenderers/
+source_files: []
+depends_on: []
+related_to:
+    - path: designer/designer_canvas/property_panel/style_plugins
+    - path: sdk/print_engine

@@ -1,8 +1,0 @@
-schema_version: 1
-module_path: designer/designer_canvas/property_panel/style_plugins
-title: 样式插件系统
-scope:
-    - designer/src/pages/Designer/components/PropertyPanel/stylePlugins/
-source_files: []
-depends_on: []
-related_to: []

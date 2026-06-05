@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: designer/designer_canvas/asset_panel
+title: 设计器资产面板
+scope:
+    - designer/src/pages/Designer/components/AssetPanel/
+source_files: []
+depends_on: []
+related_to:
+    - path: designer/designer_canvas/canvas_core

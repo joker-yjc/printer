@@ -1,8 +1,0 @@
-schema_version: 1
-module_path: designer/designer_canvas/property_panel/property_sections
-title: 属性面板配置区域
-scope:
-    - designer/src/pages/Designer/components/PropertyPanel/
-source_files: []
-depends_on: []
-related_to: []
