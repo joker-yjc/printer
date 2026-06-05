@@ -6,7 +6,7 @@ import styles from './index.module.css';
 import { useDesignerStore } from '../../../../store/designer';
 import type { ComponentNode, PageConfig, PageSection } from '../../../../types';
 import PrintPreview from '../../../../components/PrintPreview';
-import { CONTINUOUS_PAPER_MIN_HEIGHT, CONTINUOUS_PAPER_DEFAULT_WIDTH } from '../../../../constants';
+import { CONTINUOUS_PAPER_MIN_HEIGHT, CONTINUOUS_PAPER_DEFAULT_WIDTH, HEADER_FOOTER_MIN_HEIGHT } from '../../../../constants';
 import { snapToGrid as gridSnapToGrid } from '../../../../utils/grid';
 import { pxToMm } from '../../../../utils/zoom';
 import CanvasToolbar from './CanvasToolbar';
@@ -256,8 +256,8 @@ const CanvasArea = () => {
 
     const headerEnabled = pageConfig.headerEnabled ?? false;
     const footerEnabled = pageConfig.footerEnabled ?? false;
-    const headerH = headerEnabled ? Math.max(15, pageConfig.headerHeight || 15) : 0;
-    const footerH = footerEnabled ? Math.max(15, pageConfig.footerHeight || 15) : 0;
+    const headerH = headerEnabled ? Math.max(HEADER_FOOTER_MIN_HEIGHT, pageConfig.headerHeight || HEADER_FOOTER_MIN_HEIGHT) : 0;
+    const footerH = footerEnabled ? Math.max(HEADER_FOOTER_MIN_HEIGHT, pageConfig.footerHeight || HEADER_FOOTER_MIN_HEIGHT) : 0;
 
     if (inHeader) {
       // 页头组件：超出页头区域高度
@@ -656,8 +656,8 @@ const CanvasArea = () => {
             const pageRect = pageContent.getBoundingClientRect();
             const pageYMm = pxToMm(lastMousePosRef.current.y - pageRect.top, curZoom);
 
-            const headerH = (curPageConfig.headerEnabled ?? false) ? Math.max(15, curPageConfig.headerHeight || 15) : 0;
-            const footerH = (curPageConfig.footerEnabled ?? false) ? Math.max(15, curPageConfig.footerHeight || 15) : 0;
+            const headerH = (curPageConfig.headerEnabled ?? false) ? Math.max(HEADER_FOOTER_MIN_HEIGHT, curPageConfig.headerHeight || HEADER_FOOTER_MIN_HEIGHT) : 0;
+            const footerH = (curPageConfig.footerEnabled ?? false) ? Math.max(HEADER_FOOTER_MIN_HEIGHT, curPageConfig.footerHeight || HEADER_FOOTER_MIN_HEIGHT) : 0;
             const contentTop = curPageConfig.marginMm.top + headerH;
             // 基于 ref 计算页面高度，避免闭包过期
             let curPageH: number;
@@ -711,8 +711,8 @@ const CanvasArea = () => {
       // 页头手柄在底部，向下拖拽增加高度；页脚手柄在顶部，向下拖拽减少高度
       let newHeight = resizeStartHeightRef.current + (resizingSection === 'header' ? deltaMm : -deltaMm);
 
-      // 最小高度 15mm
-      newHeight = Math.max(15, newHeight);
+      // 最小高度
+      newHeight = Math.max(HEADER_FOOTER_MIN_HEIGHT, newHeight);
 
       // 最大高度：确保内容区域至少保留 30mm
       // 基于 ref 计算页面高度，避免闭包过期
@@ -725,8 +725,8 @@ const CanvasArea = () => {
       }
       const maxAvailable = curPageH - curPageConfig.marginMm.top - curPageConfig.marginMm.bottom - 30;
       const otherH = resizingSection === 'header'
-        ? Math.max(15, curPageConfig.footerHeight || 15)
-        : Math.max(15, curPageConfig.headerHeight || 15);
+        ? Math.max(HEADER_FOOTER_MIN_HEIGHT, curPageConfig.footerHeight || HEADER_FOOTER_MIN_HEIGHT)
+        : Math.max(HEADER_FOOTER_MIN_HEIGHT, curPageConfig.headerHeight || HEADER_FOOTER_MIN_HEIGHT);
       newHeight = Math.min(newHeight, maxAvailable - otherH);
 
       // 应用网格吸附
@@ -1119,7 +1119,7 @@ const CanvasArea = () => {
             {/* ===== 页头区域（连续纸不显示） ===== */}
             {pageConfig.headerEnabled && pageConfig.size !== 'CONTINUOUS' && (() => {
               const sectionW = canvasSize.widthPx;
-              const sectionH = Math.max(15, pageConfig.headerHeight || 15) * 3.78;
+              const sectionH = Math.max(HEADER_FOOTER_MIN_HEIGHT, pageConfig.headerHeight || HEADER_FOOTER_MIN_HEIGHT) * 3.78;
               const marginLeftPx = pageConfig.marginMm.left * 3.78;
               const marginRightPx = pageConfig.marginMm.right * 3.78;
               return (
@@ -1176,9 +1176,9 @@ const CanvasArea = () => {
             {/* ===== 内容区域 ===== */}
             {(() => {
               const headerEnabled = pageConfig.headerEnabled ?? false;
-              const headerH = headerEnabled ? Math.max(15, pageConfig.headerHeight || 15) : 0;
+              const headerH = headerEnabled ? Math.max(HEADER_FOOTER_MIN_HEIGHT, pageConfig.headerHeight || HEADER_FOOTER_MIN_HEIGHT) : 0;
               const footerEnabled = pageConfig.footerEnabled ?? false;
-              const footerH = footerEnabled ? Math.max(15, pageConfig.footerHeight || 15) : 0;
+              const footerH = footerEnabled ? Math.max(HEADER_FOOTER_MIN_HEIGHT, pageConfig.footerHeight || HEADER_FOOTER_MIN_HEIGHT) : 0;
               const contentTop = (pageConfig.marginMm.top + headerH) * 3.78;
               const contentH = canvasSize.heightPx - (pageConfig.marginMm.top + pageConfig.marginMm.bottom) * 3.78 - headerH * 3.78 - footerH * 3.78;
               const sectionW = canvasSize.widthPx;
@@ -1217,7 +1217,7 @@ const CanvasArea = () => {
 
             {/* ===== 页脚区域（连续纸不显示） ===== */}
             {pageConfig.footerEnabled && pageConfig.size !== 'CONTINUOUS' && (() => {
-              const footerH = Math.max(15, pageConfig.footerHeight || 15);
+              const footerH = Math.max(HEADER_FOOTER_MIN_HEIGHT, pageConfig.footerHeight || HEADER_FOOTER_MIN_HEIGHT);
               const sectionW = canvasSize.widthPx;
               const sectionTop = canvasSize.heightPx - pageConfig.marginMm.bottom * 3.78 - footerH * 3.78;
               const marginLeftPx = pageConfig.marginMm.left * 3.78;
@@ -1279,7 +1279,7 @@ const CanvasArea = () => {
                 className={styles['section-resize-handle']}
                 style={{
                   position: 'absolute',
-                  top: (pageConfig.marginMm.top + Math.max(15, pageConfig.headerHeight || 15)) * 3.78 - 3,
+                  top: (pageConfig.marginMm.top + Math.max(HEADER_FOOTER_MIN_HEIGHT, pageConfig.headerHeight || HEADER_FOOTER_MIN_HEIGHT)) * 3.78 - 3,
                   left: 0,
                   width: canvasSize.widthPx,
                   height: 6,
@@ -1290,7 +1290,7 @@ const CanvasArea = () => {
                   e.stopPropagation();
                   setResizingSection('header');
                   resizeStartYRef.current = e.clientY;
-                  resizeStartHeightRef.current = Math.max(15, pageConfig.headerHeight || 15);
+                  resizeStartHeightRef.current = Math.max(HEADER_FOOTER_MIN_HEIGHT, pageConfig.headerHeight || HEADER_FOOTER_MIN_HEIGHT);
                 }}
                 title="拖拽调整页头高度"
               />
@@ -1302,7 +1302,7 @@ const CanvasArea = () => {
                 className={styles['section-resize-handle']}
                 style={{
                   position: 'absolute',
-                  top: (getPageSize().height - pageConfig.marginMm.bottom - Math.max(15, pageConfig.footerHeight || 15)) * 3.78 - 3,
+                  top: (getPageSize().height - pageConfig.marginMm.bottom - Math.max(HEADER_FOOTER_MIN_HEIGHT, pageConfig.footerHeight || HEADER_FOOTER_MIN_HEIGHT)) * 3.78 - 3,
                   left: 0,
                   width: canvasSize.widthPx,
                   height: 6,
@@ -1313,7 +1313,7 @@ const CanvasArea = () => {
                   e.stopPropagation();
                   setResizingSection('footer');
                   resizeStartYRef.current = e.clientY;
-                  resizeStartHeightRef.current = Math.max(15, pageConfig.footerHeight || 15);
+                  resizeStartHeightRef.current = Math.max(HEADER_FOOTER_MIN_HEIGHT, pageConfig.footerHeight || HEADER_FOOTER_MIN_HEIGHT);
                 }}
                 title="拖拽调整页脚高度"
               />

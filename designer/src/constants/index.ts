@@ -20,3 +20,6 @@ export const MM_TO_PX_RATIO = 3.78;
 
 /** 打印场景下字体最小可读字号（px） */
 export const FONT_SIZE_MIN = 8;
+
+/** 页头/页脚最小高度（mm） */
+export const HEADER_FOOTER_MIN_HEIGHT = 1;

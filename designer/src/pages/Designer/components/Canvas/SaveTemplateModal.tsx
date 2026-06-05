@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { templateApi } from '../../../../services/api';
 import { useDesignerStore } from '../../../../store/designer';
+import { HEADER_FOOTER_MIN_HEIGHT } from '../../../../constants';
 import type { ComponentNode } from '../../../../types';
 
 interface SaveTemplateModalProps {
@@ -74,8 +75,8 @@ const SaveTemplateModal = ({
 
     const headerEnabled = pageConfig.headerEnabled ?? false;
     const footerEnabled = pageConfig.footerEnabled ?? false;
-    const headerH = headerEnabled ? Math.max(15, pageConfig.headerHeight || 15) : 0;
-    const footerH = footerEnabled ? Math.max(15, pageConfig.footerHeight || 15) : 0;
+    const headerH = headerEnabled ? Math.max(HEADER_FOOTER_MIN_HEIGHT, pageConfig.headerHeight || HEADER_FOOTER_MIN_HEIGHT) : 0;
+    const footerH = footerEnabled ? Math.max(HEADER_FOOTER_MIN_HEIGHT, pageConfig.footerHeight || HEADER_FOOTER_MIN_HEIGHT) : 0;
 
     if (inHeader) {
       return compBottom > headerH;

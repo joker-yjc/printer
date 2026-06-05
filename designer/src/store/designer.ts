@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { ComponentNode, PrintTemplate, PageConfig, PageSection } from '../types';
 import { snapToGrid } from '../utils/grid';
-import { CONTINUOUS_PAPER_DEFAULT_WIDTH } from '../constants';
+import { CONTINUOUS_PAPER_DEFAULT_WIDTH, HEADER_FOOTER_MIN_HEIGHT } from '../constants';
 
 // 最多保存 20 步历史
 const MAX_HISTORY_STEPS = 20;
@@ -221,13 +221,13 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
       template.page.headerEnabled ?? false,
       template.page.headerHeight,
       template.headerComponents || [],
-      15
+      HEADER_FOOTER_MIN_HEIGHT
     );
     const footerHeight = inferHeight(
       template.page.footerEnabled ?? false,
       template.page.footerHeight,
       template.footerComponents || [],
-      15
+      HEADER_FOOTER_MIN_HEIGHT
     );
 
     set({
@@ -245,7 +245,16 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
       headerComponents: template.headerComponents || [],
       footerComponents: template.footerComponents || [],
       selectedComponentId: null,
+      selectedComponentIds: [],
+      clipboard: [],
       zoomLevel: 100,
+      // 重置撤销/重做历史，避免上一个模板的操作记录残留
+      history: [{
+        headerComponents: JSON.parse(JSON.stringify(template.headerComponents || [])),
+        components: JSON.parse(JSON.stringify(template.components)),
+        footerComponents: JSON.parse(JSON.stringify(template.footerComponents || [])),
+      }],
+      historyIndex: 0,
     });
   },
 
@@ -591,18 +600,18 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
       /** 根据组件所在区域返回 Y 约束函数（坐标系：区域相对，0 = 区域顶部） */
       const constrainYFor = (section: 'header' | 'content' | 'footer', h: number) => {
         if (section === 'header') {
-          const headerH = Math.max(15, state.pageConfig.headerHeight || 15);
+          const headerH = Math.max(HEADER_FOOTER_MIN_HEIGHT, state.pageConfig.headerHeight || HEADER_FOOTER_MIN_HEIGHT);
           return (y: number) => Math.max(0, Math.min(headerH - h, y));
         }
         if (section === 'footer') {
-          const footerH = Math.max(15, state.pageConfig.footerHeight || 15);
+          const footerH = Math.max(HEADER_FOOTER_MIN_HEIGHT, state.pageConfig.footerHeight || HEADER_FOOTER_MIN_HEIGHT);
           return (y: number) => Math.max(0, Math.min(footerH - h, y));
         }
         // content 区域：yMm 相对于内容区域顶部，范围 [0, contentAvailH - h]
         const headerH = (state.pageConfig.headerEnabled ?? false)
-          ? Math.max(15, state.pageConfig.headerHeight || 15) : 0;
+          ? Math.max(HEADER_FOOTER_MIN_HEIGHT, state.pageConfig.headerHeight || HEADER_FOOTER_MIN_HEIGHT) : 0;
         const footerH = (state.pageConfig.footerEnabled ?? false)
-          ? Math.max(15, state.pageConfig.footerHeight || 15) : 0;
+          ? Math.max(HEADER_FOOTER_MIN_HEIGHT, state.pageConfig.footerHeight || HEADER_FOOTER_MIN_HEIGHT) : 0;
         const contentAvailH = pageH - marginMm.top - marginMm.bottom - headerH - footerH;
         return (y: number) => Math.max(0, Math.min(contentAvailH - h, y));
       };

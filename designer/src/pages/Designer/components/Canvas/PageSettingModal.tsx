@@ -1,5 +1,5 @@
 import { Modal, Form, Radio, InputNumber, Space, Switch, Select, Divider, Typography } from 'antd';
-import { CONTINUOUS_PAPER_DEFAULT_WIDTH, CONTINUOUS_PAPER_MIN_HEIGHT } from '../../../../constants';
+import { CONTINUOUS_PAPER_DEFAULT_WIDTH, CONTINUOUS_PAPER_MIN_HEIGHT, HEADER_FOOTER_MIN_HEIGHT } from '../../../../constants';
 import type { PageConfig } from '../../../../types';
 
 const { Text } = Typography;
@@ -187,7 +187,7 @@ const PageSettingModal = ({
                       noStyle
                     >
                       <IntInput
-                        min={15}
+                        min={HEADER_FOOTER_MIN_HEIGHT}
                         max={100}
                         suffix="mm"
                         style={{ width: 100 }}
@@ -221,7 +221,7 @@ const PageSettingModal = ({
                       noStyle
                     >
                       <IntInput
-                        min={15}
+                        min={HEADER_FOOTER_MIN_HEIGHT}
                         max={100}
                         suffix="mm"
                         style={{ width: 100 }}
@@ -238,8 +238,8 @@ const PageSettingModal = ({
               {({ getFieldValue }: any) => {
                 const hEnabled = getFieldValue('headerEnabled');
                 const fEnabled = getFieldValue('footerEnabled');
-                const hHeight = getFieldValue('headerHeight') || 15;
-                const fHeight = getFieldValue('footerHeight') || 15;
+                const hHeight = getFieldValue('headerHeight') || HEADER_FOOTER_MIN_HEIGHT;
+                const fHeight = getFieldValue('footerHeight') || HEADER_FOOTER_MIN_HEIGHT;
                 const pageSize = getFieldValue('size');
 
                 if (pageSize === 'CONTINUOUS') return null;
