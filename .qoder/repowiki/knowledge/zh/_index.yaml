@@ -2,7 +2,7 @@
 schema_version: 1
 locale: zh-CN
 branch: master
-exported_at: "2026-06-05T02:18:45Z"
+exported_at: "2026-06-05T06:18:54Z"
 modules:
     "":
         dir_name: 打印服务平台
@@ -24,10 +24,10 @@ modules:
             - designer/
         source_files: []
         children:
+            - designer/template_management
             - designer/schema_management
             - designer/designer_canvas
             - designer/help_docs
-            - designer/template_management
         depends_on: []
         related_to:
             - path: sdk
@@ -62,9 +62,9 @@ modules:
             - designer/src/pages/Designer/components/Canvas/
         source_files: []
         children:
-            - designer/designer_canvas/canvas_core/alignment_resize
             - designer/designer_canvas/canvas_core/component_renderers
             - designer/designer_canvas/canvas_core/canvas_ui
+            - designer/designer_canvas/canvas_core/alignment_resize
         depends_on: []
         related_to:
             - path: designer/designer_canvas/asset_panel
@@ -184,9 +184,9 @@ modules:
             - sdk/
         source_files: []
         children:
-            - sdk/print_engine
-            - sdk/core_api
             - sdk/pipes
+            - sdk/core_api
+            - sdk/print_engine
         depends_on: []
         related_to:
             - path: designer

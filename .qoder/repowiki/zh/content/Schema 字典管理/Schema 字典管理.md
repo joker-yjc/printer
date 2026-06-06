@@ -14,6 +14,12 @@
 - [designer/src/store/designer.ts](file://designer/src/store/designer.ts)
 </cite>
 
+## 更新摘要
+**所做更改**
+- 更新了所有文件路径引用，从原来的 '.qoder/repowiki/knowledge/zh/打印模板设计与管理平台/Schema 字典管理/' 移动到 '字典管理/' 目录
+- 保持了文档内容的完整性，仅更新了文件路径引用
+- 所有代码示例和架构图仍然准确反映当前代码库结构
+
 ## 目录
 1. [简介](#简介)
 2. [项目结构](#项目结构)
@@ -35,7 +41,7 @@ Schema 管理系统由以下模块构成：
 - Mock 数据与 API 层：提供 Schema 的增删改查接口与默认内置数据，便于开发调试。
 - 界面交互层：Schema 管理页面、表单弹窗、预览弹窗，支持手动编辑与从 Mock 数据智能生成。
 - 设计器集成层：PropertyPanel 的数据绑定区域，将组件与 Schema 字段路径进行绑定，实现数据驱动渲染。
-- 模板绑定层：打印模板通过 schemaId 关联 Schema，形成“Schema → 模板 → 组件”的数据流。
+- 模板绑定层：打印模板通过 schemaId 关联 Schema，形成"Schema → 模板 → 组件"的数据流。
 
 ```mermaid
 graph TB
@@ -79,9 +85,9 @@ DBS --> DZ
 - [designer/src/services/mockStore.ts:1-135](file://designer/src/services/mockStore.ts#L1-L135)
 - [designer/src/services/mock/schemas.ts:1-147](file://designer/src/services/mock/schemas.ts#L1-L147)
 - [designer/src/services/mock/templates.ts:1-800](file://designer/src/services/mock/templates.ts#L1-L800)
-- [designer/src/types/index.ts:1-378](file://designer/src/types/index.ts#L1-L378)
+- [designer/src/types/index.ts:1-422](file://designer/src/types/index.ts#L1-L422)
 - [designer/src/pages/Designer/components/PropertyPanel/DataBindingSection.tsx:1-128](file://designer/src/pages/Designer/components/PropertyPanel/DataBindingSection.tsx#L1-L128)
-- [designer/src/store/designer.ts:1-773](file://designer/src/store/designer.ts#L1-L773)
+- [designer/src/store/designer.ts:1-782](file://designer/src/store/designer.ts#L1-L782)
 
 **章节来源**
 - [designer/src/pages/SchemaManagement/index.tsx:1-551](file://designer/src/pages/SchemaManagement/index.tsx#L1-L551)
@@ -89,9 +95,9 @@ DBS --> DZ
 - [designer/src/services/mockStore.ts:1-135](file://designer/src/services/mockStore.ts#L1-L135)
 - [designer/src/services/mock/schemas.ts:1-147](file://designer/src/services/mock/schemas.ts#L1-L147)
 - [designer/src/services/mock/templates.ts:1-800](file://designer/src/services/mock/templates.ts#L1-L800)
-- [designer/src/types/index.ts:1-378](file://designer/src/types/index.ts#L1-L378)
+- [designer/src/types/index.ts:1-422](file://designer/src/types/index.ts#L1-L422)
 - [designer/src/pages/Designer/components/PropertyPanel/DataBindingSection.tsx:1-128](file://designer/src/pages/Designer/components/PropertyPanel/DataBindingSection.tsx#L1-L128)
-- [designer/src/store/designer.ts:1-773](file://designer/src/store/designer.ts#L1-L773)
+- [designer/src/store/designer.ts:1-782](file://designer/src/store/designer.ts#L1-L782)
 
 ## 核心组件
 - Schema 字典模型：包含 id、name、version、description、rootType、root 等字段，root 为 SchemaField 根节点，强制 key 为 'root'，type 为 'object'。
@@ -108,7 +114,7 @@ DBS --> DZ
 - [designer/src/pages/Designer/components/PropertyPanel/DataBindingSection.tsx:20-125](file://designer/src/pages/Designer/components/PropertyPanel/DataBindingSection.tsx#L20-L125)
 
 ## 架构概览
-Schema 管理系统采用“类型定义 → Mock API/Store → 界面交互 → 设计器集成”的分层架构。Schema 作为数据模型契约，被模板引用并通过组件绑定路径驱动渲染。
+Schema 管理系统采用"类型定义 → Mock API/Store → 界面交互 → 设计器集成"的分层架构。Schema 作为数据模型契约，被模板引用并通过组件绑定路径驱动渲染。
 
 ```mermaid
 sequenceDiagram
@@ -277,10 +283,10 @@ participant SM as "Schema 管理页面"
 participant SFM as "Schema 表单弹窗"
 participant API as "Mock API"
 participant STORE as "Mock Store"
-U->>SM : 点击“新建”
+U->>SM : 点击"新建"
 SM->>SFM : 打开弹窗并初始化表单
 U->>SFM : 填写基本信息/编辑 JSON/粘贴 Mock
-U->>SFM : 点击“保存”
+U->>SFM : 点击"保存"
 SFM->>API : 提交数据
 API->>STORE : 写入数据
 STORE-->>API : 返回结果
@@ -375,24 +381,24 @@ DBS --> DZ["store/designer.ts"]
 ```
 
 **图表来源**
-- [designer/src/types/index.ts:1-378](file://designer/src/types/index.ts#L1-L378)
+- [designer/src/types/index.ts:1-422](file://designer/src/types/index.ts#L1-L422)
 - [designer/src/pages/SchemaManagement/index.tsx:32-36](file://designer/src/pages/SchemaManagement/index.tsx#L32-L36)
 - [designer/src/services/mockApi.ts:1-103](file://designer/src/services/mockApi.ts#L1-L103)
 - [designer/src/services/mockStore.ts:1-135](file://designer/src/services/mockStore.ts#L1-L135)
 - [designer/src/services/mock/schemas.ts:1-147](file://designer/src/services/mock/schemas.ts#L1-L147)
 - [designer/src/services/mock/templates.ts:1-800](file://designer/src/services/mock/templates.ts#L1-L800)
 - [designer/src/pages/Designer/components/PropertyPanel/DataBindingSection.tsx:9-11](file://designer/src/pages/Designer/components/PropertyPanel/DataBindingSection.tsx#L9-L11)
-- [designer/src/store/designer.ts:1-773](file://designer/src/store/designer.ts#L1-L773)
+- [designer/src/store/designer.ts:1-782](file://designer/src/store/designer.ts#L1-L782)
 
 **章节来源**
-- [designer/src/types/index.ts:1-378](file://designer/src/types/index.ts#L1-L378)
+- [designer/src/types/index.ts:1-422](file://designer/src/types/index.ts#L1-L422)
 - [designer/src/pages/SchemaManagement/index.tsx:32-36](file://designer/src/pages/SchemaManagement/index.tsx#L32-L36)
 - [designer/src/services/mockApi.ts:1-103](file://designer/src/services/mockApi.ts#L1-L103)
 - [designer/src/services/mockStore.ts:1-135](file://designer/src/services/mockStore.ts#L1-L135)
 - [designer/src/services/mock/schemas.ts:1-147](file://designer/src/services/mock/schemas.ts#L1-L147)
 - [designer/src/services/mock/templates.ts:1-800](file://designer/src/services/mock/templates.ts#L1-L800)
 - [designer/src/pages/Designer/components/PropertyPanel/DataBindingSection.tsx:9-11](file://designer/src/pages/Designer/components/PropertyPanel/DataBindingSection.tsx#L9-L11)
-- [designer/src/store/designer.ts:1-773](file://designer/src/store/designer.ts#L1-L773)
+- [designer/src/store/designer.ts:1-782](file://designer/src/store/designer.ts#L1-L782)
 
 ## 性能考虑
 - 内存存储优化
@@ -406,10 +412,10 @@ DBS --> DZ["store/designer.ts"]
 
 ## 故障排除指南
 - 根节点校验失败
-  - 现象：保存时报错“顶层节点的 key 必须为 'root'"
+  - 现象：保存时报错"顶层节点的 key 必须为 'root'"
   - 处理：确保 root 节点 key 为 'root'，type 为 'object'
 - JSON 格式错误
-  - 现象：保存时报错“JSON 格式错误”
+  - 现象：保存时报错"JSON 格式错误"
   - 处理：检查 JSON 语法，确保为有效对象
 - Mock 数据格式错误
   - 现象：智能生成失败
@@ -433,7 +439,7 @@ Schema 字典管理系统通过标准化的数据模型、严格的类型与验�
 ## 附录
 - 快速上手
   - 在 Schema 管理页面新建 Schema，填写名称与版本
-  - 选择“手动编辑”或“智能生成”，完善 root 与字段定义
+  - 选择"手动编辑"或"智能生成"，完善 root 与字段定义
   - 保存后在模板中选择对应的 schemaId 并在 PropertyPanel 中绑定路径
 - 常用字段类型
   - string/number/boolean/date/datetime/object/array
