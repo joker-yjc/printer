@@ -2,6 +2,37 @@
 
 所有版本的变更记录都列在这里，遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 规范。
 
+## [1.2.0] - 2026-06-06
+
+### ✨ 新增功能
+
+- **表格表头显示控制 + 跨页重复表头**
+  - 新增"跨页重复表头"复选框，受"显示表头"状态联动控制
+  - 取消"显示表头"时自动同步关闭"跨页重复表头"
+  - 画布预览中隐藏表头时显示半透明提示，便于识别当前状态
+
+- **表格密度预设选择器**
+  - 表格列管理面板新增「表格风格」单选按钮组（标准 / 紧凑）
+  - 紧凑模式下单元格 padding 收紧为 `1px 4px`、line-height 为 `1.2`，与 SDK 渲染严格一致
+
+- **合计行显示模式选择器**
+  - 表格列管理面板新增「合计行显示风格」单选按钮组（显示 / 隐藏 / 仅额外行）
+  - 与 SDK `summaryDisplay` 字段直接对应，向后兼容 `showSummary`
+  - `summaryDisplay` 解析逻辑提取复用，消除 3 处重复
+
+### 🐛 问题修复
+
+- 合计行折叠面板在 `summaryDisplay='none'` 时仍展开，改为自动隐藏
+- 列级样式面板在 `summaryDisplay='none'` 时仍展开，改为自动隐藏
+
+### 📦 依赖升级
+
+- `@jcyao/print-sdk`: `^1.6.0` → `^1.7.0`
+
+**影响范围**：`designer/src/types/index.ts`、`designer/src/pages/Designer/components/Canvas/componentRenderers/TablePreview.tsx`、`designer/src/pages/Designer/components/PropertyPanel/TableColumnSection.tsx`
+
+---
+
 ## [1.1.0] - 2026-06-04
 
 ### ✨ 新增功能

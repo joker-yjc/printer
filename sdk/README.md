@@ -5,7 +5,7 @@
 
 通用打印 SDK - 客户端打印解决方案
 
-**当前版本**: v1.6.0
+**当前版本**: v1.7.0
 
 ## 🎨 在线演示
 
@@ -124,6 +124,23 @@ await sdk.printMultiple(myTemplate, dataList, {
 });
 ```
 
+### `sdk.generateHTMLMultiple(template, dataList, options?)`
+
+批量生成 HTML（同模板多数据），**不执行打印**，返回完整 HTML 字符串。
+
+适用于 Electron、Node 端或需要自定义打印/保存/转 PDF 的场景：
+
+```typescript
+const html = await sdk.generateHTMLMultiple(myTemplate, dataList, {
+  onProgress: (progress) => {
+    console.log(`进度: ${progress.completed}/${progress.total}`);
+  }
+});
+
+// Electron 场景：将 HTML 写入隐藏 BrowserWindow 后调用 webContents.print()
+fs.writeFileSync('batch.html', html);
+```
+
 ### `sdk.printMultiTemplate(groups, options)`
 
 多模板批量打印（多模板 + 各自对应的数据列表）。
@@ -140,6 +157,24 @@ await sdk.printMultiTemplate([
     );
   }
 });
+```
+
+### `sdk.generateHTMLMultiTemplate(groups, options?)`
+
+多模板批量生成 HTML，**不执行打印**，返回完整 HTML 字符串。
+
+适用于 Electron 等需要自行处理打印的环境：
+
+```typescript
+const html = await sdk.generateHTMLMultiTemplate([
+  { template: templateA, dataList: [dataA1, dataA2] },
+  { template: templateB, dataList: [dataB1] },
+]);
+
+// Electron 场景：写入临时文件后用 BrowserWindow 打印
+const win = new BrowserWindow({ show: false });
+win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+win.webContents.print({ silent: false });
 ```
 
 **参数：**
@@ -398,6 +433,66 @@ interface MultiTemplatePrintProgress {
   }
 }
 ```
+
+### 表格密度预设
+
+通过 `density` 字段快速切换表格紧凑程度：
+
+```typescript
+{
+  type: 'table',
+  props: {
+    density: 'compact',  // 'normal' | 'compact'，默认 'normal'
+    columns: [...]
+  }
+}
+```
+
+| 密度 | cellPadding | lineHeight | 适用场景 |
+|------|-------------|------------|----------|
+| `normal`（默认） | `4px 8px` | `1.5` | 常规报表，舒适阅读 |
+| `compact` | `1px 4px` | `1.2` | 密集数据，节省纸张/空间 |
+
+### 跨页重复表头
+
+```typescript
+{
+  type: 'table',
+  props: {
+    showHeader: true,        // 是否显示表头
+    repeatHeader: true,      // 跨页重复表头（与 showHeader 联动）
+    columns: [...]
+  }
+}
+```
+
+`showHeader + repeatHeader` 组合逻辑：
+- `showHeader=false` → 任何页都不渲染表头
+- `showHeader=true + repeatHeader=false` → 仅首页渲染表头
+- `showHeader=true + repeatHeader=true` → 每页重复渲染表头
+
+### 合计行显示模式
+
+`summaryDisplay` 字段替代旧的 `showSummary` 布尔值，支持更细粒度控制：
+
+```typescript
+{
+  type: 'table',
+  props: {
+    summaryDisplay: 'both',       // 'both' | 'none' | 'extra-only'
+    // showSummary: true,         // 旧字段，仍向后兼容，等同于 'both'
+    summaryMode: 'total',         // total: 仅最后一页, page: 每页合计
+    summaryLabel: '合计',
+    summaryExtraRows: [...]       // 额外行（如大写金额）
+  }
+}
+```
+
+| 模式 | 行为 |
+|------|------|
+| `both`（默认） | 显示合计行 + 额外行 |
+| `none` | 隐藏合计行和额外行 |
+| `extra-only` | 仅显示额外行（如大写金额），隐藏普通合计 |
 
 **合计管道配置示例：**
 

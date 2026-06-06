@@ -1,7 +1,7 @@
 {
   "name": "designer",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
-    "@jcyao/print-sdk": "^1.6.0",
+    "@jcyao/print-sdk": "^1.7.0",
     "@monaco-editor/react": "^4.7.0",
     "@types/bwip-js": "^3.2.3",
     "@types/qrcode-generator": "^0.0.16",

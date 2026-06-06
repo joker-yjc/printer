@@ -30,27 +30,55 @@
 
 ### ✨ 新增功能
 
+- **表格表头显示控制 + 跨页重复表头**
+  - 新增"跨页重复表头"配置（`repeatHeader`），与"显示表头"（`showHeader`）联动控制
+  - 取消"显示表头"时自动同步关闭"跨页重复表头"
+  - SDK 支持 `showHeader + repeatHeader` 组合逻辑矩阵：
+    - `showHeader=false` → 任何页都不渲染表头
+    - `showHeader=true + repeatHeader=false` → 仅首页渲染表头
+    - `showHeader=true + repeatHeader=true` → 每页重复渲染表头
+  - 设计器预览中隐藏表头时显示半透明提示，便于识别当前状态
+
 - **表格密度预设**
   - 新增 `TABLE_DENSITY_PRESETS` 常量，提供 `normal` 和 `compact` 两种密度预设
   - `TableProps` 新增 `density` 字段（`'normal' | 'compact'`），控制单元格 padding 和 line-height
   - `compact` 模式：`cellPadding: '1px 4px'`, `lineHeight: '1.2'`，减少行高约 30%
+  - Designer WYSIWYG 画布预览与 SDK 渲染严格对齐
 
 - **合计行显示模式**
   - `TableProps` 新增 `summaryDisplay` 字段（`'both' | 'none' | 'extra-only'`），替代旧的 `showSummary` 布尔值
   - `extra-only` 模式：仅显示额外行（如大写金额），隐藏普通合计
   - 旧 `showSummary` 字段向后兼容，内部自动转为 `summaryDisplay`
+  - 新增 `resolveSummaryMode()` 工具函数，统一 SDK 各决策点的显示模式解析
 
 - **批量打印 API**
-  - 新增 `generateHTMLMultiple()` 批量生成 HTML（同模板多数据）
+  - 新增 `generateHTMLMultiple()` 批量生成 HTML（同模板多数据），供 Electron 等需要自行处理打印的环境使用
   - 新增 `generateHTMLMultiTemplate()` 多模板批量生成 HTML
-  - 新增 `printMultiple()` / `printMultiTemplate()` 批量打印方法
+  - 新增 `printMultiple()` / `printMultiTemplate()` 批量打印方法（内部已重构：先调用 `generateHTML*` 再走统一 `executePrint`，消除 ~130 行重复代码，统一 `afterprint` + 5s 兜底清理）
+
+### 🐛 问题修复
+
+- **首个表格组件 y 坐标偏移**：SDK 分页引擎中第一个组件的 `yMm` 被强制设为 `marginTop`，丢失了原始值（Designer 画布以页面顶部为原点，SDK 渲染以内容区域顶部为原点，坐标系不一致）
+- **旧代码 `showHeader=false` 时首页仍显示表头**：`splitTableWithGap` 分页时未联动 `showHeader` 状态
+- **`extra-only` 模式 fallback 错误**：Renderer 在 `extra-only` 模式下错误地使用 `summaryMode` 作为是否渲染合计行的依据，导致全空数据时仍走合计渲染路径
+
+### 🧹 清理
+
+- `printMultiple` / `printMultiTemplate` 内部重构：先调用 `generateHTML*` 生成 HTML，再走统一 `executePrint` 入口，消除 ~130 行重复代码
+- 移除 `TABLE_STYLE_DEFAULT.CELL_PADDING` 死代码（已迁移到 `TABLE_DENSITY_PRESETS`）
+- 移除 `STYLE_DEFAULT` 残余引用
 
 ### ⚠️ 行为变更
 
 - `TABLE_DEFAULT.HEADER_HEIGHT` 从 10mm 调整为 **8mm**，与 `MIN_ROW_HEIGHT` 统一
   - 浏览器端 DOM 实测表头高度不受影响，SSR 路径和 fallback 计算直接使用此常量
 
-**影响范围**：`sdk/src/types.ts`、`sdk/src/printEngine/constants.ts`、`sdk/src/printEngine/renderers/TableRenderer.ts`、`sdk/src/printEngine.ts`、`sdk/src/PrintSDK.ts`
+### 🔧 类型变更
+
+- **`TableProps` 新增可选属性**：`density`、`summaryDisplay`
+- **移除 `TablePaginationConfig` 接口**（孤立死代码），`repeatHeader` 已在更早版本提升至 `TableProps` 顶层
+
+**影响范围**：`sdk/src/types.ts`、`sdk/src/printEngine/constants.ts`、`sdk/src/printEngine/renderers/TableRenderer.ts`、`sdk/src/printEngine/renderers/index.ts`、`sdk/src/printEngine.ts`、`sdk/src/PrintSDK.ts`、`sdk/src/sdk.ts`、`designer/src/types/index.ts`、`designer/src/pages/Designer/components/Canvas/componentRenderers/TablePreview.tsx`、`designer/src/pages/Designer/components/PropertyPanel/TableColumnSection.tsx`
 
 ---
 
