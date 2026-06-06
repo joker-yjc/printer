@@ -85,11 +85,6 @@ export interface DataBinding {
   fallback?: string;
 }
 
-// 表格分页配置
-export interface TablePaginationConfig {
-  repeatHeader?: boolean;  // 跨页是否重复表头（默认 true）
-}
-
 // 表格列合计配置
 export interface TableColumnSummary {
   type: 'sum' | 'avg' | 'max' | 'min' | 'count';  // 聚合类型

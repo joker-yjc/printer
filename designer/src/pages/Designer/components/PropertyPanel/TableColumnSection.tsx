@@ -236,10 +236,39 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
         <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Checkbox
             checked={component.props?.showHeader !== false}
-            onChange={(e) => onPropsChange('showHeader', e.target.checked)}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              // 联动：取消"显示表头"时同步取消"跨页重复表头"
+              // 必须一次性 updateComponent 写入，避免 props 快照覆盖问题
+              if (!checked) {
+                updateComponent(component.id, {
+                  props: {
+                    ...component.props,
+                    showHeader: false,
+                    repeatHeader: false,
+                  },
+                });
+              } else {
+                onPropsChange('showHeader', true);
+              }
+            }}
           >
             显示表头
           </Checkbox>
+        </div>
+        <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
+          <Tooltip
+            title={component.props?.showHeader === false ? '未启用表头时此项无效' : ''}
+            placement="top"
+          >
+            <Checkbox
+              checked={component.props?.showHeader !== false && component.props?.repeatHeader !== false}
+              onChange={(e) => onPropsChange('repeatHeader', e.target.checked)}
+              disabled={component.props?.showHeader === false}
+            >
+              跨页重复表头
+            </Checkbox>
+          </Tooltip>
         </div>
         <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Checkbox

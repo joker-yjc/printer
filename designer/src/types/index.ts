@@ -164,15 +164,6 @@ export interface DataBinding {
 }
 
 /**
- * 表格分页配置
- * 控制表格跨页时的行为
- */
-export interface TablePaginationConfig {
-  /** 跨页时是否重复表头，默认 true */
-  repeatHeader?: boolean;
-}
-
-/**
  * 表格列合计配置
  * 定义表格列的合计计算方式
  */

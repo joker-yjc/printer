@@ -136,8 +136,8 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
         width: '100%', height: '100%', borderCollapse: 'collapse',
         fontSize: component.style?.fontSize || 12,
       }}>
-        {showHeader && displayCols.length > 0 && (
-          <thead>
+        {displayCols.length > 0 && (
+          <thead style={!showHeader ? { opacity: 0.4 } : undefined}>
             <tr>
               {displayCols.map((col: any, idx: number) => {
                 const colMm = Math.round(parseFloat(colWidths[idx]) / 100 * tableWidthMm * 10) / 10;
@@ -186,6 +186,9 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
               border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
               padding: '8px', textAlign: 'center', color: '#999',
             }}>
+              {!showHeader && <p>
+                 表头已隐藏，仅打印数据 !!!
+              </p>}
               暂无数据
             </td>
           </tr>

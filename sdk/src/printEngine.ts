@@ -776,7 +776,9 @@ export class PrintEngine {
     currentPage: ComponentNode[]
   ): Promise<{ currentPage: ComponentNode[]; currentPageHeight: number; isTableSplitAcrossPages: boolean; lastTableFragmentBottom: number }> {
     // 读取配置：是否重复表头（默认 true）
-    const repeatHeader = tableComponent.props?.pagination?.repeatHeader !== false;
+    const repeatHeader = tableComponent.props?.repeatHeader !== false;
+    // 读取配置：是否显示表头（默认 true），用于 needHeader 公式
+    const showHeader = tableComponent.props?.showHeader !== false;
     const marginTop = this.template.page.marginMm?.top || 0;
     const marginBottom = this.template.page.marginMm?.bottom || 0;
     const { heightMm } = this.getPageSize();
@@ -836,8 +838,11 @@ export class PrintEngine {
         remainingHeight -= gap;
       }
 
-      // 如果 repeatHeader = false 且是第一个片段，则表头已经在第一页了，后续页不需要表头
-      const needHeader = isFirstFragment || repeatHeader;
+      // 表头显示矩阵：
+      // - showHeader=false：所有页都不显示表头
+      // - showHeader=true, repeatHeader=true：所有页都显示
+      // - showHeader=true, repeatHeader=false：仅第一页显示
+      const needHeader = showHeader && (isFirstFragment || repeatHeader);
 
       // ✅ 只在 page 模式下预先预留合计行高度
       // total 模式只有最后一页显示合计行，不需要在中间页预留
