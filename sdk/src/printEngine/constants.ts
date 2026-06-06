@@ -49,8 +49,8 @@ export const COMPONENT_DEFAULT_SIZE = {
  * 表格默认尺寸配置
  */
 export const TABLE_DEFAULT = {
-  /** 表头行高度（mm） */
-  HEADER_HEIGHT: 10,
+  /** 表头行高度（mm），与数据行 MIN_ROW_HEIGHT 保持一致 */
+  HEADER_HEIGHT: 8,
   /** 数据行最小高度（mm） */
   MIN_ROW_HEIGHT: 8,
   /** 行高计算系数（用于 min-height，实际高度由内容撑开） */
@@ -89,6 +89,17 @@ export const TABLE_STYLE_DEFAULT = {
   HEADER_BACKGROUND: '#fafafa',
   /** 单元格内边距 */
   CELL_PADDING: '4px 8px',
+} as const;
+
+/**
+ * 表格密度预设
+ * 控制单元格内边距和行高，用于调整表格紧凑程度
+ */
+export const TABLE_DENSITY_PRESETS = {
+  /** 正常密度（默认） */
+  normal: { cellPadding: '4px 8px', lineHeight: '1.5' },
+  /** 紧凑密度 */
+  compact: { cellPadding: '2px 4px', lineHeight: '1.2' },
 } as const;
 
 /**

@@ -299,6 +299,10 @@ export interface TableProps {
   repeatHeader?: boolean;
   /** 是否显示合计行 */
   showSummary?: boolean;
+  /** 表格密度预设，不传时为 'normal' */
+  density?: 'normal' | 'compact';
+  /** 合计行显示模式，向后兼容 showSummary */
+  summaryDisplay?: 'both' | 'none' | 'extra-only';
   /** 合计模式：page=每页合计，total=仅最后一页合计，默认 'total' */
   summaryMode?: 'page' | 'total';
   /** 合计行首列标签，默认 "合计" */

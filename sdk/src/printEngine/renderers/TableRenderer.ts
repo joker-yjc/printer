@@ -6,7 +6,7 @@ import Decimal from 'decimal.js';
 import type { ComponentNode, TableColumn, TableProps, SummaryExtraRow } from '../../types';
 import type { ComponentRenderer, RenderContext, StyleObject } from '../types';
 import { buildStyleString, buildPositionStyle } from '../utils/styleBuilder';
-import { COMPONENT_DEFAULT_SIZE, TABLE_DEFAULT, TABLE_STYLE_DEFAULT, TABLE_HEADER_STYLE_DEFAULT, STYLE_DEFAULT } from '../constants';
+import { COMPONENT_DEFAULT_SIZE, TABLE_DEFAULT, TABLE_STYLE_DEFAULT, TABLE_HEADER_STYLE_DEFAULT, TABLE_DENSITY_PRESETS } from '../constants';
 import { getExecutor } from '../../pipes/registry';
 
 /**
@@ -70,6 +70,17 @@ function mergeColumnStyle(
     }
   }
   return merged;
+}
+
+/**
+ * 解析合计行显示模式
+ * 优先级：summaryDisplay > showSummary（向后兼容）
+ * - summaryDisplay 已设置时直接返回
+ * - 否则根据 showSummary 映射：true → 'both'，false/未设置 → 'none'
+ */
+export function resolveSummaryMode(props: TableProps): 'both' | 'none' | 'extra-only' {
+  if (props.summaryDisplay) return props.summaryDisplay;
+  return props.showSummary ? 'both' : 'none';
 }
 
 /**
@@ -289,8 +300,12 @@ export class TableRenderer implements ComponentRenderer {
     const borderColor = props?.borderColor ?? TABLE_STYLE_DEFAULT.BORDER_COLOR;
     const borderWidth = props?.borderWidth ?? 1;
     const cellBorder = bordered ? `border: ${borderWidth}px ${borderStyle} ${borderColor};` : '';
-    const cellPadding = `padding: ${TABLE_STYLE_DEFAULT.CELL_PADDING};`;
-    const cellTextStyle = `white-space: normal; word-break: break-word; line-height: ${STYLE_DEFAULT.LINE_HEIGHT}; vertical-align: middle;`;
+    // 根据 density 预设计算单元格内边距和行高
+    const densityPreset = TABLE_DENSITY_PRESETS[(props?.density || 'normal') as keyof typeof TABLE_DENSITY_PRESETS]
+      ?? TABLE_DENSITY_PRESETS.normal;
+    const cellPadding = `padding: ${densityPreset.cellPadding};`;
+    const cellLineHeight = densityPreset.lineHeight;
+    const cellTextStyle = `white-space: normal; word-break: break-word; line-height: ${cellLineHeight}; vertical-align: middle;`;
     const textAlign = style?.textAlign || 'left'; // 对齐方式
 
     const colWidths = computeColWidths(displayColumns, tableWidthMm);
@@ -322,10 +337,10 @@ export class TableRenderer implements ComponentRenderer {
             || textAlign;
           const baseHeaderStyle: Record<string, string | number> = {
             border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
-            padding: '4px 8px',
+            padding: densityPreset.cellPadding,
             'white-space': 'normal',
             'word-break': 'break-word',
-            'line-height': STYLE_DEFAULT.LINE_HEIGHT,
+            'line-height': cellLineHeight,
             'vertical-align': 'middle',
             'text-align': hAlign,
             background: headerDefaultBg,
@@ -361,10 +376,10 @@ export class TableRenderer implements ComponentRenderer {
                 const rowNumber = startRowIndex + rowIndex + 1;
                 const baseRowNumStyle: Record<string, string | number> = {
                   border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
-                  padding: '4px 8px',
+                  padding: densityPreset.cellPadding,
                   'white-space': 'normal',
                   'word-break': 'break-word',
-                  'line-height': STYLE_DEFAULT.LINE_HEIGHT,
+                  'line-height': cellLineHeight,
                   'vertical-align': 'middle',
                   'text-align': col.style?.textAlign || col.align || 'center',
                   width: colWidths[idx],
@@ -380,10 +395,10 @@ export class TableRenderer implements ComponentRenderer {
               const dAlign = col.style?.textAlign || col.align || textAlign;
               const baseDataStyle: Record<string, string | number> = {
                 border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
-                padding: '4px 8px',
+                padding: densityPreset.cellPadding,
                 'white-space': 'normal',
                 'word-break': 'break-word',
-                'line-height': STYLE_DEFAULT.LINE_HEIGHT,
+                'line-height': cellLineHeight,
                 'vertical-align': 'middle',
                 'text-align': dAlign,
                 width: colWidths[idx],
@@ -401,34 +416,50 @@ export class TableRenderer implements ComponentRenderer {
       bodyHtml = `<tbody>${rows}</tbody>`;
     } else {
       const colspan = displayColumns.length || 1;
-      bodyHtml = `<tbody><tr style="min-height: ${rowHeightPx}px;"><td colspan="${colspan}" style="${cellBorder} ${cellPadding} text-align: center; color: #999; min-height: ${rowHeightPx}px; box-sizing: border-box;">暂无数据</td></tr></tbody>`;
+      bodyHtml = `<tbody><tr style="min-height: ${rowHeightPx}px;"><td colspan="${colspan}" style="${cellBorder} ${cellPadding} line-height: ${cellLineHeight}; text-align: center; color: #999; min-height: ${rowHeightPx}px; box-sizing: border-box;">暂无数据</td></tr></tbody>`;
     }
 
-    // 渲染合计行（新增）
-    const showSummary = props?.showSummary === true;
-    const summaryMode = props?.summaryMode || 'total'; // 默认仅最后一页合计
+    // 渲染合计行
+    const tableProps = props as TableProps;
+    const summaryModeResolved = resolveSummaryMode(tableProps);
+    const legacySummaryMode = props?.summaryMode || 'total'; // 默认仅最后一页合计
     const isLastPage = props?._isLastPage === true;
 
-    // 根据模式决定是否显示合计行
-    const shouldShowSummary = showSummary && tableData.length > 0 && (
-      summaryMode === 'page' || // 每页都显示
-      (summaryMode === 'total' && isLastPage) // 仅最后一页显示
+    // 根据 resolveSummaryMode 决定是否渲染 tfoot（统一收口）
+    const hasSummaryRow = tableData.length > 0 && (
+      legacySummaryMode === 'page' || // 每页都显示
+      (legacySummaryMode === 'total' && isLastPage) // 仅最后一页显示
     );
+    const hasExtraRows = (tableProps.summaryExtraRows?.length ?? 0) > 0;
+    const extraRowsShouldRender = hasExtraRows && (
+      summaryModeResolved === 'extra-only' || // extra-only 模式每页渲染额外行
+      legacySummaryMode === 'page' ||
+      (legacySummaryMode === 'total' && isLastPage)
+    );
+    const shouldRenderTfoot = summaryModeResolved !== 'none' && (hasSummaryRow || extraRowsShouldRender);
 
     // 选择计算数据源：total 模式使用全量数据，page 模式使用当前页数据
-    const summaryData = summaryMode === 'total' && props?._totalData
+    const summaryData = legacySummaryMode === 'total' && props?._totalData
       ? props._totalData
       : tableData;
 
-    const summaryHtml = shouldShowSummary
-      ? this.renderSummary(summaryData, displayColumns, props as TableProps, cellBorder, cellPadding, cellTextStyle, rowHeightPx, textAlign, colWidths)
-      : '';
+    let summaryHtml = '';
+    if (shouldRenderTfoot) {
+      // renderSummary 内部根据 summaryModeResolved 决定渲染哪些行：
+      // 'both' → 合计行 + 额外行（如有）；'extra-only' → 仅额外行
+      summaryHtml = this.renderSummary(
+        summaryData, displayColumns, tableProps, cellBorder, cellPadding, cellTextStyle,
+        rowHeightPx, textAlign, colWidths, summaryModeResolved, hasSummaryRow
+      );
+    }
 
     return `<table class="print-table" style="${tableStyleStr}">${headerHtml}${bodyHtml}${summaryHtml}</table>`;
   }
 
   /**
-   * 渲染合计行
+   * 渲染合计行（统一出口：根据 summaryMode 决定渲染合计行和/或额外行）
+   * @param summaryMode 合计行显示模式，'extra-only' 时跳过合计行只渲染额外行
+   * @param hasSummaryRow 是否满足合计行渲染条件（有数据且符合 page/total 模式）
    */
   private renderSummary(
     data: any[],
@@ -439,7 +470,9 @@ export class TableRenderer implements ComponentRenderer {
     cellTextStyle: string,
     rowHeightPx: number,
     defaultTextAlign: string,
-    colWidths: string[]
+    colWidths: string[],
+    summaryMode: 'both' | 'none' | 'extra-only' = 'both',
+    hasSummaryRow: boolean = true
   ): string {
     if (!columns.length) return '';
 
@@ -451,38 +484,44 @@ export class TableRenderer implements ComponentRenderer {
 
     const firstDataColumn = columns.find((col) => col.dataIndex !== '__row_number__');
 
-    const cells = columns.map((col, idx) => {
-      let content = '';
+    // extra-only 模式或不满足合计行条件时，跳过合计行
+    let summaryRowHtml = '';
+    if (summaryMode !== 'extra-only' && hasSummaryRow) {
+      const cells = columns.map((col, idx) => {
+        let content = '';
 
-      if (col.dataIndex === '__row_number__') {
-        content = '';
-      } else if (col === firstDataColumn) {
-        content = summaryLabel;
-      } else if (col.summary) {
-        content = this.calculateSummary(data, col);
-      }
+        if (col.dataIndex === '__row_number__') {
+          content = '';
+        } else if (col === firstDataColumn) {
+          content = summaryLabel;
+        } else if (col.summary) {
+          content = this.calculateSummary(data, col);
+        }
 
-      const cellStyle = `
-        ${cellBorder}
-        ${cellPadding}
-        ${cellTextStyle}
-        text-align: ${col.align || defaultTextAlign};
-        width: ${colWidths[idx]};
-        min-height: ${rowHeightPx}px;
-        box-sizing: border-box;
-        background: ${bgColor};
-        font-weight: ${fontWeight};
-        ${fontSize ? `font-size: ${fontSize}px;` : ''}
-      `.trim().replace(/\s+/g, ' ');
+        const cellStyle = `
+          ${cellBorder}
+          ${cellPadding}
+          ${cellTextStyle}
+          text-align: ${col.align || defaultTextAlign};
+          width: ${colWidths[idx]};
+          min-height: ${rowHeightPx}px;
+          box-sizing: border-box;
+          background: ${bgColor};
+          font-weight: ${fontWeight};
+          ${fontSize ? `font-size: ${fontSize}px;` : ''}
+        `.trim().replace(/\s+/g, ' ');
 
-      return `<td style="${cellStyle}">${escapeHtml(content)}</td>`;
-    }).join('');
+        return `<td style="${cellStyle}">${escapeHtml(content)}</td>`;
+      }).join('');
+
+      summaryRowHtml = `<tr style="min-height: ${rowHeightPx}px;">${cells}</tr>`;
+    }
 
     const extraRowsHtml = this.renderSummaryExtraRows(
       data, columns, props, cellBorder, cellPadding, cellTextStyle, rowHeightPx, columns.length
     );
 
-    return `<tfoot><tr style="min-height: ${rowHeightPx}px;">${cells}</tr>${extraRowsHtml}</tfoot>`;
+    return `<tfoot>${summaryRowHtml}${extraRowsHtml}</tfoot>`;
   }
 
   /**
@@ -623,7 +662,7 @@ export class TableRenderer implements ComponentRenderer {
   ): string {
     const extraRows = props.summaryExtraRows;
     if (!extraRows || extraRows.length === 0) return '';
-    if (props.showSummary !== true) return '';
+    if (resolveSummaryMode(props) === 'none') return '';
 
     const summaryStyle = props.summaryStyle || {};
     const defaultBgColor = summaryStyle.backgroundColor || '#f5f5f5';
@@ -681,7 +720,8 @@ export class TableRenderer implements ComponentRenderer {
 
   calculateHeight(component: ComponentNode, context: RenderContext): number {
     // 表格高度：简单估算（用于初始布局计算，实际分页使用 measureTableRowHeights）
-    const extraRowsCount = component.props?.showSummary === true
+    const summaryMode = resolveSummaryMode((component.props || {}) as TableProps);
+    const extraRowsCount = summaryMode !== 'none'
       ? (component.props?.summaryExtraRows?.length || 0)
       : 0;
 
@@ -696,7 +736,8 @@ export class TableRenderer implements ComponentRenderer {
           ? TABLE_DEFAULT.HEADER_HEIGHT * scale
           : 0;
         const rowHeight = TABLE_DEFAULT.MIN_ROW_HEIGHT * TABLE_DEFAULT.ROW_HEIGHT_FACTOR * scale;
-        const summaryHeight = component.props?.showSummary === true ? rowHeight : 0;
+        // 'extra-only' 时不渲染合计行，summaryHeight 为 0
+        const summaryHeight = (summaryMode !== 'none' && summaryMode !== 'extra-only') ? rowHeight : 0;
 
         return headerHeight + data.length * rowHeight + summaryHeight + extraRowsCount * rowHeight;
       }

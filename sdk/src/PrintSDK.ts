@@ -201,23 +201,24 @@ export class PrintSDK {
   }
 
   /**
-   * 批量打印（同模板多数据）
-   * 生成包含所有数据的完整打印文档，只需要用户确认一次打印
+   * 生成批量打印 HTML（同模板多数据）
+   * 供 Electron 等需要自行处理打印的环境使用
    * @param template 模板数据
    * @param dataList 数据列表
-   * @param options 批量打印选项
+   * @param options 选项（支持 onProgress 回调）
+   * @returns 完整的批量打印 HTML 字符串
    */
-  async printMultiple(
+  async generateHTMLMultiple(
     template: PrintTemplate,
     dataList: any[],
-    options: BatchPrintOptions = {}
-  ): Promise<void> {
-    const {
-      preview = false,
-      onProgress,
-    } = options;
-
+    options: { onProgress?: (progress: BatchPrintProgress) => void } = {}
+  ): Promise<string> {
+    const { onProgress } = options;
     const { page } = template;
+
+    if (!dataList || dataList.length === 0) {
+      throw new Error('[PrintSDK] generateHTMLMultiple: dataList 不能为空');
+    }
 
     const progress: BatchPrintProgress = {
       total: dataList.length,
@@ -226,10 +227,8 @@ export class PrintSDK {
       currentIndex: -1,
     };
 
-    // 报告初始进度
     onProgress?.(progress);
 
-    // 生成所有页面的HTML片段
     const allPagesHTML: string[] = [];
 
     for (let i = 0; i < dataList.length; i++) {
@@ -240,13 +239,10 @@ export class PrintSDK {
       try {
         const engine = createPrintEngine(template, data);
         const html = await engine.generatePrintHTML();
-
-        // ✅ 提取 <body> 标签中的内容（使用 DOMParser 代替正则，更健壮）
         const bodyContent = extractBodyContent(html);
         if (bodyContent) {
           allPagesHTML.push(bodyContent);
         }
-
         progress.completed++;
         onProgress?.(progress);
       } catch (error) {
@@ -260,10 +256,7 @@ export class PrintSDK {
     progress.currentIndex = -1;
     onProgress?.(progress);
 
-    // 获取页面尺寸信息
     const { widthMm: pageWidthMm, heightMm: pageHeightMm } = getPageSizeFromConfig(page);
-
-    // 生成批量打印样式
     const styles = generateBatchPrintStyles({
       pageWidthMm,
       pageHeightMm,
@@ -275,69 +268,28 @@ export class PrintSDK {
       minHeightMm: page.minHeightMm,
     });
 
-    // 组装完整的打印HTML
-    const fullHTML = generatePrintHTML({
+    return generatePrintHTML({
       title: '批量打印',
       styles,
       bodyContent: allPagesHTML.join('\n'),
     });
-
-    // 执行打印（只需要确认一次）
-    if (preview) {
-      // 预览模式：打开新窗口
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        throw new Error('Failed to open print window');
-      }
-      printWindow.document.write(fullHTML);
-      printWindow.document.close();
-
-      // 等待所有图片加载完成后再打印
-      await waitForImagesLoaded(printWindow.document);
-      printWindow.print();
-    } else {
-      // 直接打印模式：使用 iframe
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.top = '-9999px';
-      iframe.style.left = '-9999px';
-      document.body.appendChild(iframe);
-
-      const iframeDoc = iframe.contentWindow?.document;
-      if (!iframeDoc) {
-        throw new Error('Failed to access iframe document');
-      }
-
-      iframeDoc.write(fullHTML);
-      iframeDoc.close();
-
-      // 等待所有图片加载完成后再打印
-      await waitForImagesLoaded(iframeDoc);
-      iframe.contentWindow?.print();
-      // 打印完成后移除 iframe
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 1000);
-    }
   }
 
   /**
-   * 多模板批量打印
-   * 支持多个模板各自绑定数据列表，一次打印确认
-   *
-   * 注意：所有模板需使用相同纸张尺寸，混合尺寸暂不支持
+   * 生成多模板批量打印 HTML
+   * 供 Electron 等需要自行处理打印的环境使用
    * @param groups 模板+数据组列表
-   * @param options 打印选项
+   * @param options 选项（支持 onProgress 回调）
+   * @returns 完整的多模板批量打印 HTML 字符串
    */
-  async printMultiTemplate(
+  async generateHTMLMultiTemplate(
     groups: PrintTemplateGroup[],
-    options: MultiTemplatePrintOptions = {}
-  ): Promise<void> {
-    const { preview = false, onProgress } = options;
+    options: { onProgress?: (progress: MultiTemplatePrintProgress) => void } = {}
+  ): Promise<string> {
+    const { onProgress } = options;
 
     if (!groups || groups.length === 0) {
-      console.warn('[PrintSDK] printMultiTemplate: groups 为空，跳过打印');
-      return;
+      throw new Error('[PrintSDK] generateHTMLMultiTemplate: groups 不能为空');
     }
 
     const totalDataItems = groups.reduce((sum, g) => sum + g.dataList.length, 0);
@@ -370,12 +322,10 @@ export class PrintSDK {
         try {
           const engine = createPrintEngine(group.template, data);
           const html = await engine.generatePrintHTML();
-
           const bodyContent = extractBodyContent(html);
           if (bodyContent) {
             allPagesHTML.push(bodyContent);
           }
-
           progress.completedDataItems++;
           onProgress?.(progress);
         } catch (error) {
@@ -397,7 +347,10 @@ export class PrintSDK {
     progress.currentDataIndex = -1;
     onProgress?.(progress);
 
-    const { page } = groups[0].template;
+    const page = groups[0]?.template?.page;
+    if (!page) {
+      throw new Error('[PrintSDK] generateHTMLMultiTemplate: 第一个模板缺少 page 配置');
+    }
 
     const { widthMm: pageWidthMm, heightMm: pageHeightMm } = getPageSizeFromConfig(page);
 
@@ -412,20 +365,24 @@ export class PrintSDK {
       minHeightMm: page.minHeightMm,
     });
 
-    const fullHTML = generatePrintHTML({
+    return generatePrintHTML({
       title: '多模板批量打印',
       styles,
       bodyContent: allPagesHTML.join('\n'),
     });
+  }
 
+  /**
+   * 执行浏览器打印（供 printMultiple / printMultiTemplate 复用）
+   */
+  private async executePrint(html: string, preview: boolean): Promise<void> {
     if (preview) {
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
         throw new Error('Failed to open print window');
       }
-      printWindow.document.write(fullHTML);
+      printWindow.document.write(html);
       printWindow.document.close();
-
       await waitForImagesLoaded(printWindow.document);
       printWindow.print();
     } else {
@@ -440,9 +397,8 @@ export class PrintSDK {
         throw new Error('Failed to access iframe document');
       }
 
-      iframeDoc.write(fullHTML);
+      iframeDoc.write(html);
       iframeDoc.close();
-
       await waitForImagesLoaded(iframeDoc);
 
       const cleanup = () => {
@@ -464,6 +420,40 @@ export class PrintSDK {
         }
       }, 5000);
     }
+  }
+
+  /**
+   * 批量打印（同模板多数据）
+   * 生成包含所有数据的完整打印文档，只需要用户确认一次打印
+   * @param template 模板数据
+   * @param dataList 数据列表
+   * @param options 批量打印选项
+   */
+  async printMultiple(
+    template: PrintTemplate,
+    dataList: any[],
+    options: BatchPrintOptions = {}
+  ): Promise<void> {
+    const { preview = false, onProgress } = options;
+    const fullHTML = await this.generateHTMLMultiple(template, dataList, { onProgress });
+    await this.executePrint(fullHTML, preview);
+  }
+
+  /**
+   * 多模板批量打印
+   * 支持多个模板各自绑定数据列表，一次打印确认
+   *
+   * 注意：所有模板需使用相同纸张尺寸，混合尺寸暂不支持
+   * @param groups 模板+数据组列表
+   * @param options 打印选项
+   */
+  async printMultiTemplate(
+    groups: PrintTemplateGroup[],
+    options: MultiTemplatePrintOptions = {}
+  ): Promise<void> {
+    const { preview = false, onProgress } = options;
+    const fullHTML = await this.generateHTMLMultiTemplate(groups, { onProgress });
+    await this.executePrint(fullHTML, preview);
   }
 }
 

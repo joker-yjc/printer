@@ -78,6 +78,11 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
   const rowNumberLabel = component.props?.rowNumberLabel || '序号';
   const tableTextAlign = component.style?.textAlign || 'left';
 
+  // 密度预设
+  const density = component.props?.density || 'normal';
+  const densityPadding = density === 'compact' ? '2px 4px' : '4px 8px';
+  const densityLineHeight = density === 'compact' ? '1.2' : '1.5';
+
   const tableHeaderStyle = component.props?.headerStyle || {};
   const headerDefaultBg = tableHeaderStyle.backgroundColor ?? '#fafafa';
   const headerDefaultFw = tableHeaderStyle.fontWeight ?? 600;
@@ -152,11 +157,12 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
                   <th key={idx} style={{
                     width: colWidths[idx],
                     border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
-                    padding: '8px', background: colHeaderStyle.backgroundColor ?? headerDefaultBg,
+                    padding: densityPadding, background: colHeaderStyle.backgroundColor ?? headerDefaultBg,
                     fontWeight: colHeaderStyle.fontWeight ?? headerDefaultFw,
                     fontSize: colHeaderStyle.fontSize ?? headerDefaultFontSize,
                     color: colHeaderStyle.color ?? headerDefaultColor,
                     textAlign: hAlign as any,
+                    lineHeight: densityLineHeight,
                     position: 'relative',
                   }}>
                     {col.title || col.dataIndex}
@@ -184,7 +190,7 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
           <tr>
             <td colSpan={displayCols.length || 1} style={{
               border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
-              padding: '8px', textAlign: 'center', color: '#999',
+              padding: densityPadding, lineHeight: densityLineHeight, textAlign: 'center', color: '#999',
             }}>
               {!showHeader && <p>
                  表头已隐藏，仅打印数据 !!!

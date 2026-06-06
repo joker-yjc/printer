@@ -26,6 +26,34 @@
 
 ---
 
+## [1.7.0] - 2026-06-06
+
+### ✨ 新增功能
+
+- **表格密度预设**
+  - 新增 `TABLE_DENSITY_PRESETS` 常量，提供 `normal` 和 `compact` 两种密度预设
+  - `TableProps` 新增 `density` 字段（`'normal' | 'compact'`），控制单元格 padding 和 line-height
+  - `compact` 模式：`cellPadding: '1px 4px'`, `lineHeight: '1.2'`，减少行高约 30%
+
+- **合计行显示模式**
+  - `TableProps` 新增 `summaryDisplay` 字段（`'both' | 'none' | 'extra-only'`），替代旧的 `showSummary` 布尔值
+  - `extra-only` 模式：仅显示额外行（如大写金额），隐藏普通合计
+  - 旧 `showSummary` 字段向后兼容，内部自动转为 `summaryDisplay`
+
+- **批量打印 API**
+  - 新增 `generateHTMLMultiple()` 批量生成 HTML（同模板多数据）
+  - 新增 `generateHTMLMultiTemplate()` 多模板批量生成 HTML
+  - 新增 `printMultiple()` / `printMultiTemplate()` 批量打印方法
+
+### ⚠️ 行为变更
+
+- `TABLE_DEFAULT.HEADER_HEIGHT` 从 10mm 调整为 **8mm**，与 `MIN_ROW_HEIGHT` 统一
+  - 浏览器端 DOM 实测表头高度不受影响，SSR 路径和 fallback 计算直接使用此常量
+
+**影响范围**：`sdk/src/types.ts`、`sdk/src/printEngine/constants.ts`、`sdk/src/printEngine/renderers/TableRenderer.ts`、`sdk/src/printEngine.ts`、`sdk/src/PrintSDK.ts`
+
+---
+
 ## [1.5.1] - 2026-05-30
 
 ### 🐛 问题修复

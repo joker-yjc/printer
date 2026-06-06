@@ -229,10 +229,24 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
     return null;
   }
 
+  // 解析合计行显示模式（向后兼容 showSummary）
+  const summaryDisplay = component.props?.summaryDisplay ?? (component.props?.showSummary ? 'both' : 'none');
+
   return (
     <div className={styles["property-section"]}>
       <div className={styles["property-title"]}>📋 表格列管理</div>
       <div className={styles["property-list"]}>
+         <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
+          <Text className={styles["property-label"]}>表格风格</Text>
+          <Radio.Group
+            size="small"
+            value={component.props?.density || 'normal'}
+            onChange={(e) => onPropsChange('density', e.target.value)}
+          >
+            <Radio.Button value="normal">标准</Radio.Button>
+            <Radio.Button value="compact">紧凑</Radio.Button>
+          </Radio.Group>
+        </div>
         <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Checkbox
             checked={component.props?.showHeader !== false}
@@ -319,14 +333,18 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
           )}
         </div>
         <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
-          <Checkbox
-            checked={component.props?.showSummary === true}
-            onChange={(e) => onPropsChange('showSummary', e.target.checked)}
+          <Text className={styles["property-label"]}>合计行显示风格</Text>
+          <Radio.Group
+            size="small"
+            value={summaryDisplay}
+            onChange={(e) => onPropsChange('summaryDisplay', e.target.value)}
           >
-            显示合计行
-          </Checkbox>
+            <Radio.Button value="both">显示</Radio.Button>
+            <Radio.Button value="none">隐藏</Radio.Button>
+            <Radio.Button value="extra-only">仅额外行</Radio.Button>
+          </Radio.Group>
         </div>
-        {component.props?.showSummary && (
+        {summaryDisplay !== 'none' ? (
           <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
             <div className={styles["property-list"]} style={{ padding: 0 }}>
               <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
@@ -499,7 +517,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
             </div>
             </div>
           </div>
-        )}
+          ) : null}
         <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Checkbox
             checked={component.props?.showRowNumber === true}
@@ -934,7 +952,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                       },
                     ]}
                   />
-                  {component.props?.showSummary && (
+                  {summaryDisplay !== 'none' ? (
                     <Collapse
                       size="small"
                       ghost
@@ -1089,7 +1107,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                         },
                       ]}
                     />
-                  )}
+                  ) : null}
                 </Space>
               </div>
             ))}

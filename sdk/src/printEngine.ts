@@ -3,7 +3,7 @@
  * 负责：插件管理、数据绑定、Pipe 转换、虚拟分页计算
  */
 
-import type { PrintTemplate, ComponentNode, DataBinding, PipeConfig } from './types';
+import type { PrintTemplate, ComponentNode, DataBinding, PipeConfig, TableProps } from './types';
 import type { ComponentRenderer, RenderContext } from './printEngine/types';
 import { MM_TO_PX, TABLE_DEFAULT, TABLE_STYLE_DEFAULT, COMPONENT_DEFAULT_SIZE } from './printEngine/constants';
 import {
@@ -21,11 +21,12 @@ import {
   LineRenderer,
   QRCodeRenderer,
   BarcodeRenderer,
+  resolveSummaryMode,
 } from './printEngine/renderers';
 
 // 导出类型和常量
 export type { ComponentRenderer, RenderContext } from './printEngine/types';
-export { MM_TO_PX, COMPONENT_DEFAULT_SIZE, TABLE_DEFAULT, STYLE_DEFAULT, TABLE_STYLE_DEFAULT, BARCODE_CONFIG, QRCODE_CONFIG } from './printEngine/constants';
+export { MM_TO_PX, COMPONENT_DEFAULT_SIZE, TABLE_DEFAULT, STYLE_DEFAULT, TABLE_STYLE_DEFAULT, TABLE_DENSITY_PRESETS, BARCODE_CONFIG, QRCODE_CONFIG } from './printEngine/constants';
 
 export class PrintEngine {
   private template: PrintTemplate;
@@ -268,7 +269,7 @@ export class PrintEngine {
     if (comp.props?.showHeader === false) {
       return 0;
     }
-    // 根据字体大小等比缩放表头高度（默认字体 12px 对应 10mm）
+    // 根据字体大小等比缩放表头高度（默认字体 12px 对应 8mm）
     const fontSize = comp.style?.fontSize || TABLE_STYLE_DEFAULT.FONT_SIZE;
     const scale = Math.max(1, fontSize / TABLE_STYLE_DEFAULT.FONT_SIZE);
     return TABLE_DEFAULT.HEADER_HEIGHT * scale;
@@ -282,6 +283,17 @@ export class PrintEngine {
     const fontSize = comp.style?.fontSize || TABLE_STYLE_DEFAULT.FONT_SIZE;
     const scale = Math.max(1, fontSize / TABLE_STYLE_DEFAULT.FONT_SIZE);
     return TABLE_DEFAULT.MIN_ROW_HEIGHT * TABLE_DEFAULT.ROW_HEIGHT_FACTOR * scale;
+  }
+
+  /**
+   * 计算合计行相关指标（显示模式、额外行数、估算高度）
+   * 统一收口 measureTableRowHeights 中的重复逻辑
+   */
+  private getSummaryMetrics(props: TableProps, baseRowHeight: number) {
+    const summaryDisplayMode = resolveSummaryMode(props);
+    const extraRowsCount = summaryDisplayMode !== 'none' ? (props.summaryExtraRows?.length || 0) : 0;
+    const summaryRowHeight = (summaryDisplayMode !== 'none' && summaryDisplayMode !== 'extra-only') ? baseRowHeight : 0;
+    return { summaryDisplayMode, extraRowsCount, summaryRowHeight };
   }
 
   /**
@@ -635,26 +647,26 @@ export class PrintEngine {
     if (typeof document === 'undefined') {
       // 服务器端：使用估算值（包含额外行）
       const baseRowHeight = this.calculateTableRowHeight(tableComponent);
-      const extraRowsCount = tableComponent.props?.showSummary === true
-        ? (tableComponent.props?.summaryExtraRows?.length || 0)
-        : 0;
+      const { summaryRowHeight, extraRowsCount } = this.getSummaryMetrics(
+        (tableComponent.props || {}) as TableProps, baseRowHeight
+      );
       return {
         headerHeight: this.calculateTableHeaderHeight(tableComponent),
         rowHeights: tableData.map(() => baseRowHeight),
-        summaryHeight: baseRowHeight + extraRowsCount * baseRowHeight
+        summaryHeight: summaryRowHeight + extraRowsCount * baseRowHeight
       };
     }
 
     const renderer = this.renderers.get('table');
     if (!renderer) {
       const baseRowHeight = this.calculateTableRowHeight(tableComponent);
-      const extraRowsCount = tableComponent.props?.showSummary === true
-        ? (tableComponent.props?.summaryExtraRows?.length || 0)
-        : 0;
+      const { summaryRowHeight, extraRowsCount } = this.getSummaryMetrics(
+        (tableComponent.props || {}) as TableProps, baseRowHeight
+      );
       return {
         headerHeight: this.calculateTableHeaderHeight(tableComponent),
         rowHeights: tableData.map(() => baseRowHeight),
-        summaryHeight: baseRowHeight + extraRowsCount * baseRowHeight
+        summaryHeight: summaryRowHeight + extraRowsCount * baseRowHeight
       };
     }
 
@@ -742,13 +754,13 @@ export class PrintEngine {
       // 如果测量失败，使用估算值（包含额外行）
       if (rowHeights.length === 0) {
         const baseRowHeight = this.calculateTableRowHeight(tableComponent);
-        const extraRowsCount = tableComponent.props?.showSummary === true
-          ? (tableComponent.props?.summaryExtraRows?.length || 0)
-          : 0;
+        const { summaryRowHeight, extraRowsCount } = this.getSummaryMetrics(
+          (tableComponent.props || {}) as TableProps, baseRowHeight
+        );
         return {
           headerHeight: this.calculateTableHeaderHeight(tableComponent),
           rowHeights: tableData.map(() => baseRowHeight),
-          summaryHeight: baseRowHeight + extraRowsCount * baseRowHeight
+          summaryHeight: summaryRowHeight + extraRowsCount * baseRowHeight
         };
       }
 
@@ -847,8 +859,10 @@ export class PrintEngine {
       // ✅ 只在 page 模式下预先预留合计行高度
       // total 模式只有最后一页显示合计行，不需要在中间页预留
       const summaryMode = tableComponent.props?.summaryMode || 'total';
-      const showSummary = tableComponent.props?.showSummary === true;
-      const reserveSummaryHeight = (showSummary && summaryMode === 'page')
+      const summaryDisplayMode = resolveSummaryMode((tableComponent.props || {}) as TableProps);
+      // 任何非 'none' 模式都需要预留 tfoot 高度（extra-only 的额外行高度在 measuredSummaryHeight 中已计入）
+      const shouldReserveSummaryRow = summaryDisplayMode !== 'none';
+      const reserveSummaryHeight = (shouldReserveSummaryRow && summaryMode === 'page')
         ? (measuredSummaryHeight || this.calculateTableRowHeight(tableComponent))
         : 0;
 
@@ -907,9 +921,14 @@ export class PrintEngine {
       // 判断是否为最后一页（用于合计行）
       let isLastPage = remainingData.length === 0;
 
-      // ✅ total 模式最后一页检查：如果加上合计行会溢出，减少一行数据
-      if (showSummary && summaryMode === 'total' && isLastPage && rowsCanFit > 0) {
-        const summaryHeight = measuredSummaryHeight || this.calculateTableRowHeight(tableComponent);
+      // ✅ total 模式最后一页检查：如果加上合计行/额外行会溢出，减少一行数据
+      const willRenderAnyTfoot = summaryDisplayMode !== 'none';
+      if (willRenderAnyTfoot && summaryMode === 'total' && isLastPage && rowsCanFit > 0) {
+        const extraRowCount = tableComponent.props?.summaryExtraRows?.length || 0;
+        const fallbackHeight = summaryDisplayMode === 'extra-only' && extraRowCount > 0
+          ? extraRowCount * this.calculateTableRowHeight(tableComponent)
+          : this.calculateTableRowHeight(tableComponent);
+        const summaryHeight = measuredSummaryHeight || fallbackHeight;
         const usedHeight = (needHeader ? measuredHeaderHeight : 0) + accumulatedHeight + summaryHeight;
         if (usedHeight > remainingHeight) {
           // 减少最后一行，为合计行腾出空间
@@ -970,15 +989,27 @@ export class PrintEngine {
       consumedRowCount += rowsCanFit;
 
       // 计算合计行高度（如果启用合计功能）
-      const shouldShowSummaryOnThisPage = showSummary && (
-        summaryMode === 'page' ||
-        (summaryMode === 'total' && isLastPage)
+      // ✅ 分别追踪合计行和额外行：额外行仅在 extra-only 或 page 模式、或 total 末页渲染
+      const willRenderSummaryRow = summaryDisplayMode !== 'none' && summaryDisplayMode !== 'extra-only' && (
+        summaryMode === 'page' || (summaryMode === 'total' && isLastPage)
+      );
+      const extraRowsCount = (tableComponent.props?.summaryExtraRows?.length || 0);
+      const willRenderExtraRows = summaryDisplayMode !== 'none' && extraRowsCount > 0 && (
+        summaryDisplayMode === 'extra-only' ||
+        summaryMode === 'page' || (summaryMode === 'total' && isLastPage)
       );
       // ✅ 使用测量的合计行高度，如果没有测量值则使用平均行高
       const avgRowHeight = rowHeightsForThisPage.length > 0
         ? rowHeightsForThisPage.reduce((a, b) => a + b, 0) / rowHeightsForThisPage.length
         : this.calculateTableRowHeight(tableComponent);
-      const summaryHeight = shouldShowSummaryOnThisPage ? (measuredSummaryHeight || avgRowHeight) : 0;
+      let summaryHeight = 0;
+      if (willRenderSummaryRow && willRenderExtraRows) {
+        summaryHeight = measuredSummaryHeight || avgRowHeight * (1 + extraRowsCount);
+      } else if (willRenderSummaryRow) {
+        summaryHeight = measuredSummaryHeight || avgRowHeight;
+      } else if (willRenderExtraRows) {
+        summaryHeight = measuredSummaryHeight || extraRowsCount * avgRowHeight;
+      }
 
       // 更新当前页高度（使用实际测量的行高累加）
       const tableFragmentHeight = (needHeader ? measuredHeaderHeight : 0) + accumulatedHeight + summaryHeight;

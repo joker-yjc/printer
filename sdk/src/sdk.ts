@@ -26,6 +26,7 @@ export {
   STYLE_DEFAULT,
   TABLE_STYLE_DEFAULT,
   TABLE_HEADER_STYLE_DEFAULT,
+  TABLE_DENSITY_PRESETS,
   BARCODE_CONFIG,
   QRCODE_CONFIG
 } from './printEngine/constants';
@@ -42,6 +43,7 @@ export {
 export {
   TextRenderer,
   TableRenderer,
+  resolveSummaryMode,
   ImageRenderer,
   RectRenderer,
   LineRenderer,

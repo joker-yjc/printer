@@ -3,7 +3,7 @@
  */
 
 export { TextRenderer } from './TextRenderer';
-export { TableRenderer } from './TableRenderer';
+export { TableRenderer, resolveSummaryMode } from './TableRenderer';
 export { ImageRenderer } from './ImageRenderer';
 export { RectRenderer } from './RectRenderer';
 export { LineRenderer } from './LineRenderer';

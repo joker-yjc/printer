@@ -175,6 +175,10 @@ export interface TableProps {
   borderWidth?: number;
   repeatHeader?: boolean;           // 跨页重复表头
   showSummary?: boolean;            // 是否显示合计行
+  /** 表格密度预设，不传时为 'normal' */
+  density?: 'normal' | 'compact';
+  /** 合计行显示模式，向后兼容 showSummary */
+  summaryDisplay?: 'both' | 'none' | 'extra-only';
   summaryMode?: 'page' | 'total';   // 合计模式：page=每页合计，total=仅最后一页合计（默认）
   summaryLabel?: string;            // 合计行首列标签，默认 "合计"
   summaryStyle?: TableSummaryStyle; // 合计行样式
