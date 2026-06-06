@@ -2,11 +2,11 @@
 schema_version: 1
 locale: zh-CN
 branch: master
-exported_at: "2026-06-05T06:18:54Z"
+exported_at: "2026-06-06T11:28:31Z"
 modules:
     "":
-        dir_name: 打印服务平台
-        title: 打印服务平台
+        dir_name: 打印解决方案平台
+        title: 打印解决方案平台
         scope:
             - .gitignore
             - README.md
@@ -24,10 +24,10 @@ modules:
             - designer/
         source_files: []
         children:
-            - designer/template_management
-            - designer/schema_management
-            - designer/designer_canvas
             - designer/help_docs
+            - designer/schema_management
+            - designer/template_management
+            - designer/designer_canvas
         depends_on: []
         related_to:
             - path: sdk
@@ -56,8 +56,8 @@ modules:
         related_to:
             - path: designer/designer_canvas/canvas_core
     designer/designer_canvas/canvas_core:
-        dir_name: 打印模板画布核心引擎
-        title: 打印模板画布核心引擎
+        dir_name: 打印模板画布核心编排
+        title: 打印模板画布核心编排
         scope:
             - designer/src/pages/Designer/components/Canvas/
         source_files: []
@@ -111,20 +111,20 @@ modules:
             - path: designer/designer_canvas/property_panel/style_plugins
             - path: sdk/print_engine
     designer/designer_canvas/property_panel:
-        dir_name: 属性面板编排器
-        title: 属性面板编排器
+        dir_name: 属性面板编排模块
+        title: 属性面板编排模块
         scope:
             - designer/src/pages/Designer/components/PropertyPanel/
         source_files: []
         children:
-            - designer/designer_canvas/property_panel/property_sections
             - designer/designer_canvas/property_panel/style_plugins
+            - designer/designer_canvas/property_panel/property_sections
         depends_on: []
         related_to:
             - path: designer/designer_canvas/canvas_core
     designer/designer_canvas/property_panel/property_sections:
-        dir_name: 属性面板配置区域
-        title: 属性面板配置区域
+        dir_name: 属性面板区域配置模块
+        title: 属性面板区域配置模块
         scope:
             - designer/src/pages/Designer/components/PropertyPanel/
         source_files: []
@@ -178,21 +178,21 @@ modules:
             - path: designer/designer_canvas
             - path: sdk/core_api
     sdk:
-        dir_name: 浏览器端打印SDK
-        title: 浏览器端打印SDK
+        dir_name: 浏览器端打印 SDK
+        title: 浏览器端打印 SDK
         scope:
             - sdk/
         source_files: []
         children:
+            - sdk/print_engine
             - sdk/pipes
             - sdk/core_api
-            - sdk/print_engine
         depends_on: []
         related_to:
             - path: designer
     sdk/core_api:
-        dir_name: 浏览器端打印SDK核心
-        title: 浏览器端打印SDK核心
+        dir_name: 打印 SDK 核心引擎
+        title: 打印 SDK 核心引擎
         scope:
             - sdk/src/PrintSDK.ts
             - sdk/src/sdk.ts
