@@ -79,9 +79,17 @@ export interface PipeConfig {
   options?: Record<string, any>;
 }
 
-export interface DataBinding {
-  path?: string;
+/**
+ * 可应用管道转换的数据字段
+ * 表示一个可附加管道链的数据点，用于统一 DataBinding、TableColumn 等场景的管道能力
+ */
+export interface DataField {
+  /** 数据管道列表，按顺序执行，前一个输出作为后一个输入 */
   pipes?: PipeConfig[];
+}
+
+export interface DataBinding extends DataField {
+  path?: string;
   fallback?: string;
 }
 
@@ -96,7 +104,7 @@ export interface TableColumnSummary {
 }
 
 // 表格列定义
-export interface TableColumn {
+export interface TableColumn extends DataField {
   dataIndex: string;       // 字段名
   title: string;           // 列标题
   width?: number;          // 列宽度
@@ -205,13 +213,11 @@ export interface TableProps {
 }
 
 // 合计额外行数据项
-export interface SummaryExtraRowItem {
+export interface SummaryExtraRowItem extends DataField {
   /** 静态前缀文字 */
   label?: string;
   /** 引用列的合计值（dataIndex） */
   sourceColumn?: string;
-  /** 对该合计值应用的管道 */
-  pipes?: PipeConfig[];
 }
 
 // 合计额外行配置

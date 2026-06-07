@@ -390,7 +390,17 @@ export class TableRenderer implements ComponentRenderer {
                 const rowNumStyleStr = buildStyleString(rowNumStyle);
                 return `<td style="${rowNumStyleStr}">${rowNumber}</td>`;
               }
-              const value = getByPath(row, col.dataIndex) ?? '';
+              let value = getByPath(row, col.dataIndex) ?? '';
+              // 应用列级管道转换
+              if (col.pipes && col.pipes.length > 0) {
+                const rawValue = value;
+                try {
+                  value = context.applyPipes(value, col.pipes);
+                } catch (pipeError) {
+                  console.error('[TableRenderer] 列管道执行失败:', pipeError);
+                  value = rawValue;
+                }
+              }
               // 对齐优先级：列级 style.textAlign > col.align > 表格级 textAlign
               const dAlign = col.style?.textAlign || col.align || textAlign;
               const baseDataStyle: Record<string, string | number> = {

@@ -6,12 +6,12 @@
 import { Checkbox, Button, Space, Input, Typography, Collapse, Select, InputNumber, Radio, Tag, Tooltip } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined, PlusOutlined, CloseOutlined } from '@ant-design/icons';
 import styles from './index.module.css';
-import type { ComponentNode, TableColumnSummary, SummaryExtraRow, SummaryExtraRowItem } from '../../../../types';
-import { getAllPipes, computeColumnMaxWidth } from '@jcyao/print-sdk';
-import { getConfigurator } from '../../../../pipes/configurators';
+import type { ComponentNode, TableColumnSummary, SummaryExtraRow, SummaryExtraRowItem, PipeConfig } from '../../../../types';
+import { computeColumnMaxWidth } from '@jcyao/print-sdk';
 import { useDesignerStore } from '../../../../store/designer';
 import { getTableContentWidth } from '../../../../utils/pageSize';
 import { FONT_SIZE_MIN } from '../../../../constants';
+import PipeConfigPanel from '../../../../components/PipeConfigPanel';
 
 const { Text } = Typography;
 
@@ -69,6 +69,13 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
   const handleColumnSummaryChange = (index: number, summary: TableColumnSummary | undefined) => {
     const columns = [...(component.props?.columns || [])];
     columns[index] = { ...columns[index], summary };
+    onPropsChange('columns', columns);
+  };
+
+  // 处理列管道配置
+  const handleColumnPipesChange = (index: number, pipes: PipeConfig[]) => {
+    const columns = [...(component.props?.columns || [])];
+    columns[index] = { ...columns[index], pipes: pipes.length > 0 ? pipes : undefined };
     onPropsChange('columns', columns);
   };
 
@@ -454,57 +461,19 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                                   onChange={(val) => handleSourceColumnChange(rowIndex, itemIndex, val)}
                                   options={getAllColumns()}
                                 />
-                                <div>
-                                  <Text className={styles["property-label"]}>管道转换</Text>
-                                  {item.pipes?.[0] ? (
-                                    <div style={{ marginTop: 4, border: '1px solid #d9d9d9', borderRadius: 4, padding: 8, background: '#fafafa' }}>
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                        <Tag color="blue">{item.pipes[0].type}</Tag>
-                                        <Button
-                                          type="text"
-                                          size="small"
-                                          danger
-                                          icon={<CloseOutlined />}
-                                          onClick={() => handleExtraRowItemChange(rowIndex, itemIndex, 'pipes', undefined)}
-                                        />
-                                      </div>
-                                      {(() => {
-                                        const configurator = getConfigurator(item.pipes[0].type);
-                                        if (configurator) {
-                                          return configurator.renderConfig(
-                                            item.pipes[0],
-                                            (option: string, value: any) => {
-                                              const newRows = [...extraRows];
-                                              const items = [...newRows[rowIndex].items];
-                                              const currentPipe = items[itemIndex].pipes?.[0];
-                                              if (currentPipe) {
-                                                items[itemIndex] = {
-                                                  ...items[itemIndex],
-                                                  pipes: [{
-                                                    type: currentPipe.type,
-                                                    options: { ...currentPipe.options, [option]: value },
-                                                  }],
-                                                };
-                                                newRows[rowIndex] = { ...newRows[rowIndex], items };
-                                                onPropsChange('summaryExtraRows', newRows);
-                                              }
-                                            },
-                                          );
-                                        }
-                                        return null;
-                                      })()}
-                                    </div>
-                                  ) : (
-                                    <Select
-                                      size="small"
-                                      style={{ width: '100%', marginTop: 4 }}
-                                      placeholder="添加管道转换（可选）"
-                                      value={null}
-                                      onChange={(val: string) => handleExtraRowItemChange(rowIndex, itemIndex, 'pipes', [{ type: val, options: {} }])}
-                                      options={getAllPipes().filter((p) => p.value === 'chineseNumber' || p.value === 'money')}
-                                    />
-                                  )}
-                                </div>
+                                <PipeConfigPanel
+                                  pipes={item.pipes}
+                                  onChange={(newPipes) => {
+                                    const newRows = [...extraRows];
+                                    const items = [...newRows[rowIndex].items];
+                                    items[itemIndex] = {
+                                      ...items[itemIndex],
+                                      pipes: newPipes.length > 0 ? newPipes : undefined,
+                                    };
+                                    newRows[rowIndex] = { ...newRows[rowIndex], items };
+                                    onPropsChange('summaryExtraRows', newRows);
+                                  }}
+                                />
                               </Space>
                             </div>
                           ))}
@@ -952,6 +921,25 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                       },
                     ]}
                   />
+                  {/* 列管道配置 */}
+                  <Collapse
+                    size="small"
+                    ghost
+                    style={{ marginTop: 4 }}
+                    defaultActiveKey={col.pipes?.length ? ['colPipes'] : []}
+                    items={[
+                      {
+                        key: 'colPipes',
+                        label: <Text type="secondary" style={{ fontSize: 12 }}>管道转换</Text>,
+                        children: (
+                          <PipeConfigPanel
+                            pipes={col.pipes}
+                            onChange={(newPipes) => handleColumnPipesChange(index, newPipes)}
+                          />
+                        ),
+                      },
+                    ]}
+                  />
                   {summaryDisplay !== 'none' ? (
                     <Collapse
                       size="small"
@@ -1013,61 +1001,16 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
                                     />
                                   </div>
                                   <div>
-                                    <Text className={styles["property-label"]}>管道转换</Text>
-                                    {col.summary?.pipe ? (
-                                      <div style={{ marginTop: 4, border: '1px solid #d9d9d9', borderRadius: 4, padding: 8, background: '#fafafa' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                          <Tag color="blue">{col.summary.pipe.type}</Tag>
-                                          <Button
-                                            type="text"
-                                            size="small"
-                                            danger
-                                            icon={<CloseOutlined />}
-                                            onClick={() => {
-                                              handleColumnSummaryChange(index, {
-                                                ...col.summary!,
-                                                pipe: undefined,
-                                              });
-                                            }}
-                                          />
-                                        </div>
-                                        {(() => {
-                                          const configurator = getConfigurator(col.summary.pipe.type);
-                                          if (configurator) {
-                                            return configurator.renderConfig(
-                                              col.summary.pipe,
-                                              (option: string, value: any) => {
-                                                handleColumnSummaryChange(index, {
-                                                  ...col.summary!,
-                                                  pipe: {
-                                                    type: col.summary!.pipe!.type,
-                                                    options: {
-                                                      ...col.summary!.pipe!.options,
-                                                      [option]: value,
-                                                    },
-                                                  },
-                                                });
-                                              },
-                                            );
-                                          }
-                                          return null;
-                                        })()}
-                                      </div>
-                                    ) : (
-                                      <Select
-                                        size="small"
-                                        style={{ width: '100%', marginTop: 4 }}
-                                        placeholder="添加管道转换（可选）"
-                                        value={null}
-                                        onChange={(value: string) => {
-                                          handleColumnSummaryChange(index, {
-                                            ...col.summary!,
-                                            pipe: { type: value, options: {} },
-                                          });
-                                        }}
-                                        options={getAllPipes().filter((p) => p.value === 'money' || p.value === 'chineseNumber')}
-                                      />
-                                    )}
+                                    <PipeConfigPanel
+                                      pipes={col.summary?.pipe ? [col.summary.pipe] : []}
+                                      onChange={(newPipes) => {
+                                        handleColumnSummaryChange(index, {
+                                          ...col.summary!,
+                                          pipe: newPipes.length > 0 ? newPipes[0] : undefined,
+                                        });
+                                      }}
+                                      maxPipes={1}
+                                    />
                                   </div>
                                   {!col.summary?.pipe && (
                                     <>
