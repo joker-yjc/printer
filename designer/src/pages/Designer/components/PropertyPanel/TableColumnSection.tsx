@@ -1,17 +1,17 @@
 /**
  * 表格列管理配置区域
- * 负责表格组件的列配置
+ * 负责表格组件的列配置，拆分为子组件保持可维护性
  */
 
-import { Checkbox, Button, Space, Input, Typography, Collapse, Select, InputNumber, Radio, Tag, Tooltip } from 'antd';
-import { ArrowUpOutlined, ArrowDownOutlined, DeleteOutlined, PlusOutlined, CloseOutlined } from '@ant-design/icons';
+import { Checkbox, Button, Typography, Select, InputNumber, Radio, Tooltip, Input } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
 import styles from './index.module.css';
-import type { ComponentNode, TableColumnSummary, SummaryExtraRow, SummaryExtraRowItem, PipeConfig } from '../../../../types';
-import { computeColumnMaxWidth } from '@jcyao/print-sdk';
+import type { ComponentNode, TableColumn, TableColumnSummary, TableColumnStyle, PipeConfig } from '../../../../types';
 import { useDesignerStore } from '../../../../store/designer';
 import { getTableContentWidth } from '../../../../utils/pageSize';
-import { FONT_SIZE_MIN } from '../../../../constants';
-import PipeConfigPanel from '../../../../components/PipeConfigPanel';
+import ColumnConfigCard from './components/ColumnConfigCard';
+import SummaryExtraRowsSection from './components/SummaryExtraRowsSection';
+import RowNumberStyleSection from './components/RowNumberStyleSection';
 
 const { Text } = Typography;
 
@@ -28,19 +28,20 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
 
   // 检查列宽总和是否超限（#12），仅统计可见列
   const rowNumberWidth = component.props?.showRowNumber ? (component.props?.rowNumberWidth || 0) : 0;
-  const visibleColsForValidation = (component.props?.columns || []).filter((col: any) => !col.hidden);
+  const visibleColsForValidation = (component.props?.columns || []).filter((col: TableColumn) => !col.hidden);
   const totalAssignedWidth = visibleColsForValidation.reduce(
-    (sum: number, col: any) => sum + (col.width || 0), 0
+    (sum: number, col: TableColumn) => sum + (col.width || 0), 0
   ) + rowNumberWidth;
   const isWidthOverflow = totalAssignedWidth > tableWidthMm;
+
   const handleColumnToggle = (index: number, checked: boolean) => {
-    const columns = [...(component.props?.columns || [])];
+    const columns = [...(component.props?.columns || [])] as TableColumn[];
     columns[index] = { ...columns[index], hidden: !checked, width: !checked ? undefined : columns[index].width };
     onPropsChange('columns', columns);
   };
 
   const handleColumnMove = (index: number, direction: 'up' | 'down') => {
-    const columns = [...(component.props?.columns || [])];
+    const columns = [...(component.props?.columns || [])] as TableColumn[];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= columns.length) return;
     [columns[index], columns[targetIndex]] = [columns[targetIndex], columns[index]];
@@ -48,39 +49,39 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
   };
 
   const handleColumnTitleChange = (index: number, title: string) => {
-    const columns = [...(component.props?.columns || [])];
+    const columns = [...(component.props?.columns || [])] as TableColumn[];
     columns[index] = { ...columns[index], title };
     onPropsChange('columns', columns);
   };
 
   const handleColumnDataIndexChange = (index: number, dataIndex: string) => {
-    const columns = [...(component.props?.columns || [])];
+    const columns = [...(component.props?.columns || [])] as TableColumn[];
     columns[index] = { ...columns[index], dataIndex };
     onPropsChange('columns', columns);
   };
 
   const handleColumnWidthChange = (index: number, width: number | null) => {
-    const columns = [...(component.props?.columns || [])];
+    const columns = [...(component.props?.columns || [])] as TableColumn[];
     columns[index] = { ...columns[index], width: width ?? undefined };
     onPropsChange('columns', columns);
   };
 
   // 处理列合计配置
   const handleColumnSummaryChange = (index: number, summary: TableColumnSummary | undefined) => {
-    const columns = [...(component.props?.columns || [])];
+    const columns = [...(component.props?.columns || [])] as TableColumn[];
     columns[index] = { ...columns[index], summary };
     onPropsChange('columns', columns);
   };
 
   // 处理列管道配置
   const handleColumnPipesChange = (index: number, pipes: PipeConfig[]) => {
-    const columns = [...(component.props?.columns || [])];
+    const columns = [...(component.props?.columns || [])] as TableColumn[];
     columns[index] = { ...columns[index], pipes: pipes.length > 0 ? pipes : undefined };
     onPropsChange('columns', columns);
   };
 
   const handleAddColumn = () => {
-    const columns = [...(component.props?.columns || [])];
+    const columns = [...(component.props?.columns || [])] as TableColumn[];
     const newColumn = {
       title: `列${columns.length + 1}`,
       dataIndex: `col${columns.length + 1}`,
@@ -89,14 +90,14 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
   };
 
   const handleDeleteColumn = (index: number) => {
-    const columns = [...(component.props?.columns || [])];
+    const columns = [...(component.props?.columns || [])] as TableColumn[];
     columns.splice(index, 1);
     onPropsChange('columns', columns);
   };
 
   /** 更新列的 style 属性 */
-  const handleColumnStyleChange = (index: number, field: string, value: any) => {
-    const columns = [...(component.props?.columns || [])];
+  const handleColumnStyleChange = (index: number, field: keyof TableColumnStyle, value: any) => {
+    const columns = [...(component.props?.columns || [])] as TableColumn[];
     const shouldRemove = value === undefined || value === null || value === '';
     columns[index] = {
       ...columns[index],
@@ -108,8 +109,8 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
   };
 
   /** 更新列的 headerStyle 属性 */
-  const handleColumnHeaderStyleChange = (index: number, field: string, value: any) => {
-    const columns = [...(component.props?.columns || [])];
+  const handleColumnHeaderStyleChange = (index: number, field: keyof TableColumnStyle, value: any) => {
+    const columns = [...(component.props?.columns || [])] as TableColumn[];
     const shouldRemove = value === undefined || value === null || value === '';
     columns[index] = {
       ...columns[index],
@@ -131,16 +132,16 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
   };
 
   /** 清除列 style 中的某个字段（恢复继承） */
-  const clearColumnStyleField = (index: number, field: string) => {
-    const columns = [...(component.props?.columns || [])];
+  const clearColumnStyleField = (index: number, field: keyof TableColumnStyle) => {
+    const columns = [...(component.props?.columns || [])] as TableColumn[];
     const { [field]: _, ...rest } = (columns[index].style || {});
     columns[index] = { ...columns[index], style: Object.keys(rest).length > 0 ? rest : undefined };
     onPropsChange('columns', columns);
   };
 
   /** 清除列 headerStyle 中的某个字段（恢复继承） */
-  const clearColumnHeaderStyleField = (index: number, field: string) => {
-    const columns = [...(component.props?.columns || [])];
+  const clearColumnHeaderStyleField = (index: number, field: keyof TableColumnStyle) => {
+    const columns = [...(component.props?.columns || [])] as TableColumn[];
     const { [field]: _, ...rest } = (columns[index].headerStyle || {});
     columns[index] = { ...columns[index], headerStyle: Object.keys(rest).length > 0 ? rest : undefined };
     onPropsChange('columns', columns);
@@ -153,84 +154,6 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
     onPropsChange(propKey, Object.keys(rest).length > 0 ? rest : undefined);
   };
 
-  // ========== 合计额外行操作 ==========
-  const extraRows: SummaryExtraRow[] = component.props?.summaryExtraRows || [];
-
-  const handleAddExtraRow = () => {
-    onPropsChange('summaryExtraRows', [...extraRows, { items: [{ label: '' }] }]);
-  };
-
-  const handleDeleteExtraRow = (rowIndex: number) => {
-    const newRows = extraRows.filter((_, i) => i !== rowIndex);
-    onPropsChange('summaryExtraRows', newRows.length > 0 ? newRows : undefined);
-  };
-
-  const handleExtraRowChange = (rowIndex: number, field: string, value: any) => {
-    const newRows = [...extraRows];
-    newRows[rowIndex] = { ...newRows[rowIndex], [field]: value };
-    onPropsChange('summaryExtraRows', newRows);
-  };
-
-  const handleAddExtraRowItem = (rowIndex: number) => {
-    const newRows = [...extraRows];
-    const items = [...(newRows[rowIndex].items || []), { label: '' }];
-    newRows[rowIndex] = { ...newRows[rowIndex], items };
-    onPropsChange('summaryExtraRows', newRows);
-  };
-
-  const handleDeleteExtraRowItem = (rowIndex: number, itemIndex: number) => {
-    const newRows = [...extraRows];
-    const items = newRows[rowIndex].items.filter((_, i) => i !== itemIndex);
-    newRows[rowIndex] = { ...newRows[rowIndex], items: items.length > 0 ? items : [{ label: '' }] };
-    onPropsChange('summaryExtraRows', newRows);
-  };
-
-  const handleExtraRowItemChange = (rowIndex: number, itemIndex: number, field: string, value: any) => {
-    const newRows = [...extraRows];
-    const items = [...newRows[rowIndex].items];
-    items[itemIndex] = { ...items[itemIndex], [field]: value };
-    newRows[rowIndex] = { ...newRows[rowIndex], items };
-    onPropsChange('summaryExtraRows', newRows);
-  };
-
-  /** 获取所有列，用于 sourceColumn 下拉 */
-  const getAllColumns = () => {
-    return (component.props?.columns || [])
-      .filter((col: any) => !col.hidden)
-      .map((col: any) => ({ label: `${col.title}（${col.dataIndex}）`, value: col.dataIndex }));
-  };
-
-  /** sourceColumn 变更时，自动为该列创建合计配置（如果没有） */
-  const handleSourceColumnChange = (rowIndex: number, itemIndex: number, dataIndex: string | undefined) => {
-    const newRows = [...extraRows];
-    const items = [...newRows[rowIndex].items];
-    items[itemIndex] = { ...items[itemIndex], sourceColumn: dataIndex };
-    newRows[rowIndex] = { ...newRows[rowIndex], items };
-
-    let columnsUpdated = false;
-    const columns = [...(component.props?.columns || [])];
-
-    if (dataIndex) {
-      const colIndex = columns.findIndex((col: any) => col.dataIndex === dataIndex);
-      if (colIndex >= 0 && !columns[colIndex].summary?.type) {
-        columns[colIndex] = {
-          ...columns[colIndex],
-          summary: { type: 'sum', precision: 2 },
-        };
-        columnsUpdated = true;
-      }
-    }
-
-    // 一次原子提交，避免 stale closure 导致 sourceColumn 写入被覆盖
-    updateComponent(component.id, {
-      props: {
-        ...component.props,
-        summaryExtraRows: newRows,
-        ...(columnsUpdated ? { columns } : {}),
-      },
-    });
-  };
-
   // 仅在表格组件且有列配置时显示
   if (component.type !== 'table' || !component.props?.columns) {
     return null;
@@ -238,12 +161,14 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
 
   // 解析合计行显示模式（向后兼容 showSummary）
   const summaryDisplay = component.props?.summaryDisplay ?? (component.props?.showSummary ? 'both' : 'none');
+  const extraRows = component.props?.summaryExtraRows || [];
 
   return (
     <div className={styles["property-section"]}>
       <div className={styles["property-title"]}>📋 表格列管理</div>
       <div className={styles["property-list"]}>
-         <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
+        {/* 表格风格 */}
+        <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Text className={styles["property-label"]}>表格风格</Text>
           <Radio.Group
             size="small"
@@ -254,6 +179,8 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
             <Radio.Button value="compact">紧凑</Radio.Button>
           </Radio.Group>
         </div>
+
+        {/* 显示表头 */}
         <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Checkbox
             checked={component.props?.showHeader !== false}
@@ -277,6 +204,8 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
             显示表头
           </Checkbox>
         </div>
+
+        {/* 跨页重复表头 */}
         <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Tooltip
             title={component.props?.showHeader === false ? '未启用表头时此项无效' : ''}
@@ -291,6 +220,8 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
             </Checkbox>
           </Tooltip>
         </div>
+
+        {/* 显示边框 */}
         <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Checkbox
             checked={component.props?.bordered !== false}
@@ -339,6 +270,8 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
             </div>
           )}
         </div>
+
+        {/* 合计行显示风格 */}
         <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Text className={styles["property-label"]}>合计行显示风格</Text>
           <Radio.Group
@@ -351,6 +284,8 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
             <Radio.Button value="extra-only">仅额外行</Radio.Button>
           </Radio.Group>
         </div>
+
+        {/* 合计模式/标签/额外行 */}
         {summaryDisplay !== 'none' ? (
           <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
             <div className={styles["property-list"]} style={{ padding: 0 }}>
@@ -368,300 +303,36 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
               <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
                 <Text className={styles["property-label"]}>合计标签</Text>
                 <Input
-                  size="small"
+                  className="ant-input ant-input-sm"
                   placeholder="默认：合计"
                   value={component.props?.summaryLabel || ''}
                   onChange={(e) => onPropsChange('summaryLabel', e.target.value)}
                 />
               </div>
-              <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <Text className={styles["property-label"]}>合计额外行</Text>
-                <Button
-                  size="small"
-                  type="dashed"
-                  icon={<PlusOutlined />}
-                  onClick={handleAddExtraRow}
-                >
-                  添加额外行
-                </Button>
-              </div>
-              {extraRows.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {extraRows.map((row: SummaryExtraRow, rowIndex: number) => (
-                    <div
-                      key={rowIndex}
-                      style={{ border: '1px solid #d9d9d9', borderRadius: 4, padding: 8, background: '#fafafa' }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <Tag color="blue">额外行 {rowIndex + 1}</Tag>
-                        <Button
-                          type="text"
-                          size="small"
-                          danger
-                          icon={<DeleteOutlined />}
-                          onClick={() => handleDeleteExtraRow(rowIndex)}
-                        />
-                      </div>
-                      <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                        <div>
-                          <Text className={styles["property-label"]}>对齐方式</Text>
-                          <Select
-                            size="small"
-                            style={{ width: '100%', marginTop: 4 }}
-                            value={row.align || 'left'}
-                            onChange={(val) => handleExtraRowChange(rowIndex, 'align', val)}
-                            options={[
-                              { label: '左对齐', value: 'left' },
-                              { label: '居中', value: 'center' },
-                              { label: '右对齐', value: 'right' },
-                            ]}
-                          />
-                        </div>
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                            <Text className={styles["property-label"]}>数据项</Text>
-                            <Button
-                              size="small"
-                              type="dashed"
-                              icon={<PlusOutlined />}
-                              onClick={() => handleAddExtraRowItem(rowIndex)}
-                            >
-                              添加项
-                            </Button>
-                          </div>
-                          {(row.items || []).map((item: SummaryExtraRowItem, itemIndex: number) => (
-                            <div
-                              key={itemIndex}
-                              style={{ border: '1px solid #e8e8e8', borderRadius: 4, padding: 6, marginBottom: 4, background: '#fff' }}
-                            >
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                <Tag>项 {itemIndex + 1}</Tag>
-                                <Button
-                                  type="text"
-                                  size="small"
-                                  danger
-                                  icon={<CloseOutlined />}
-                                  onClick={() => handleDeleteExtraRowItem(rowIndex, itemIndex)}
-                                />
-                              </div>
-                              <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                                <Input
-                                  size="small"
-                                  placeholder="前缀文字（如：金额大写：）"
-                                  value={item.label || ''}
-                                  onChange={(e) => handleExtraRowItemChange(rowIndex, itemIndex, 'label', e.target.value)}
-                                />
-                                <Select
-                                  size="small"
-                                  style={{ width: '100%' }}
-                                  placeholder="引用合计列（可选）"
-                                  allowClear
-                                  value={item.sourceColumn || undefined}
-                                  onChange={(val) => handleSourceColumnChange(rowIndex, itemIndex, val)}
-                                  options={getAllColumns()}
-                                />
-                                <PipeConfigPanel
-                                  pipes={item.pipes}
-                                  onChange={(newPipes) => {
-                                    const newRows = [...extraRows];
-                                    const items = [...newRows[rowIndex].items];
-                                    items[itemIndex] = {
-                                      ...items[itemIndex],
-                                      pipes: newPipes.length > 0 ? newPipes : undefined,
-                                    };
-                                    newRows[rowIndex] = { ...newRows[rowIndex], items };
-                                    onPropsChange('summaryExtraRows', newRows);
-                                  }}
-                                />
-                              </Space>
-                            </div>
-                          ))}
-                        </div>
-                      </Space>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+              <SummaryExtraRowsSection
+                extraRows={extraRows}
+                columns={component.props?.columns || []}
+                onPropsChange={onPropsChange}
+                updateComponent={updateComponent}
+                component={component}
+              />
             </div>
           </div>
-          ) : null}
-        <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
-          <Checkbox
-            checked={component.props?.showRowNumber === true}
-            onChange={(e) => onPropsChange('showRowNumber', e.target.checked)}
-          >
-            显示序号列
-          </Checkbox>
-          {component.props?.showRowNumber && (
-            <div className={styles["property-list"]} style={{ padding: 0, marginTop: 8 }}>
-              <div className={styles["property-item"]}>
-                <Text className={styles["property-label"]}>序号列标题</Text>
-                <Input
-                  size="small"
-                  placeholder="默认：序号"
-                  value={component.props?.rowNumberLabel || ''}
-                  onChange={(e) => onPropsChange('rowNumberLabel', e.target.value)}
-                />
-              </div>
-              <div className={styles["property-item"]}>
-                <Text className={styles["property-label"]}>序号列宽度 (mm)</Text>
-                <InputNumber
-                  size="small"
-                  style={{ width: '100%' }}
-                  min={1}
-                  precision={1}
-                  step={0.5}
-                  placeholder="自动"
-                  suffix="mm"
-                  value={component.props?.rowNumberWidth}
-                  onChange={(v) => onPropsChange('rowNumberWidth', v ?? undefined)}
-                />
-              </div>
-              <div className={styles["property-item-full"]}>
-                <Text strong className={styles["property-label"]}>
-                  序号列表头样式
-                </Text>
-              </div>
-              <div className={styles["property-item"]}>
-                <Text className={styles["property-label"]}>表头字重</Text>
-                <Select
-                  size="small"
-                  style={{ width: '100%' }}
-                  allowClear
-                  placeholder="继承"
-                  value={component.props?.rowNumberHeaderStyle?.fontWeight}
-                  onChange={(v) => handleTableStyleChange('rowNumberHeaderStyle', 'fontWeight', v)}
-                  options={[
-                    { label: '正常', value: 'normal' },
-                    { label: '粗体', value: 'bold' },
-                  ]}
-                />
-              </div>
-              <div className={styles["property-item"]}>
-                <Text className={styles["property-label"]}>表头字号</Text>
-                <InputNumber
-                  size="small"
-                  style={{ width: '100%' }}
-                  min={FONT_SIZE_MIN}
-                  precision={0}
-                  step={1}
-                  placeholder="继承"
-                  value={component.props?.rowNumberHeaderStyle?.fontSize}
-                  onChange={(v) => handleTableStyleChange('rowNumberHeaderStyle', 'fontSize', v)}
-                />
-              </div>
-              <div className={styles["property-item"]}>
-                <Text className={styles["property-label"]}>表头颜色</Text>
-                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                  <input
-                    type="color"
-                    value={component.props?.rowNumberHeaderStyle?.color || '#000000'}
-                    disabled={!component.props?.rowNumberHeaderStyle?.color}
-                    onChange={(e) => handleTableStyleChange('rowNumberHeaderStyle', 'color', e.target.value)}
-                    style={{ width: 32, height: 32, border: '1px solid #d9d9d9', borderRadius: 4, padding: 2, cursor: 'pointer' }}
-                  />
-                  <Checkbox
-                    checked={!!component.props?.rowNumberHeaderStyle?.color}
-                    onChange={(e) => e.target.checked
-                      ? handleTableStyleChange('rowNumberHeaderStyle', 'color', '#000000')
-                      : clearTableStyleField('rowNumberHeaderStyle', 'color')
-                    }
-                  >
-                    <Text style={{ fontSize: 11 }}>自定义</Text>
-                  </Checkbox>
-                </div>
-              </div>
-              <div className={styles["property-item"]}>
-                <Text className={styles["property-label"]}>表头对齐</Text>
-                <Select
-                  size="small"
-                  style={{ width: '100%' }}
-                  allowClear
-                  placeholder="默认：居中"
-                  value={component.props?.rowNumberHeaderStyle?.textAlign}
-                  onChange={(v) => handleTableStyleChange('rowNumberHeaderStyle', 'textAlign', v)}
-                  options={[
-                    { label: '左对齐', value: 'left' },
-                    { label: '居中', value: 'center' },
-                    { label: '右对齐', value: 'right' },
-                  ]}
-                />
-              </div>
-              <div className={styles["property-item-full"]}>
-                <Text strong className={styles["property-label"]}>
-                  序号列数据样式
-                </Text>
-              </div>
-              <div className={styles["property-item"]}>
-                <Text className={styles["property-label"]}>数据字重</Text>
-                <Select
-                  size="small"
-                  style={{ width: '100%' }}
-                  allowClear
-                  placeholder="继承"
-                  value={component.props?.rowNumberStyle?.fontWeight}
-                  onChange={(v) => handleTableStyleChange('rowNumberStyle', 'fontWeight', v)}
-                  options={[
-                    { label: '正常', value: 'normal' },
-                    { label: '粗体', value: 'bold' },
-                  ]}
-                />
-              </div>
-              <div className={styles["property-item"]}>
-                <Text className={styles["property-label"]}>数据字号</Text>
-                <InputNumber
-                  size="small"
-                  style={{ width: '100%' }}
-                  min={FONT_SIZE_MIN}
-                  precision={0}
-                  step={1}
-                  placeholder="继承"
-                  value={component.props?.rowNumberStyle?.fontSize}
-                  onChange={(v) => handleTableStyleChange('rowNumberStyle', 'fontSize', v)}
-                />
-              </div>
-              <div className={styles["property-item"]}>
-                <Text className={styles["property-label"]}>数据颜色</Text>
-                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                  <input
-                    type="color"
-                    value={component.props?.rowNumberStyle?.color || '#000000'}
-                    disabled={!component.props?.rowNumberStyle?.color}
-                    onChange={(e) => handleTableStyleChange('rowNumberStyle', 'color', e.target.value)}
-                    style={{ width: 32, height: 32, border: '1px solid #d9d9d9', borderRadius: 4, padding: 2, cursor: 'pointer' }}
-                  />
-                  <Checkbox
-                    checked={!!component.props?.rowNumberStyle?.color}
-                    onChange={(e) => e.target.checked
-                      ? handleTableStyleChange('rowNumberStyle', 'color', '#000000')
-                      : clearTableStyleField('rowNumberStyle', 'color')
-                    }
-                  >
-                    <Text style={{ fontSize: 11 }}>自定义</Text>
-                  </Checkbox>
-                </div>
-              </div>
-              <div className={styles["property-item"]}>
-                <Text className={styles["property-label"]}>数据对齐</Text>
-                <Select
-                  size="small"
-                  style={{ width: '100%' }}
-                  allowClear
-                  placeholder="默认：居中"
-                  value={component.props?.rowNumberStyle?.textAlign}
-                  onChange={(v) => handleTableStyleChange('rowNumberStyle', 'textAlign', v)}
-                  options={[
-                    { label: '左对齐', value: 'left' },
-                    { label: '居中', value: 'center' },
-                    { label: '右对齐', value: 'right' },
-                  ]}
-                />
-              </div>
-            </div>
-          )}
-        </div>
+        ) : null}
+
+        {/* 序号列配置 */}
+        <RowNumberStyleSection
+          showRowNumber={component.props?.showRowNumber === true}
+          rowNumberLabel={component.props?.rowNumberLabel}
+          rowNumberWidth={component.props?.rowNumberWidth}
+          rowNumberHeaderStyle={component.props?.rowNumberHeaderStyle}
+          rowNumberStyle={component.props?.rowNumberStyle}
+          onPropsChange={onPropsChange}
+          onTableStyleChange={handleTableStyleChange}
+          clearTableStyleField={clearTableStyleField}
+        />
+
+        {/* 列配置列表 */}
         <div className={`${styles["property-item"]} ${styles["property-item-full"]}`} style={{ marginTop: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <Text className={styles["property-label"]}>列配置</Text>
@@ -676,383 +347,31 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {component.props.columns.map((col: any, index: number) => (
-              <div
+              <ColumnConfigCard
                 key={index}
-                style={{
-                  border: '1px solid #d9d9d9',
-                  borderRadius: 4,
-                  padding: 8,
-                  background: col.hidden ? '#f5f5f5' : '#fff',
-                }}
-              >
-                <Space direction="vertical" style={{ width: '100%' }} size="small">
-                  <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                    <Checkbox
-                      checked={!col.hidden}
-                      onChange={(e) => handleColumnToggle(index, e.target.checked)}
-                    >
-                      <Text strong>{col.dataIndex}</Text>
-                    </Checkbox>
-                    <Space size="small">
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<ArrowUpOutlined />}
-                        disabled={index === 0}
-                        onClick={() => handleColumnMove(index, 'up')}
-                      />
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<ArrowDownOutlined />}
-                        disabled={index === (component.props?.columns?.length || 0) - 1}
-                        onClick={() => handleColumnMove(index, 'down')}
-                      />
-                      <Button
-                        type="text"
-                        size="small"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => handleDeleteColumn(index)}
-                      />
-                    </Space>
-                  </Space>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <Text className={styles["property-label"]}>列标题</Text>
-                    <Input
-                      size="small"
-                      placeholder="例如：商品名称"
-                      value={col.title}
-                      disabled={col.hidden}
-                      onChange={(e) => handleColumnTitleChange(index, e.target.value)}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <Text className={styles["property-label"]}>数据字段名 (dataIndex)</Text>
-                    <Input
-                      size="small"
-                      placeholder="例如：productName"
-                      value={col.dataIndex}
-                      disabled={col.hidden}
-                      onChange={(e) => handleColumnDataIndexChange(index, e.target.value)}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <Text className={styles["property-label"]}>宽度 (mm)</Text>
-                    <Tooltip
-                      title={isWidthOverflow ? `列宽总和 ${totalAssignedWidth.toFixed(1)}mm 超过表格宽度 ${tableWidthMm.toFixed(1)}mm` : undefined}
-                      open={isWidthOverflow ? undefined : false}
-                    >
-                      <InputNumber
-                        size="small"
-                        style={{ width: '100%', marginTop: 4 }}
-                        min={1}
-                        precision={1}
-                        step={0.5}
-                        disabled={col.hidden}
-                        max={computeColumnMaxWidth(
-                          visibleColsForValidation,
-                          visibleColsForValidation.findIndex((c: any) => c.dataIndex === col.dataIndex),
-                          tableWidthMm,
-                          component.props?.showRowNumber ? (component.props?.rowNumberWidth || 0) : 0
-                        )}
-                        status={isWidthOverflow ? 'error' : undefined}
-                        placeholder="自动"
-                        suffix="mm"
-                        value={col.width}
-                        onChange={(v) => handleColumnWidthChange(index, v)}
-                      />
-                    </Tooltip>
-                  </div>
-                  <Collapse
-                    size="small"
-                    ghost
-                    style={{ marginTop: 4 }}
-                    items={[
-                      {
-                        key: 'colStyle',
-                        label: <Text type="secondary" style={{ fontSize: 12 }}>列样式</Text>,
-                        children: (
-                          <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                            <Text type="secondary" style={{ fontSize: 11 }}>表头样式</Text>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                              <div style={{ flex: 1 }}>
-                                <Text className={styles["property-label"]}>字重</Text>
-                                <Select
-                                  size="small"
-                                  style={{ width: '100%', marginTop: 4 }}
-                                  allowClear
-                                  placeholder="继承"
-                                  value={col.headerStyle?.fontWeight}
-                                  onChange={(v) => handleColumnHeaderStyleChange(index, 'fontWeight', v)}
-                                  options={[
-                                    { label: '正常', value: 'normal' },
-                                    { label: '粗体', value: 'bold' },
-                                  ]}
-                                />
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <Text className={styles["property-label"]}>字号</Text>
-                                <InputNumber
-                                  size="small"
-                                  style={{ width: '100%', marginTop: 4 }}
-                                  min={FONT_SIZE_MIN}
-                                  precision={0}
-                                  step={1}
-                                  placeholder="继承"
-                                  value={col.headerStyle?.fontSize}
-                                  onChange={(v) => handleColumnHeaderStyleChange(index, 'fontSize', v)}
-                                />
-                              </div>
-                            </div>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                              <div style={{ flex: 1 }}>
-                                <Text className={styles["property-label"]}>颜色</Text>
-                                <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginTop: 4 }}>
-                                  <input
-                                    type="color"
-                                    value={col.headerStyle?.color || '#000000'}
-                                    disabled={!col.headerStyle?.color}
-                                    onChange={(e) => handleColumnHeaderStyleChange(index, 'color', e.target.value)}
-                                    style={{ width: 32, height: 32, border: '1px solid #d9d9d9', borderRadius: 4, padding: 2, cursor: 'pointer' }}
-                                  />
-                                  <Checkbox
-                                    checked={!!col.headerStyle?.color}
-                                    onChange={(e) => e.target.checked
-                                      ? handleColumnHeaderStyleChange(index, 'color', '#000000')
-                                      : clearColumnHeaderStyleField(index, 'color')
-                                    }
-                                  >
-                                    <Text style={{ fontSize: 11 }}>自定义</Text>
-                                  </Checkbox>
-                                </div>
-                              </div>
-                            </div>
-                            <div>
-                              <Text className={styles["property-label"]}>对齐</Text>
-                              <Select
-                                size="small"
-                                style={{ width: '100%', marginTop: 4 }}
-                                allowClear
-                                placeholder="继承"
-                                value={col.headerStyle?.textAlign}
-                                onChange={(v) => handleColumnHeaderStyleChange(index, 'textAlign', v)}
-                                options={[
-                                  { label: '左对齐', value: 'left' },
-                                  { label: '居中', value: 'center' },
-                                  { label: '右对齐', value: 'right' },
-                                ]}
-                              />
-                            </div>
-                            <div style={{ borderTop: '1px solid #e8e8e8', paddingTop: 8, marginTop: 4 }}>
-                              <Text type="secondary" style={{ fontSize: 11 }}>数据样式</Text>
-                            </div>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                              <div style={{ flex: 1 }}>
-                                <Text className={styles["property-label"]}>字重</Text>
-                                <Select
-                                  size="small"
-                                  style={{ width: '100%', marginTop: 4 }}
-                                  allowClear
-                                  placeholder="继承"
-                                  value={col.style?.fontWeight}
-                                  onChange={(v) => handleColumnStyleChange(index, 'fontWeight', v)}
-                                  options={[
-                                    { label: '正常', value: 'normal' },
-                                    { label: '粗体', value: 'bold' },
-                                  ]}
-                                />
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <Text className={styles["property-label"]}>字号</Text>
-                                <InputNumber
-                                  size="small"
-                                  style={{ width: '100%', marginTop: 4 }}
-                                  min={FONT_SIZE_MIN}
-                                  precision={0}
-                                  step={1}
-                                  placeholder="继承"
-                                  value={col.style?.fontSize}
-                                  onChange={(v) => handleColumnStyleChange(index, 'fontSize', v)}
-                                />
-                              </div>
-                            </div>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                              <div style={{ flex: 1 }}>
-                                <Text className={styles["property-label"]}>颜色</Text>
-                                <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginTop: 4 }}>
-                                  <input
-                                    type="color"
-                                    value={col.style?.color || '#000000'}
-                                    disabled={!col.style?.color}
-                                    onChange={(e) => handleColumnStyleChange(index, 'color', e.target.value)}
-                                    style={{ width: 32, height: 32, border: '1px solid #d9d9d9', borderRadius: 4, padding: 2, cursor: 'pointer' }}
-                                  />
-                                  <Checkbox
-                                    checked={!!col.style?.color}
-                                    onChange={(e) => e.target.checked
-                                      ? handleColumnStyleChange(index, 'color', '#000000')
-                                      : clearColumnStyleField(index, 'color')
-                                    }
-                                  >
-                                    <Text style={{ fontSize: 11 }}>自定义</Text>
-                                  </Checkbox>
-                                </div>
-                              </div>
-                            </div>
-                            <div>
-                              <Text className={styles["property-label"]}>对齐</Text>
-                              <Select
-                                size="small"
-                                style={{ width: '100%', marginTop: 4 }}
-                                allowClear
-                                placeholder="继承"
-                                value={col.style?.textAlign}
-                                onChange={(v) => handleColumnStyleChange(index, 'textAlign', v)}
-                                options={[
-                                  { label: '左对齐', value: 'left' },
-                                  { label: '居中', value: 'center' },
-                                  { label: '右对齐', value: 'right' },
-                                ]}
-                              />
-                            </div>
-                          </Space>
-                        ),
-                      },
-                    ]}
-                  />
-                  {/* 列管道配置 */}
-                  <Collapse
-                    size="small"
-                    ghost
-                    style={{ marginTop: 4 }}
-                    defaultActiveKey={col.pipes?.length ? ['colPipes'] : []}
-                    items={[
-                      {
-                        key: 'colPipes',
-                        label: <Text type="secondary" style={{ fontSize: 12 }}>管道转换</Text>,
-                        children: (
-                          <PipeConfigPanel
-                            pipes={col.pipes}
-                            onChange={(newPipes) => handleColumnPipesChange(index, newPipes)}
-                          />
-                        ),
-                      },
-                    ]}
-                  />
-                  {summaryDisplay !== 'none' ? (
-                    <Collapse
-                      size="small"
-                      ghost
-                      style={{ marginTop: 4 }}
-                      defaultActiveKey={col.summary?.type ? ['summary'] : []}
-                      items={[
-                        {
-                          key: 'summary',
-                          label: <Text type="secondary" style={{ fontSize: 12 }}>合计配置</Text>,
-                          children: (
-                            <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                              <div>
-                                <Text className={styles["property-label"]}>聚合类型</Text>
-                                <Select
-                                  size="small"
-                                  style={{ width: '100%', marginTop: 4 }}
-                                  placeholder="选择聚合类型"
-                                  allowClear
-                                  value={col.summary?.type}
-                                  onChange={(value) => {
-                                    if (!value) {
-                                      handleColumnSummaryChange(index, undefined);
-                                    } else {
-                                      handleColumnSummaryChange(index, {
-                                        ...col.summary,
-                                        type: value,
-                                      });
-                                    }
-                                  }}
-                                  options={[
-                                    { label: '求和 (SUM)', value: 'sum' },
-                                    { label: '平均 (AVG)', value: 'avg' },
-                                    { label: '最大 (MAX)', value: 'max' },
-                                    { label: '最小 (MIN)', value: 'min' },
-                                    { label: '计数 (COUNT)', value: 'count' },
-                                  ]}
-                                />
-                              </div>
-                              {col.summary?.type && (
-                                <>
-                                  <div>
-                                    <Text className={styles["property-label"]}>小数位数</Text>
-                                    <InputNumber
-                                      size="small"
-                                      style={{ width: '100%', marginTop: 4 }}
-                                      min={0}
-                                      max={10}
-                                      precision={0}
-                                      step={1}
-                                      placeholder="默认：2"
-                                      value={col.summary?.precision ?? 2}
-                                      onChange={(value) => {
-                                        handleColumnSummaryChange(index, {
-                                          ...col.summary!,
-                                          precision: value ?? 2,
-                                        });
-                                      }}
-                                    />
-                                  </div>
-                                  <div>
-                                    <PipeConfigPanel
-                                      pipes={col.summary?.pipe ? [col.summary.pipe] : []}
-                                      onChange={(newPipes) => {
-                                        handleColumnSummaryChange(index, {
-                                          ...col.summary!,
-                                          pipe: newPipes.length > 0 ? newPipes[0] : undefined,
-                                        });
-                                      }}
-                                      maxPipes={1}
-                                    />
-                                  </div>
-                                  {!col.summary?.pipe && (
-                                    <>
-                                      <div>
-                                        <Text className={styles["property-label"]}>前缀/后缀</Text>
-                                        <Space.Compact style={{ width: '100%', marginTop: 4 }}>
-                                          <Input
-                                            size="small"
-                                            placeholder="前缀（如￥）"
-                                            value={col.summary?.prefix || ''}
-                                            onChange={(e) => {
-                                              handleColumnSummaryChange(index, {
-                                                ...col.summary!,
-                                                prefix: e.target.value,
-                                              });
-                                            }}
-                                          />
-                                          <Input
-                                            size="small"
-                                            placeholder="后缀（如元）"
-                                            value={col.summary?.suffix || ''}
-                                            onChange={(e) => {
-                                              handleColumnSummaryChange(index, {
-                                                ...col.summary!,
-                                                suffix: e.target.value,
-                                              });
-                                            }}
-                                          />
-                                        </Space.Compact>
-                                      </div>
-                                    </>
-                                  )}
-                                </>
-                              )}
-                            </Space>
-                          ),
-                        },
-                      ]}
-                    />
-                  ) : null}
-                </Space>
-              </div>
+                col={col}
+                index={index}
+                totalColumns={component.props?.columns?.length || 0}
+                tableWidthMm={tableWidthMm}
+                visibleCols={visibleColsForValidation}
+                showRowNumber={component.props?.showRowNumber === true}
+                rowNumberWidth={rowNumberWidth}
+                summaryDisplay={summaryDisplay}
+                isWidthOverflow={isWidthOverflow}
+                totalAssignedWidth={totalAssignedWidth}
+                onToggle={handleColumnToggle}
+                onMove={handleColumnMove}
+                onDelete={handleDeleteColumn}
+                onTitleChange={handleColumnTitleChange}
+                onDataIndexChange={handleColumnDataIndexChange}
+                onWidthChange={handleColumnWidthChange}
+                onSummaryChange={handleColumnSummaryChange}
+                onPipesChange={handleColumnPipesChange}
+                onStyleChange={handleColumnStyleChange}
+                onHeaderStyleChange={handleColumnHeaderStyleChange}
+                clearStyleField={clearColumnStyleField}
+                clearHeaderStyleField={clearColumnHeaderStyleField}
+              />
             ))}
           </div>
         </div>
