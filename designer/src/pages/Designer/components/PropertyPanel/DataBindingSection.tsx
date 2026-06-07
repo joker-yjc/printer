@@ -3,12 +3,10 @@
  * 负责组件的数据绑定和管道配置
  */
 
-import { Input, Select, Typography, Tag, Button, Tooltip } from 'antd';
-import { CloseOutlined } from '@ant-design/icons';
+import { Input, Typography, Tooltip } from 'antd';
 import styles from './index.module.css';
-import type { ComponentNode, PipeConfig } from '../../../../types';
-import { getAllPipes } from '@jcyao/print-sdk';
-import { getConfigurator } from '../../../../pipes/configurators';
+import type { ComponentNode } from '../../../../types';
+import PipeConfigPanel from '../../../../components/PipeConfigPanel';
 
 const { Text } = Typography;
 
@@ -18,30 +16,6 @@ interface DataBindingSectionProps {
 }
 
 const DataBindingSection: React.FC<DataBindingSectionProps> = ({ component, onBindingChange }) => {
-  const handleAddPipe = (pipeType: string) => {
-    const currentPipes = component.binding?.pipes || [];
-    const newPipe: PipeConfig = { type: pipeType, options: {} };
-    onBindingChange('pipes', [...currentPipes, newPipe]);
-  };
-
-  const handleRemovePipe = (index: number) => {
-    const currentPipes = component.binding?.pipes || [];
-    const newPipes = currentPipes.filter((_, i) => i !== index);
-    onBindingChange('pipes', newPipes.length > 0 ? newPipes : undefined);
-  };
-
-  const handlePipeOptionChange = (index: number, option: string, value: any) => {
-    const currentPipes = [...(component.binding?.pipes || [])];
-    currentPipes[index] = {
-      ...currentPipes[index],
-      options: {
-        ...currentPipes[index].options,
-        [option]: value,
-      },
-    };
-    onBindingChange('pipes', currentPipes);
-  };
-
   return (
     <div className={styles["property-section"]}>
       <div className={styles["property-title"]}>🔗 数据绑定</div>
@@ -69,55 +43,15 @@ const DataBindingSection: React.FC<DataBindingSectionProps> = ({ component, onBi
           />
         </div>
         <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <Tooltip title="数据管道用于格式化数据，如日期格式化、大小写转换等，按顺序执行">
+          <Tooltip title="数据管道用于格式化数据，如日期格式化、大小写转换等，按顺序执行">
+            <div style={{ marginBottom: 8 }}>
               <Text className={styles["property-label"]}>数据管道 (Pipes)</Text>
-            </Tooltip>
-            <Select
-              size="small"
-              style={{ width: 120 }}
-              placeholder="添加管道"
-              onChange={(value: string) => {
-                handleAddPipe(value);
-              }}
-              value={null}
-              options={getAllPipes()}
-            />
-          </div>
-          {component.binding?.pipes && component.binding.pipes.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {component.binding.pipes.map((pipe, index) => {
-                const configurator = getConfigurator(pipe.type);
-
-                return (
-                  <div
-                    key={index}
-                    style={{
-                      border: '1px solid #d9d9d9',
-                      borderRadius: 4,
-                      padding: 8,
-                      background: '#fafafa',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <Tag color="blue">{pipe.type}</Tag>
-                      <Button
-                        type="text"
-                        size="small"
-                        danger
-                        icon={<CloseOutlined />}
-                        onClick={() => handleRemovePipe(index)}
-                      />
-                    </div>
-                    {/* 使用插件化配置器渲染配置 UI */}
-                    {configurator && configurator.renderConfig(pipe, (option: string, value: any) => {
-                      handlePipeOptionChange(index, option, value);
-                    })}
-                  </div>
-                );
-              })}
             </div>
-          )}
+          </Tooltip>
+          <PipeConfigPanel
+            pipes={component.binding?.pipes}
+            onChange={(pipes) => onBindingChange('pipes', pipes.length > 0 ? pipes : undefined)}
+          />
         </div>
       </div>
     </div>

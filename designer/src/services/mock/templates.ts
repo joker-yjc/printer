@@ -803,12 +803,11 @@ export const defaultTemplates: PrintTemplate[] = [
           "bordered": true,
           "showHeader": true,
           "columns": [
-            { "dataIndex": "no", "title": "序号", "width": 30 },
-            { "dataIndex": "product.code", "title": "商品编码", "width": 40 },
-            { "dataIndex": "product.name", "title": "商品名称", "width": 60 },
-            { "dataIndex": "product.category", "title": "分类", "width": 30 },
+            { "dataIndex": "product.code", "title": "商品编码" },
+            { "dataIndex": "product.name", "title": "商品名称"},
+            { "dataIndex": "product.category", "title": "分类",  },
             { "dataIndex": "quantity", "title": "数量", "width": 30 },
-            { "dataIndex": "price", "title": "单价", "width": 30 },
+            { "dataIndex": "price", "title": "单价", "width": 30, "pipes": [{ "type": "currency", "options": {} }] },
             { "dataIndex": "amount", "title": "金额", "width": 30, "summary": { "type": "sum", "precision": 2, "prefix": "\uFFE5" } }
           ],
           "showSummary": true,
@@ -1366,7 +1365,13 @@ export const defaultTemplates: PrintTemplate[] = [
                         "title": "金额",
                         "dataIndex": "amount",
                         "summary": {
-                            "type": "sum"
+                            "type": "sum",
+                            "pipe": {
+                                "type": "currency",
+                                "options": {
+                                   
+                                }
+                            }
                         },
                         "width": 25
                     },

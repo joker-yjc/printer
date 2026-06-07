@@ -26,6 +26,28 @@
 
 ---
 
+## [1.8.0] - 2026-06-07
+
+### ✨ 新增功能
+
+- **列级管道支持（TableColumn Pipes）**
+  - `TableColumn` 新增 `pipes` 字段，支持对表格列数据应用管道链转换
+  - `TableRenderer` 在渲染单元格时对 `col.pipes` 依次执行，前一个输出作为后一个输入
+  - 管道执行异常时自动回退至原始值，不影响表格渲染
+
+- **DataField 基础接口**
+  - 新增 `DataField` 接口，仅包含 `pipes?: PipeConfig[]`，统一管道能力抽象
+  - `DataBinding extends DataField`，保持向后兼容
+  - `TableColumn extends DataField`，继承管道能力
+  - `SummaryExtraRowItem extends DataField`，替代原有显式 `pipes` 字段
+
+### 🔧 内部重构
+
+- SDK `sdk.ts` 新增导出 `DataField`、`PageSection`、`SchemaFieldType`、`TableColumnSummary`
+- `DataField` 作为可复用基础接口，为后续更多场景的管道能力统一铺路
+
+---
+
 ## [1.7.0] - 2026-06-06
 
 ### ✨ 新增功能

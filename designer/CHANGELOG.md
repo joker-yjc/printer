@@ -2,6 +2,30 @@
 
 所有版本的变更记录都列在这里，遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 规范。
 
+## [1.3.0] - 2026-06-07
+
+### ✨ 新增功能
+
+- **表格列管道配置 UI**
+  - 表格列管理面板新增「管道转换」折叠面板，复用 `PipeConfigPanel` 组件
+  - 支持为每列数据配置管道链，与 SDK 列级管道渲染严格一致
+
+- **类型单一数据源**
+  - `designer/src/types/index.ts` 从 ~400 行本地定义改为从 `@jcyao/print-sdk` 重新导出
+  - 消除设计与 SDK 间的类型重复维护，新增 `DataField` 类型导出
+
+### 🔧 内部优化
+
+- 合计额外行项和列合计的管道配置 UI 统一替换为 `PipeConfigPanel`，减少内联代码
+- 列管道 Collapse 移除 `key` 强制 remount，改为 `defaultActiveKey` 控制展开状态
+- Mock 模板新增列级管道示例（单价列应用 `currency` 管道），便于功能演示
+
+### 📦 依赖升级
+
+- `@jcyao/print-sdk`: `^1.7.0` → `^1.8.0`
+
+---
+
 ## [1.2.0] - 2026-06-06
 
 ### ✨ 新增功能
