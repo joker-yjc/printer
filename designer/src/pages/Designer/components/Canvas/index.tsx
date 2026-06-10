@@ -1144,12 +1144,13 @@ const {
 
               const format = pageConfig.pageNumber.format || 'slash';
               let exampleText = '';
+              const separator = pageConfig.pageNumber.separator || '/';
               if (format === 'simple') {
                 exampleText = '1';
               } else if (format === 'text') {
                 exampleText = '第1页 共3页';
               } else {
-                exampleText = '1/3';
+                exampleText = `1${separator}3`;
               }
               const prefix = pageConfig.pageNumber.prefix || '';
               const suffix = pageConfig.pageNumber.suffix || '';
