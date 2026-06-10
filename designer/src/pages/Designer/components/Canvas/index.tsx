@@ -7,6 +7,7 @@ import { useDesignerStore } from '../../../../store/designer';
 import type { ComponentNode, PageConfig, PageSection } from '../../../../types';
 import PrintPreview from '../../../../components/PrintPreview';
 import { CONTINUOUS_PAPER_MIN_HEIGHT, CONTINUOUS_PAPER_DEFAULT_WIDTH, HEADER_FOOTER_MIN_HEIGHT } from '../../../../constants';
+import { isPageNumberOutOfBounds } from '../../../../utils/pageNumber';
 import { snapToGrid as gridSnapToGrid } from '../../../../utils/grid';
 import { pxToMm } from '../../../../utils/zoom';
 import CanvasToolbar from './CanvasToolbar';
@@ -283,6 +284,7 @@ const {
       return compBottom > pageHeightMm;
     }
   };
+
 
   const handleDrop = (e: React.DragEvent, section: PageSection = 'content') => {
     e.preventDefault();
@@ -725,11 +727,11 @@ const {
 
       let pageW: number, pageH: number;
       if (curPageConfig.size === 'CONTINUOUS') {
-        pageW = curPageConfig.widthMm || CONTINUOUS_PAPER_DEFAULT_WIDTH;
+        pageW = curPageConfig.widthMm ?? CONTINUOUS_PAPER_DEFAULT_WIDTH;
         pageH = 10000;
       } else if (curPageConfig.size === 'CUSTOM') {
-        pageW = curPageConfig.widthMm || 210;
-        pageH = curPageConfig.heightMm || 297;
+        pageW = curPageConfig.widthMm ?? 210;
+        pageH = curPageConfig.heightMm ?? 297;
       } else {
         pageW = curPageConfig.size === 'A4' ? 210 : 148;
         pageH = curPageConfig.size === 'A4' ? 297 : 210;
@@ -953,19 +955,19 @@ const {
       marginBottom: pageConfig.marginMm.bottom,
       marginLeft: pageConfig.marginMm.left,
       // 页码配置
-      pageNumberEnabled: pageConfig.pageNumber?.enabled || false,
-      pageNumberPosition: pageConfig.pageNumber?.position || 'bottom-right',
-      pageNumberFormat: pageConfig.pageNumber?.format || 'slash',
-      pageNumberPrefix: pageConfig.pageNumber?.prefix || '',
-      pageNumberSuffix: pageConfig.pageNumber?.suffix || '',
-      pageNumberSeparator: pageConfig.pageNumber?.separator || '/',
-      pageNumberOffsetX: pageConfig.pageNumber?.offsetX || 0,
-      pageNumberOffsetY: pageConfig.pageNumber?.offsetY || 0,
+      pageNumberEnabled: pageConfig.pageNumber?.enabled ?? false,
+      pageNumberPosition: pageConfig.pageNumber?.position ?? 'bottom-right',
+      pageNumberFormat: pageConfig.pageNumber?.format ?? 'slash',
+      pageNumberPrefix: pageConfig.pageNumber?.prefix ?? '',
+      pageNumberSuffix: pageConfig.pageNumber?.suffix ?? '',
+      pageNumberSeparator: pageConfig.pageNumber?.separator ?? '/',
+      pageNumberOffsetX: pageConfig.pageNumber?.offsetX ?? 0,
+      pageNumberOffsetY: pageConfig.pageNumber?.offsetY ?? 0,
       pageNumberCustomX: pageConfig.pageNumber?.customX ?? 0,
       pageNumberCustomY: pageConfig.pageNumber?.customY ?? 0,
-      pageNumberFontSize: pageConfig.pageNumber?.style?.fontSize || 12,
-      pageNumberColor: pageConfig.pageNumber?.style?.color || '#666666',
-      pageNumberFontWeight: pageConfig.pageNumber?.style?.fontWeight || 'normal',
+      pageNumberFontSize: pageConfig.pageNumber?.style?.fontSize ?? 12,
+      pageNumberColor: pageConfig.pageNumber?.style?.color ?? '#666666',
+      pageNumberFontWeight: pageConfig.pageNumber?.style?.fontWeight ?? 'normal',
       // 页头/页脚开关
       headerEnabled: pageConfig.headerEnabled ?? false,
       headerHeight: pageConfig.headerHeight || undefined,
@@ -978,16 +980,29 @@ const {
   };
 
   const handlePageSettingSave = (newConfig: PageConfig) => {
-    if (newConfig.pageNumber?.position === 'custom' && newConfig.pageNumber.customX === undefined) {
-      const pageW = newConfig.size === 'A4' ? 210 : newConfig.size === 'A5' ? 148 : newConfig.widthMm || 210;
-      const pageH = newConfig.size === 'A4' ? 297 : newConfig.size === 'A5' ? 210 : newConfig.heightMm || 297;
-      const isLandscape = newConfig.orientation === 'landscape' && newConfig.size !== 'CONTINUOUS';
-      const w = isLandscape ? pageH : pageW;
-      const h = isLandscape ? pageW : pageH;
-      newConfig.pageNumber.customX = (w - newConfig.marginMm.left - newConfig.marginMm.right) / 2 + newConfig.marginMm.left;
-      newConfig.pageNumber.customY = h - newConfig.marginMm.bottom - 6;
+    if (newConfig.pageNumber?.position === 'custom') {
+      const prevPageNumber = pageConfig.pageNumber;
+      const prevPosition = prevPageNumber?.position;
+      if (prevPosition !== 'custom') {
+        const pageW = newConfig.size === 'A4' ? 210 : newConfig.size === 'A5' ? 148 : newConfig.widthMm ?? 210;
+        let pageH = newConfig.size === 'A4' ? 297 : newConfig.size === 'A5' ? 210 : (newConfig.size === 'CONTINUOUS' ? 10000 : (newConfig.heightMm ?? 297));
+        const isLandscape = newConfig.orientation === 'landscape' && newConfig.size !== 'CONTINUOUS';
+        const w = isLandscape ? pageH : pageW;
+        const h = isLandscape ? pageW : pageH;
+        newConfig.pageNumber.customX = (w - newConfig.marginMm.left - newConfig.marginMm.right) / 2 + newConfig.marginMm.left;
+        const isTop = prevPosition?.includes('top');
+        newConfig.pageNumber.customY = isTop
+          ? newConfig.marginMm.top + 10
+          : h - newConfig.marginMm.bottom - 10;
+      }
+    }
+    if (!newConfig.pageNumber?.enabled) {
+      deselectPageNumber();
     }
     setPageConfig(newConfig);
+    if (isPageNumberOutOfBounds(newConfig)) {
+      message.warning('页码位置超出纸张边界，请调整坐标');
+    }
     setPageSettingOpen(false);
     message.success('页面设置已保存');
   };
@@ -1073,7 +1088,7 @@ const {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, 'content')}
-            onMouseDown={() => { selectComponent(null); deselectPageNumber(); }}
+            onClick={() => { selectComponent(null); deselectPageNumber(); }}
           >
             {/* 页边距可视化 */}
             <div
@@ -1109,15 +1124,15 @@ const {
             {pageConfig.pageNumber?.enabled && (() => {
               const position = pageConfig.pageNumber.position;
               const isCustom = position === 'custom';
-              const offsetX = !isCustom ? (pageConfig.pageNumber.offsetX || 0) * 3.78 : 0;
-              const offsetY = !isCustom ? (pageConfig.pageNumber.offsetY || 0) * 3.78 : 0;
+              const offsetX = !isCustom ? (pageConfig.pageNumber.offsetX ?? 0) * 3.78 : 0;
+              const offsetY = !isCustom ? (pageConfig.pageNumber.offsetY ?? 0) * 3.78 : 0;
               const margin = 10 * 3.78;
 
               let left = 0, top = 0;
 
               if (isCustom) {
-                left = (pageConfig.pageNumber.customX || 0) * 3.78;
-                top = (pageConfig.pageNumber.customY || 0) * 3.78;
+                left = (pageConfig.pageNumber.customX ?? 0) * 3.78;
+                top = (pageConfig.pageNumber.customY ?? 0) * 3.78;
               } else {
                 if (position === 'top-left') {
                   left = pageConfig.marginMm.left * 3.78 + margin;
@@ -1142,9 +1157,9 @@ const {
                 top += offsetY;
               }
 
-              const format = pageConfig.pageNumber.format || 'slash';
+              const format = pageConfig.pageNumber.format ?? 'slash';
               let exampleText = '';
-              const separator = pageConfig.pageNumber.separator || '/';
+              const separator = pageConfig.pageNumber.separator ?? '/';
               if (format === 'simple') {
                 exampleText = '1';
               } else if (format === 'text') {
@@ -1152,14 +1167,17 @@ const {
               } else {
                 exampleText = `1${separator}3`;
               }
-              const prefix = pageConfig.pageNumber.prefix || '';
-              const suffix = pageConfig.pageNumber.suffix || '';
+              const prefix = pageConfig.pageNumber.prefix ?? '';
+              const suffix = pageConfig.pageNumber.suffix ?? '';
               exampleText = `${prefix}${exampleText}${suffix}`;
 
               const isSelected = selectedPageNumber;
+              const isOutOfBounds = isPageNumberOutOfBounds(pageConfig);
 
               const handlePageNumberMouseDown = (e: React.MouseEvent) => {
+                if (e.button !== 0) return;
                 e.stopPropagation();
+                e.preventDefault();
                 selectPageNumber();
                 if (isCustom) {
                   setDraggingPageNumber(true);
@@ -1172,25 +1190,30 @@ const {
                 }
               };
 
+              const handlePageNumberClick = (e: React.MouseEvent) => {
+                e.stopPropagation();
+              };
+
               return (
                 <div
                   onMouseDown={handlePageNumberMouseDown}
+                  onClick={handlePageNumberClick}
                   style={{
                     position: 'absolute',
                     left: `${left}px`,
                     top: `${top}px`,
                     transform: !isCustom && position.includes('center') ? 'translateX(-50%)' : 'none',
                     pointerEvents: 'auto',
-                    cursor: isCustom ? 'move' : 'pointer',
-                    padding: '4px 8px',
-                    backgroundColor: isSelected ? 'rgba(24, 144, 255, 0.2)' : 'rgba(24, 144, 255, 0.1)',
-                    border: isSelected ? '2px solid #1890ff' : '1px dashed rgba(24, 144, 255, 0.5)',
+                    cursor: isCustom ? 'move' : 'default',
+                    padding: '2px 4px',
+                    backgroundColor: isOutOfBounds ? 'rgba(255, 77, 79, 0.1)' : (isSelected ? 'rgba(24, 144, 255, 0.2)' : 'rgba(24, 144, 255, 0.1)'),
+                    border: isOutOfBounds ? '2px dashed #ff4d4f' : (isSelected ? '2px solid #1890ff' : '1px dashed rgba(24, 144, 255, 0.5)'),
                     borderRadius: '2px',
-                    fontSize: `${(pageConfig.pageNumber.style?.fontSize || 12) * 0.8}px`,
-                    color: pageConfig.pageNumber.style?.color || '#666',
-                    fontWeight: pageConfig.pageNumber.style?.fontWeight || 'normal',
+                    fontSize: `${(pageConfig.pageNumber.style?.fontSize ?? 12) * 0.8}px`,
+                    color: pageConfig.pageNumber.style?.color ?? '#666',
+                    fontWeight: pageConfig.pageNumber.style?.fontWeight ?? 'normal',
                     whiteSpace: 'nowrap',
-                    zIndex: 1000,
+                    zIndex: isCustom ? 1000 : 50,
                     userSelect: 'none',
                   }}
                 >

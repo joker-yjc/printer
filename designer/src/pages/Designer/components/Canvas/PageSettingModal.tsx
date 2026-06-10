@@ -55,28 +55,30 @@ const PageSettingModal = ({
 
 // 页码配置
     if (values.pageNumberEnabled) {
-      const position = values.pageNumberPosition || 'bottom-right';
+      const position = values.pageNumberPosition ?? 'bottom-right';
       const pageNumber: PageNumberConfig = {
         enabled: true,
         position,
-        format: values.pageNumberFormat || 'slash',
-        prefix: values.pageNumberPrefix || '',
-        suffix: values.pageNumberSuffix || '',
-        separator: values.pageNumberSeparator || '/',
+        format: values.pageNumberFormat ?? 'slash',
+        prefix: values.pageNumberPrefix ?? '',
+        suffix: values.pageNumberSuffix ?? '',
+        separator: values.pageNumberSeparator ?? '/',
         style: {
-          fontSize: values.pageNumberFontSize || 12,
-          color: values.pageNumberColor || '#666',
-          fontWeight: values.pageNumberFontWeight || 'normal',
+          fontSize: values.pageNumberFontSize ?? 12,
+          color: values.pageNumberColor ?? '#666',
+          fontWeight: values.pageNumberFontWeight ?? 'normal',
         },
       };
       if (position === 'custom') {
         pageNumber.customX = values.pageNumberCustomX ?? 0;
         pageNumber.customY = values.pageNumberCustomY ?? 0;
       } else {
-        pageNumber.offsetX = values.pageNumberOffsetX || 0;
-        pageNumber.offsetY = values.pageNumberOffsetY || 0;
+        pageNumber.offsetX = values.pageNumberOffsetX ?? 0;
+        pageNumber.offsetY = values.pageNumberOffsetY ?? 0;
       }
       newConfig.pageNumber = pageNumber;
+    } else {
+      newConfig.pageNumber = undefined;
     }
 
     // 页头/页脚开关（连续纸时强制关闭）

@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { templateApi } from '../../../../services/api';
 import { useDesignerStore } from '../../../../store/designer';
 import { HEADER_FOOTER_MIN_HEIGHT } from '../../../../constants';
+import { isPageNumberOutOfBounds } from '../../../../utils/pageNumber';
 import type { ComponentNode } from '../../../../types';
 
 interface SaveTemplateModalProps {
@@ -134,14 +135,22 @@ const SaveTemplateModal = ({
     const allComponents = [...headerComponents, ...components, ...footerComponents];
     const outOfBoundsComponents = allComponents.filter(comp => isComponentOutOfBounds(comp));
 
-    if (outOfBoundsComponents.length > 0) {
+    const pageNumberOutOfBounds = isPageNumberOutOfBounds(pageConfig);
+    const hasIssues = outOfBoundsComponents.length > 0 || pageNumberOutOfBounds;
+
+    if (hasIssues) {
       Modal.confirm({
-        title: '检测到位置异常的组件',
+        title: '检测到位置异常的元素',
         content: (
           <div>
-            <p>当前有 {outOfBoundsComponents.length} 个组件位置超出其所属区域范围（已用红色虚线标记）。</p>
+            {outOfBoundsComponents.length > 0 && (
+              <p>当前有 {outOfBoundsComponents.length} 个组件位置超出其所属区域范围（已用红色虚线标记）。</p>
+            )}
+            {pageNumberOutOfBounds && (
+              <p>页码位置超出纸张边界（已用红色虚线标记）。</p>
+            )}
             <p>可能的原因：超出页面边界、侵入页头/页脚区域、或页头/页脚内组件超出区域高度。</p>
-            <p>位置异常的组件在打印时可能被截断或显示不完整。</p>
+            <p>位置异常的元素在打印时可能被截断或显示不完整。</p>
             <p style={{ marginTop: 12, fontWeight: 'bold' }}>是否继续保存？</p>
           </div>
         ),
