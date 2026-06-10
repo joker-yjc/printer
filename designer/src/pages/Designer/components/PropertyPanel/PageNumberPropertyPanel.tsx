@@ -1,6 +1,6 @@
 /**
  * 页码属性面板
- * 自定义模式下编辑页码坐标、格式和样式
+ * 编辑页码位置、格式和样式
  * @module PageNumberPropertyPanel
  */
 
@@ -14,7 +14,9 @@ const PageNumberPropertyPanel = () => {
   const { pageConfig, updatePageNumberConfig } = useDesignerStore();
   const pageNumber = pageConfig.pageNumber;
 
-  if (!pageNumber || pageNumber.position !== 'custom') return null;
+  if (!pageNumber) return null;
+
+  const isCustom = pageNumber.position === 'custom';
 
   const handleUpdate = (updates: Record<string, any>) => {
     updatePageNumberConfig(updates);
@@ -24,36 +26,90 @@ const PageNumberPropertyPanel = () => {
     <div className={styles["property-panel"]}>
       <div className={styles["property-header"]}>
         <Title level={5} style={{ margin: 0 }}>页码属性</Title>
-        <Text type="secondary" style={{ fontSize: 12 }}>自定义位置</Text>
+        <Text type="secondary" style={{ fontSize: 12 }}>{isCustom ? '自定义位置' : '预设位置'}</Text>
       </div>
 
       <div className={styles["property-section"]}>
-        <div className={styles["property-title"]}>坐标位置</div>
+        <div className={styles["property-title"]}>位置</div>
         <div className={styles["property-list"]}>
-          <div className={styles["property-item"]}>
-            <span className={styles["property-label"]}>X (mm)</span>
-            <InputNumber
-              value={pageNumber.customX ?? 0}
-              min={0}
-              max={500}
-              step={1}
-              onChange={(v) => handleUpdate({ customX: v ?? 0 })}
+          <div className={styles["property-item-full"]}>
+            <Select
+              value={pageNumber.position}
+              onChange={(v) => handleUpdate({ position: v })}
               style={{ width: '100%' }}
-            />
-          </div>
-          <div className={styles["property-item"]}>
-            <span className={styles["property-label"]}>Y (mm)</span>
-            <InputNumber
-              value={pageNumber.customY ?? 0}
-              min={0}
-              max={500}
-              step={1}
-              onChange={(v) => handleUpdate({ customY: v ?? 0 })}
-              style={{ width: '100%' }}
+              options={[
+                { label: '左上角', value: 'top-left' },
+                { label: '顶部居中', value: 'top-center' },
+                { label: '右上角', value: 'top-right' },
+                { label: '左下角', value: 'bottom-left' },
+                { label: '底部居中', value: 'bottom-center' },
+                { label: '右下角', value: 'bottom-right' },
+                { label: '自定义', value: 'custom' },
+              ]}
             />
           </div>
         </div>
       </div>
+
+      {isCustom && (
+        <div className={styles["property-section"]}>
+          <div className={styles["property-title"]}>坐标位置</div>
+          <div className={styles["property-list"]}>
+            <div className={styles["property-item"]}>
+              <span className={styles["property-label"]}>X (mm)</span>
+              <InputNumber
+                value={pageNumber.customX ?? 0}
+                min={0}
+                max={500}
+                step={1}
+                onChange={(v) => handleUpdate({ customX: v ?? 0 })}
+                style={{ width: '100%' }}
+              />
+            </div>
+            <div className={styles["property-item"]}>
+              <span className={styles["property-label"]}>Y (mm)</span>
+              <InputNumber
+                value={pageNumber.customY ?? 0}
+                min={0}
+                max={500}
+                step={1}
+                onChange={(v) => handleUpdate({ customY: v ?? 0 })}
+                style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!isCustom && (
+        <div className={styles["property-section"]}>
+          <div className={styles["property-title"]}>偏移</div>
+          <div className={styles["property-list"]}>
+            <div className={styles["property-item"]}>
+              <span className={styles["property-label"]}>X 偏移 (mm)</span>
+              <InputNumber
+                value={pageNumber.offsetX ?? 0}
+                min={-50}
+                max={50}
+                step={1}
+                onChange={(v) => handleUpdate({ offsetX: v ?? 0 })}
+                style={{ width: '100%' }}
+              />
+            </div>
+            <div className={styles["property-item"]}>
+              <span className={styles["property-label"]}>Y 偏移 (mm)</span>
+              <InputNumber
+                value={pageNumber.offsetY ?? 0}
+                min={-50}
+                max={50}
+                step={1}
+                onChange={(v) => handleUpdate({ offsetY: v ?? 0 })}
+                style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className={styles["property-section"]}>
         <div className={styles["property-title"]}>页码格式</div>

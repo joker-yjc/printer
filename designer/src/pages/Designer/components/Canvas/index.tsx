@@ -1073,7 +1073,7 @@ const {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, 'content')}
-            onClick={() => { selectComponent(null); deselectPageNumber(); }}
+            onMouseDown={() => { selectComponent(null); deselectPageNumber(); }}
           >
             {/* 页边距可视化 */}
             <div
@@ -1155,19 +1155,20 @@ const {
               const suffix = pageConfig.pageNumber.suffix || '';
               exampleText = `${prefix}${exampleText}${suffix}`;
 
-              const isSelected = selectedPageNumber && isCustom;
+              const isSelected = selectedPageNumber;
 
-const handlePageNumberMouseDown = (e: React.MouseEvent) => {
-                if (!isCustom) return;
+              const handlePageNumberMouseDown = (e: React.MouseEvent) => {
                 e.stopPropagation();
                 selectPageNumber();
-                setDraggingPageNumber(true);
-                setPageNumberDragStart({
-                  x: e.clientX,
-                  y: e.clientY,
-                  startCustomX: pageConfig.pageNumber?.customX ?? 0,
-                  startCustomY: pageConfig.pageNumber?.customY ?? 0,
-                });
+                if (isCustom) {
+                  setDraggingPageNumber(true);
+                  setPageNumberDragStart({
+                    x: e.clientX,
+                    y: e.clientY,
+                    startCustomX: pageConfig.pageNumber?.customX ?? 0,
+                    startCustomY: pageConfig.pageNumber?.customY ?? 0,
+                  });
+                }
               };
 
               return (
@@ -1178,10 +1179,10 @@ const handlePageNumberMouseDown = (e: React.MouseEvent) => {
                     left: `${left}px`,
                     top: `${top}px`,
                     transform: !isCustom && position.includes('center') ? 'translateX(-50%)' : 'none',
-                    pointerEvents: isCustom ? 'auto' : 'none',
-                    cursor: isCustom ? 'move' : 'default',
+                    pointerEvents: 'auto',
+                    cursor: isCustom ? 'move' : 'pointer',
                     padding: '4px 8px',
-                    backgroundColor: isSelected ? 'rgba(24, 144, 255, 0.15)' : 'rgba(24, 144, 255, 0.1)',
+                    backgroundColor: isSelected ? 'rgba(24, 144, 255, 0.2)' : 'rgba(24, 144, 255, 0.1)',
                     border: isSelected ? '2px solid #1890ff' : '1px dashed rgba(24, 144, 255, 0.5)',
                     borderRadius: '2px',
                     fontSize: `${(pageConfig.pageNumber.style?.fontSize || 12) * 0.8}px`,
