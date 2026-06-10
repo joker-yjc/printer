@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ComponentNode, PrintTemplate, PageConfig, PageSection } from '../types';
+import type { ComponentNode, PrintTemplate, PageConfig, PageNumberConfig, PageSection } from '../types';
 import { snapToGrid } from '../utils/grid';
 import { CONTINUOUS_PAPER_DEFAULT_WIDTH, HEADER_FOOTER_MIN_HEIGHT } from '../constants';
 
@@ -26,6 +26,15 @@ interface DesignerStore {
   toggleSelectComponent: (id: string) => void;
   clearSelection: () => void;
   selectMultiple: (ids: string[]) => void;
+
+  /** 是否选中页码（自定义模式下） */
+  selectedPageNumber: boolean;
+  /** 选中页码 */
+  selectPageNumber: () => void;
+  /** 取消选中页码 */
+  deselectPageNumber: () => void;
+  /** 更新页码配置 */
+  updatePageNumberConfig: (updates: Partial<PageNumberConfig>) => void;
 
   // 模板信息
   templateId: string | null;
@@ -149,7 +158,7 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
   },
 
   selectedComponentId: null,
-  selectComponent: (id) => set({ selectedComponentId: id, selectedComponentIds: id ? [id] : [] }),
+  selectComponent: (id) => set({ selectedComponentId: id, selectedComponentIds: id ? [id] : [], selectedPageNumber: false }),
 
   selectedComponentIds: [],
   toggleSelectComponent: (id) => {
@@ -164,8 +173,21 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
       };
     });
   },
-  clearSelection: () => set({ selectedComponentId: null, selectedComponentIds: [] }),
+  clearSelection: () => set({ selectedComponentId: null, selectedComponentIds: [], selectedPageNumber: false }),
   selectMultiple: (ids) => set({ selectedComponentIds: ids, selectedComponentId: ids.length === 1 ? ids[0] : null }),
+
+  selectedPageNumber: false,
+  selectPageNumber: () => set({ selectedPageNumber: true, selectedComponentId: null, selectedComponentIds: [] }),
+  deselectPageNumber: () => set({ selectedPageNumber: false }),
+  updatePageNumberConfig: (updates) => set((state) => {
+    const current = state.pageConfig.pageNumber || { enabled: true, position: 'custom' as const };
+    return {
+      pageConfig: {
+        ...state.pageConfig,
+        pageNumber: { ...current, ...updates } as PageNumberConfig,
+      },
+    };
+  }),
 
   templateId: null,
   templateName: '未命名模板',

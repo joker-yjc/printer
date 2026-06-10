@@ -31,13 +31,16 @@ export interface SchemaDictionary {
 export interface PageNumberConfig {
   enabled: boolean;                          // 是否显示页码
   position: 'bottom-center' | 'bottom-right' | 'bottom-left'
-  | 'top-center' | 'top-right' | 'top-left';  // 位置
+  | 'top-center' | 'top-right' | 'top-left'
+  | 'custom';                                 // 自定义位置
+  customX?: number;                           // 自定义 X 坐标 (mm)，页面左上角为原点
+  customY?: number;                           // 自定义 Y 坐标 (mm)，页面左上角为原点
   format?: 'simple' | 'text' | 'slash';     // 格式：默认 'slash'
   prefix?: string;                           // 前缀
   suffix?: string;                           // 后缀
   separator?: string;                        // 分隔符（slash模式下默认为 "/"）
-  offsetX?: number;                          // X 偏移 (mm)
-  offsetY?: number;                          // Y 偏移 (mm)
+  offsetX?: number;                          // X 偏移 (mm)，仅预设模式
+  offsetY?: number;                          // Y 偏移 (mm)，仅预设模式
   style?: {
     fontSize?: number;                       // 字体大小
     color?: string;                          // 颜色

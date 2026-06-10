@@ -11,12 +11,19 @@ import LayoutSection from './LayoutSection';
 import DataBindingSection from './DataBindingSection';
 import StyleSection from './StyleSection';
 import TableColumnSection from './TableColumnSection';
+import PageNumberPropertyPanel from './PageNumberPropertyPanel';
 
 const { Title, Text } = Typography;
 
 const PropertyPanel = () => {
   const { selectedComponentId, components, updateComponent,
-    headerComponents, footerComponents, pageConfig } = useDesignerStore();
+    headerComponents, footerComponents, pageConfig,
+    selectedPageNumber } = useDesignerStore();
+
+  if (selectedPageNumber) {
+    return <PageNumberPropertyPanel />;
+  }
+
   const selectedComponent =
     components.find((c) => c.id === selectedComponentId) ||
     headerComponents.find((c) => c.id === selectedComponentId) ||

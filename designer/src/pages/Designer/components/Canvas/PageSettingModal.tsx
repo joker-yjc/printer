@@ -1,6 +1,6 @@
-import { Modal, Form, Radio, InputNumber, Space, Switch, Select, Divider, Typography } from 'antd';
+import { Modal, Form, Radio, InputNumber, Space, Switch, Select, Divider, Typography, Alert } from 'antd';
 import { CONTINUOUS_PAPER_DEFAULT_WIDTH, CONTINUOUS_PAPER_MIN_HEIGHT, HEADER_FOOTER_MIN_HEIGHT } from '../../../../constants';
-import type { PageConfig } from '../../../../types';
+import type { PageConfig, PageNumberConfig } from '../../../../types';
 
 const { Text } = Typography;
 
@@ -53,23 +53,30 @@ const PageSettingModal = ({
       newConfig.minHeightMm = values.minHeight;
     }
 
-    // 页码配置
+// 页码配置
     if (values.pageNumberEnabled) {
-      newConfig.pageNumber = {
+      const position = values.pageNumberPosition || 'bottom-right';
+      const pageNumber: PageNumberConfig = {
         enabled: true,
-        position: values.pageNumberPosition || 'bottom-right',
+        position,
         format: values.pageNumberFormat || 'slash',
         prefix: values.pageNumberPrefix || '',
         suffix: values.pageNumberSuffix || '',
         separator: values.pageNumberSeparator || '/',
-        offsetX: values.pageNumberOffsetX || 0,
-        offsetY: values.pageNumberOffsetY || 0,
         style: {
           fontSize: values.pageNumberFontSize || 12,
           color: values.pageNumberColor || '#666',
           fontWeight: values.pageNumberFontWeight || 'normal',
         },
       };
+      if (position === 'custom') {
+        pageNumber.customX = values.pageNumberCustomX ?? 0;
+        pageNumber.customY = values.pageNumberCustomY ?? 0;
+      } else {
+        pageNumber.offsetX = values.pageNumberOffsetX || 0;
+        pageNumber.offsetY = values.pageNumberOffsetY || 0;
+      }
+      newConfig.pageNumber = pageNumber;
     }
 
     // 页头/页脚开关（连续纸时强制关闭）
@@ -307,41 +314,62 @@ const PageSettingModal = ({
                         { label: '左下角', value: 'bottom-left' },
                         { label: '底部居中', value: 'bottom-center' },
                         { label: '右下角（默认）', value: 'bottom-right' },
+                        { label: '自定义', value: 'custom' },
                       ]}
                     />
                   </Form.Item>
 
-                  <Form.Item
-                    label="页码格式"
-                    name="pageNumberFormat"
-                    initialValue="slash"
-                    style={{ marginBottom: 0 }}
-                  >
-                    <Radio.Group>
-                      <Radio value="slash">1/3</Radio>
-                      <Radio value="text">第1页 共3页</Radio>
-                      <Radio value="simple">1</Radio>
-                    </Radio.Group>
+                  <Form.Item noStyle shouldUpdate={(prev, cur) => prev.pageNumberPosition !== cur.pageNumberPosition}>
+                    {({ getFieldValue }: any) =>
+                      getFieldValue('pageNumberPosition') === 'custom' ? (
+                        <Alert
+                          type="info"
+                          message="自定义模式下，可在画布上拖拽定位页码，并通过右侧属性面板编辑坐标和样式"
+                          style={{ marginBottom: 12 }}
+                        />
+                      ) : null
+                    }
                   </Form.Item>
 
-                  <Form.Item label="页码样式" style={{ marginBottom: 0 }}>
-                    <Space>
-                      <Form.Item label="字号" name="pageNumberFontSize" initialValue={12} noStyle>
-                        <IntInput min={8} max={24} style={{ width: 80 }} addonAfter="px" />
-                      </Form.Item>
-                      <Form.Item label="颜色" name="pageNumberColor" initialValue="#666666" noStyle>
-                        <input type="color" style={{ width: 50, height: 32, border: '1px solid #d9d9d9', borderRadius: 4, padding: 2, cursor: 'pointer' }} />
-                      </Form.Item>
-                      <Form.Item label="字重" name="pageNumberFontWeight" initialValue="normal" noStyle>
-                        <Select
-                          style={{ width: 80 }}
-                          options={[
-                            { label: '正常', value: 'normal' },
-                            { label: '加粗', value: 'bold' },
-                          ]}
-                        />
-                      </Form.Item>
-                    </Space>
+                  <Form.Item noStyle shouldUpdate={(prev, cur) => prev.pageNumberPosition !== cur.pageNumberPosition}>
+                    {({ getFieldValue }: any) =>
+                      getFieldValue('pageNumberPosition') !== 'custom' ? (
+                        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                          <Form.Item
+                            label="页码格式"
+                            name="pageNumberFormat"
+                            initialValue="slash"
+                            style={{ marginBottom: 0 }}
+                          >
+                            <Radio.Group>
+                              <Radio value="slash">1/3</Radio>
+                              <Radio value="text">第1页 共3页</Radio>
+                              <Radio value="simple">1</Radio>
+                            </Radio.Group>
+                          </Form.Item>
+
+                          <Form.Item label="页码样式" style={{ marginBottom: 0 }}>
+                            <Space>
+                              <Form.Item label="字号" name="pageNumberFontSize" initialValue={12} noStyle>
+                                <IntInput min={8} max={24} style={{ width: 80 }} addonAfter="px" />
+                              </Form.Item>
+                              <Form.Item label="颜色" name="pageNumberColor" initialValue="#666666" noStyle>
+                                <input type="color" style={{ width: 50, height: 32, border: '1px solid #d9d9d9', borderRadius: 4, padding: 2, cursor: 'pointer' }} />
+                              </Form.Item>
+                              <Form.Item label="字重" name="pageNumberFontWeight" initialValue="normal" noStyle>
+                                <Select
+                                  style={{ width: 80 }}
+                                  options={[
+                                    { label: '正常', value: 'normal' },
+                                    { label: '加粗', value: 'bold' },
+                                  ]}
+                                />
+                              </Form.Item>
+                            </Space>
+                          </Form.Item>
+                        </Space>
+                      ) : null
+                    }
                   </Form.Item>
                 </Space>
               ) : null

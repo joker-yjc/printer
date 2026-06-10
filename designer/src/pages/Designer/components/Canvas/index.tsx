@@ -20,7 +20,7 @@ import type { AlignmentLine } from './AlignmentGuides';
 import { detectAlignment } from './alignmentDetector';
 
 const CanvasArea = () => {
-  const {
+const {
     components,
     headerComponents,
     footerComponents,
@@ -53,6 +53,10 @@ const CanvasArea = () => {
     sendBackward,
     moveComponentToSection,
     zoomLevel,
+    selectedPageNumber,
+    selectPageNumber,
+    deselectPageNumber,
+    updatePageNumberConfig,
   } = useDesignerStore();
   const [dragOver, setDragOver] = useState(false);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
@@ -71,6 +75,8 @@ const CanvasArea = () => {
   const resizeStartYRef = useRef(0);
   const resizeStartHeightRef = useRef(0);
   const [alignmentLines, setAlignmentLines] = useState<AlignmentLine[]>([]);
+  const [draggingPageNumber, setDraggingPageNumber] = useState(false);
+  const [pageNumberDragStart, setPageNumberDragStart] = useState({ x: 0, y: 0, startCustomX: 0, startCustomY: 0 });
 
   /** 跟踪拖拽时的鼠标位置，用于 mouseUp 时判断跨区域 */
   const lastMousePosRef = useRef({ x: 0, y: 0 });
@@ -698,6 +704,58 @@ const CanvasArea = () => {
     }
   }, [draggingComponentId]);
 
+  // 页码拖拽事件
+  useEffect(() => {
+    if (!draggingPageNumber) return;
+
+    const handlePageNumberMove = (e: MouseEvent) => {
+      const curZoom = zoomLevelRef.current;
+      const curPageConfig = pageConfigRef.current;
+
+      const deltaX = e.clientX - pageNumberDragStart.x;
+      const deltaY = e.clientY - pageNumberDragStart.y;
+      const deltaXMm = pxToMm(deltaX, curZoom);
+      const deltaYMm = pxToMm(deltaY, curZoom);
+
+      let newX = pageNumberDragStart.startCustomX + deltaXMm;
+      let newY = pageNumberDragStart.startCustomY + deltaYMm;
+
+      newX = gridSnapToGrid(newX, gridEnabled, gridSize);
+      newY = gridSnapToGrid(newY, gridEnabled, gridSize);
+
+      let pageW: number, pageH: number;
+      if (curPageConfig.size === 'CONTINUOUS') {
+        pageW = curPageConfig.widthMm || CONTINUOUS_PAPER_DEFAULT_WIDTH;
+        pageH = 10000;
+      } else if (curPageConfig.size === 'CUSTOM') {
+        pageW = curPageConfig.widthMm || 210;
+        pageH = curPageConfig.heightMm || 297;
+      } else {
+        pageW = curPageConfig.size === 'A4' ? 210 : 148;
+        pageH = curPageConfig.size === 'A4' ? 297 : 210;
+      }
+      if (curPageConfig.orientation === 'landscape' && curPageConfig.size !== 'CONTINUOUS') {
+        [pageW, pageH] = [pageH, pageW];
+      }
+
+      newX = Math.max(0, Math.min(pageW, newX));
+      newY = Math.max(0, Math.min(pageH, newY));
+
+      updatePageNumberConfig({ customX: newX, customY: newY });
+    };
+
+    const handlePageNumberUp = () => {
+      setDraggingPageNumber(false);
+    };
+
+    window.addEventListener('mousemove', handlePageNumberMove);
+    window.addEventListener('mouseup', handlePageNumberUp);
+    return () => {
+      window.removeEventListener('mousemove', handlePageNumberMove);
+      window.removeEventListener('mouseup', handlePageNumberUp);
+    };
+  }, [draggingPageNumber]);
+
   // 监听区域高度拖拽手柄（使用 useRef 缓存状态值）
   useEffect(() => {
     if (!resizingSection) return;
@@ -903,6 +961,8 @@ const CanvasArea = () => {
       pageNumberSeparator: pageConfig.pageNumber?.separator || '/',
       pageNumberOffsetX: pageConfig.pageNumber?.offsetX || 0,
       pageNumberOffsetY: pageConfig.pageNumber?.offsetY || 0,
+      pageNumberCustomX: pageConfig.pageNumber?.customX ?? 0,
+      pageNumberCustomY: pageConfig.pageNumber?.customY ?? 0,
       pageNumberFontSize: pageConfig.pageNumber?.style?.fontSize || 12,
       pageNumberColor: pageConfig.pageNumber?.style?.color || '#666666',
       pageNumberFontWeight: pageConfig.pageNumber?.style?.fontWeight || 'normal',
@@ -918,6 +978,15 @@ const CanvasArea = () => {
   };
 
   const handlePageSettingSave = (newConfig: PageConfig) => {
+    if (newConfig.pageNumber?.position === 'custom' && newConfig.pageNumber.customX === undefined) {
+      const pageW = newConfig.size === 'A4' ? 210 : newConfig.size === 'A5' ? 148 : newConfig.widthMm || 210;
+      const pageH = newConfig.size === 'A4' ? 297 : newConfig.size === 'A5' ? 210 : newConfig.heightMm || 297;
+      const isLandscape = newConfig.orientation === 'landscape' && newConfig.size !== 'CONTINUOUS';
+      const w = isLandscape ? pageH : pageW;
+      const h = isLandscape ? pageW : pageH;
+      newConfig.pageNumber.customX = (w - newConfig.marginMm.left - newConfig.marginMm.right) / 2 + newConfig.marginMm.left;
+      newConfig.pageNumber.customY = h - newConfig.marginMm.bottom - 6;
+    }
     setPageConfig(newConfig);
     setPageSettingOpen(false);
     message.success('页面设置已保存');
@@ -1004,7 +1073,7 @@ const CanvasArea = () => {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, 'content')}
-            onClick={() => selectComponent(null)}
+            onClick={() => { selectComponent(null); deselectPageNumber(); }}
           >
             {/* 页边距可视化 */}
             <div
@@ -1036,41 +1105,43 @@ const CanvasArea = () => {
               />
             </div>
 
-            {/* 页边距可视化 */}
+            {/* 页码预览 */}
             {pageConfig.pageNumber?.enabled && (() => {
               const position = pageConfig.pageNumber.position;
-              const offsetX = (pageConfig.pageNumber.offsetX || 0) * 3.78;
-              const offsetY = (pageConfig.pageNumber.offsetY || 0) * 3.78;
-              const margin = 10 * 3.78; // 默认边距 10mm
+              const isCustom = position === 'custom';
+              const offsetX = !isCustom ? (pageConfig.pageNumber.offsetX || 0) * 3.78 : 0;
+              const offsetY = !isCustom ? (pageConfig.pageNumber.offsetY || 0) * 3.78 : 0;
+              const margin = 10 * 3.78;
 
               let left = 0, top = 0;
 
-              // 根据位置计算坐标
-              if (position === 'top-left') {
-                left = pageConfig.marginMm.left * 3.78 + margin;
-                top = pageConfig.marginMm.top * 3.78 + margin;
-              } else if (position === 'top-center') {
-                left = canvasSize.widthPx / 2;
-                top = pageConfig.marginMm.top * 3.78 + margin;
-              } else if (position === 'top-right') {
-                left = canvasSize.widthPx - pageConfig.marginMm.right * 3.78 - margin;
-                top = pageConfig.marginMm.top * 3.78 + margin;
-              } else if (position === 'bottom-left') {
-                left = pageConfig.marginMm.left * 3.78 + margin;
-                top = canvasSize.heightPx - pageConfig.marginMm.bottom * 3.78 - margin;
-              } else if (position === 'bottom-center') {
-                left = canvasSize.widthPx / 2;
-                top = canvasSize.heightPx - pageConfig.marginMm.bottom * 3.78 - margin;
-              } else { // bottom-right
-                left = canvasSize.widthPx - pageConfig.marginMm.right * 3.78 - margin;
-                top = canvasSize.heightPx - pageConfig.marginMm.bottom * 3.78 - margin;
+              if (isCustom) {
+                left = (pageConfig.pageNumber.customX || 0) * 3.78;
+                top = (pageConfig.pageNumber.customY || 0) * 3.78;
+              } else {
+                if (position === 'top-left') {
+                  left = pageConfig.marginMm.left * 3.78 + margin;
+                  top = pageConfig.marginMm.top * 3.78 + margin;
+                } else if (position === 'top-center') {
+                  left = canvasSize.widthPx / 2;
+                  top = pageConfig.marginMm.top * 3.78 + margin;
+                } else if (position === 'top-right') {
+                  left = canvasSize.widthPx - pageConfig.marginMm.right * 3.78 - margin;
+                  top = pageConfig.marginMm.top * 3.78 + margin;
+                } else if (position === 'bottom-left') {
+                  left = pageConfig.marginMm.left * 3.78 + margin;
+                  top = canvasSize.heightPx - pageConfig.marginMm.bottom * 3.78 - margin;
+                } else if (position === 'bottom-center') {
+                  left = canvasSize.widthPx / 2;
+                  top = canvasSize.heightPx - pageConfig.marginMm.bottom * 3.78 - margin;
+                } else {
+                  left = canvasSize.widthPx - pageConfig.marginMm.right * 3.78 - margin;
+                  top = canvasSize.heightPx - pageConfig.marginMm.bottom * 3.78 - margin;
+                }
+                left += offsetX;
+                top += offsetY;
               }
 
-              // 应用偏移
-              left += offsetX;
-              top += offsetY;
-
-              // 格式化示例文本
               const format = pageConfig.pageNumber.format || 'slash';
               let exampleText = '';
               if (format === 'simple') {
@@ -1080,28 +1151,45 @@ const CanvasArea = () => {
               } else {
                 exampleText = '1/3';
               }
-
               const prefix = pageConfig.pageNumber.prefix || '';
               const suffix = pageConfig.pageNumber.suffix || '';
               exampleText = `${prefix}${exampleText}${suffix}`;
 
+              const isSelected = selectedPageNumber && isCustom;
+
+const handlePageNumberMouseDown = (e: React.MouseEvent) => {
+                if (!isCustom) return;
+                e.stopPropagation();
+                selectPageNumber();
+                setDraggingPageNumber(true);
+                setPageNumberDragStart({
+                  x: e.clientX,
+                  y: e.clientY,
+                  startCustomX: pageConfig.pageNumber?.customX ?? 0,
+                  startCustomY: pageConfig.pageNumber?.customY ?? 0,
+                });
+              };
+
               return (
                 <div
+                  onMouseDown={handlePageNumberMouseDown}
                   style={{
                     position: 'absolute',
                     left: `${left}px`,
                     top: `${top}px`,
-                    transform: position.includes('center') ? 'translateX(-50%)' : 'none',
-                    pointerEvents: 'none',
+                    transform: !isCustom && position.includes('center') ? 'translateX(-50%)' : 'none',
+                    pointerEvents: isCustom ? 'auto' : 'none',
+                    cursor: isCustom ? 'move' : 'default',
                     padding: '4px 8px',
-                    backgroundColor: 'rgba(24, 144, 255, 0.1)',
-                    border: '1px dashed rgba(24, 144, 255, 0.5)',
+                    backgroundColor: isSelected ? 'rgba(24, 144, 255, 0.15)' : 'rgba(24, 144, 255, 0.1)',
+                    border: isSelected ? '2px solid #1890ff' : '1px dashed rgba(24, 144, 255, 0.5)',
                     borderRadius: '2px',
                     fontSize: `${(pageConfig.pageNumber.style?.fontSize || 12) * 0.8}px`,
                     color: pageConfig.pageNumber.style?.color || '#666',
                     fontWeight: pageConfig.pageNumber.style?.fontWeight || 'normal',
                     whiteSpace: 'nowrap',
                     zIndex: 1000,
+                    userSelect: 'none',
                   }}
                 >
                   {exampleText}

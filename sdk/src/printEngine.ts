@@ -333,11 +333,16 @@ export class PrintEngine {
     const color = style.color || '#666';
     const fontWeight = style.fontWeight || 'normal';
 
+    /** 估算页码文本宽度（mm），用于居中/右对齐定位 */
+    const estimatePageNumberWidth = (text: string, fs: number): number => {
+      return text.length * fs * 0.5 * (25.4 / 96);
+    };
+
     // 根据 position 计算 x, y 坐标
     let xMm = 0;
     let yMm = 0;
-    const pageNumberWidth = 20; // 页码宽度 mm
-    const pageNumberHeight = 6; // 页码高度 mm
+    const estimatedWidth = estimatePageNumberWidth(pageText, fontSize);
+    const pageNumberHeight = 6;
 
     const marginTop = page.marginMm?.top || 0;
     const marginRight = page.marginMm?.right || 0;
@@ -350,11 +355,11 @@ export class PrintEngine {
         yMm = marginTop;
         break;
       case 'top-center':
-        xMm = (widthMm - pageNumberWidth) / 2;
+        xMm = (widthMm - estimatedWidth) / 2;
         yMm = marginTop;
         break;
       case 'top-right':
-        xMm = widthMm - marginRight - pageNumberWidth;
+        xMm = widthMm - marginRight - estimatedWidth;
         yMm = marginTop;
         break;
       case 'bottom-left':
@@ -362,31 +367,36 @@ export class PrintEngine {
         yMm = heightMm - marginBottom - pageNumberHeight;
         break;
       case 'bottom-center':
-        xMm = (widthMm - pageNumberWidth) / 2;
+        xMm = (widthMm - estimatedWidth) / 2;
         yMm = heightMm - marginBottom - pageNumberHeight;
+        break;
+      case 'custom':
+        xMm = pageNumberConfig.customX ?? 0;
+        yMm = pageNumberConfig.customY ?? 0;
         break;
       case 'bottom-right':
       default:
-        xMm = widthMm - marginRight - pageNumberWidth;
+        xMm = widthMm - marginRight - estimatedWidth;
         yMm = heightMm - marginBottom - pageNumberHeight;
         break;
     }
 
-    // 应用偏移
-    xMm += offsetX;
-    yMm += offsetY;
+    // 应用偏移（仅预设模式）
+    if (position !== 'custom') {
+      xMm += offsetX;
+      yMm += offsetY;
+    }
 
     // 转换为 px
     const xPx = xMm * this.mmToPx;
     const yPx = yMm * this.mmToPx;
-    const widthPx = pageNumberWidth * this.mmToPx;
     const heightPx = pageNumberHeight * this.mmToPx;
 
     // 生成 HTML
     const alignStyle = position.includes('left') ? 'left' : position.includes('right') ? 'right' : 'center';
     const justifyContent = alignStyle === 'left' ? 'flex-start' : alignStyle === 'right' ? 'flex-end' : 'center';
 
-    return `<div style="position: absolute; left: ${xPx}px; top: ${yPx}px; width: ${widthPx}px; height: ${heightPx}px; font-size: ${fontSize}px; color: ${color}; font-weight: ${fontWeight}; display: flex; align-items: center; justify-content: ${justifyContent};">${this.escapeHtml(pageText)}</div>`;
+    return `<div style="position: absolute; left: ${xPx}px; top: ${yPx}px; white-space: nowrap; height: ${heightPx}px; font-size: ${fontSize}px; color: ${color}; font-weight: ${fontWeight}; display: flex; align-items: center; justify-content: ${justifyContent};">${this.escapeHtml(pageText)}</div>`;
   }
 
   /**
