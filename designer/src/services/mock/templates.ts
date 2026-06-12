@@ -176,489 +176,6 @@ export const defaultTemplates: PrintTemplate[] = [
     "id": "template-demo-order"
   },
   {
-    "name": "快递面单模板",
-    "version": "1.0.0",
-    "schemaId": "schema-demo-sales",
-    "page": {
-      "size": "A4",
-      "orientation": "portrait",
-      "marginMm": {
-        "top": 10,
-        "right": 10,
-        "bottom": 10,
-        "left": 10
-      }
-    },
-    "layoutMode": "absolute",
-    "components": [
-      {
-        "id": "companyName",
-        "type": "text",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 10,
-          "yMm": 12,
-          "widthMm": 100,
-          "heightMm": 12
-        },
-        "style": {
-          "fontSize": 18,
-          "fontWeight": "bold"
-        },
-        "binding": {
-          "path": "companyName",
-          "fallback": "快递公司名称"
-        },
-        "props": {}
-      },
-      {
-        "id": "companyLogo",
-        "type": "image",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 115,
-          "yMm": 10.5,
-          "widthMm": 35,
-          "heightMm": 15
-        },
-        "binding": {
-          "path": "companyLogo",
-          "fallback": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2ZmNTcyMiIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RVhQPC90ZXh0Pjwvc3ZnPg=="
-        },
-        "props": {
-          "fit": "contain"
-        }
-      },
-      {
-        "id": "barcode",
-        "type": "barcode",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 155,
-          "yMm": 10,
-          "widthMm": 35,
-          "heightMm": 15
-        },
-        "binding": {
-          "path": "barcode",
-          "fallback": "1234567890123"
-        },
-        "props": {
-          "format": "CODE128"
-        }
-      },
-      {
-        "id": "line1",
-        "type": "line",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 10,
-          "yMm": 30,
-          "widthMm": 190,
-          "heightMm": 2
-        },
-        "style": {
-          "borderTopWidth": 2,
-          "borderTopStyle": "solid",
-          "borderTopColor": "#000000"
-        },
-        "props": {
-          "direction": "horizontal"
-        }
-      },
-      {
-        "id": "senderRect",
-        "type": "rect",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 8,
-          "yMm": 33,
-          "widthMm": 89,
-          "heightMm": 49
-        },
-        "style": {
-          "border": "1px solid #d9d9d9",
-          "borderRadius": "2px",
-          "background": "#f0f9ff"
-        },
-        "props": {}
-      },
-      {
-        "id": "senderTitle",
-        "type": "text",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 10,
-          "yMm": 35,
-          "widthMm": 85,
-          "heightMm": 8
-        },
-        "style": {
-          "fontSize": 14,
-          "fontWeight": "bold"
-        },
-        "binding": {
-          "fallback": "寄件人"
-        },
-        "props": {}
-      },
-      {
-        "id": "senderName",
-        "type": "text",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 10,
-          "yMm": 45,
-          "widthMm": 85,
-          "heightMm": 6
-        },
-        "style": {
-          "fontSize": 11
-        },
-        "binding": {
-          "path": "companyName",
-          "fallback": "寄件公司"
-        },
-        "props": {
-          "label": "姓名/公司："
-        }
-      },
-      {
-        "id": "senderPhone",
-        "type": "text",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 10,
-          "yMm": 53,
-          "widthMm": 85,
-          "heightMm": 6
-        },
-        "style": {
-          "fontSize": 11
-        },
-        "binding": {
-          "path": "customer.phone",
-          "fallback": "021-12345678"
-        },
-        "props": {
-          "label": "电话："
-        }
-      },
-      {
-        "id": "senderAddress",
-        "type": "text",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 10,
-          "yMm": 61,
-          "widthMm": 85,
-          "heightMm": 18
-        },
-        "style": {
-          "fontSize": 11
-        },
-        "binding": {
-          "path": "companyAddress",
-          "fallback": "寄件地址"
-        },
-        "props": {
-          "label": "地址："
-        }
-      },
-      {
-        "id": "vline1",
-        "type": "line",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 100,
-          "yMm": 35,
-          "widthMm": 2,
-          "heightMm": 45
-        },
-        "style": {
-          "borderTopWidth": 2,
-          "borderTopStyle": "dashed",
-          "borderTopColor": "#999999"
-        },
-        "props": {
-          "direction": "vertical"
-        }
-      },
-      {
-        "id": "receiverRect",
-        "type": "rect",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 103,
-          "yMm": 33,
-          "widthMm": 89,
-          "heightMm": 49
-        },
-        "style": {
-          "border": "1px solid #d9d9d9",
-          "borderRadius": "2px",
-          "background": "#fff7e6"
-        },
-        "props": {}
-      },
-      {
-        "id": "receiverTitle",
-        "type": "text",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 105,
-          "yMm": 35,
-          "widthMm": 85,
-          "heightMm": 8
-        },
-        "style": {
-          "fontSize": 14,
-          "fontWeight": "bold"
-        },
-        "binding": {
-          "fallback": "收件人"
-        },
-        "props": {}
-      },
-      {
-        "id": "receiverName",
-        "type": "text",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 105,
-          "yMm": 45,
-          "widthMm": 85,
-          "heightMm": 6
-        },
-        "style": {
-          "fontSize": 11
-        },
-        "binding": {
-          "path": "customer.name",
-          "fallback": "收件人姓名"
-        },
-        "props": {
-          "label": "姓名："
-        }
-      },
-      {
-        "id": "receiverPhone",
-        "type": "text",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 105,
-          "yMm": 53,
-          "widthMm": 85,
-          "heightMm": 6
-        },
-        "style": {
-          "fontSize": 11
-        },
-        "binding": {
-          "path": "customer.phone",
-          "fallback": "138****8888"
-        },
-        "props": {
-          "label": "电话："
-        }
-      },
-      {
-        "id": "receiverAddress",
-        "type": "text",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 105,
-          "yMm": 61,
-          "widthMm": 85,
-          "heightMm": 18
-        },
-        "style": {
-          "fontSize": 11,
-          "fontWeight": "bold"
-        },
-        "binding": {
-          "path": "customer.address",
-          "fallback": "收货地址"
-        },
-        "props": {
-          "label": "地址："
-        }
-      },
-      {
-        "id": "line2",
-        "type": "line",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 10,
-          "yMm": 85,
-          "widthMm": 190,
-          "heightMm": 2
-        },
-        "style": {
-          "borderTopWidth": 1,
-          "borderTopStyle": "solid",
-          "borderTopColor": "#000000"
-        },
-        "props": {
-          "direction": "horizontal"
-        }
-      },
-      {
-        "id": "goodsTitle",
-        "type": "text",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 10,
-          "yMm": 92,
-          "widthMm": 40,
-          "heightMm": 8
-        },
-        "style": {
-          "fontSize": 12,
-          "fontWeight": "bold"
-        },
-        "binding": {
-          "fallback": "物品信息"
-        },
-        "props": {}
-      },
-      {
-        "id": "itemsTable",
-        "type": "table",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 10,
-          "yMm": 100,
-          "widthMm": 190,
-          "heightMm": 40
-        },
-        "style": {
-          "fontSize": 10,
-          "textAlign": "left"
-        },
-        "binding": {
-          "path": "items"
-        },
-        "props": {
-          "bordered": true,
-          "showHeader": true,
-          "columns": [
-            {
-              "dataIndex": "name",
-              "title": "物品名称",
-              "width": 80
-            },
-            {
-              "dataIndex": "quantity",
-              "title": "数量",
-              "width": 50
-            },
-            {
-              "dataIndex": "remarks",
-              "title": "备注",
-              "width": 50
-            }
-          ]
-        }
-      },
-      {
-        "id": "line3",
-        "type": "line",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 10,
-          "yMm": 148,
-          "widthMm": 190,
-          "heightMm": 2
-        },
-        "style": {
-          "borderTopWidth": 1,
-          "borderTopStyle": "dotted",
-          "borderTopColor": "#999999"
-        },
-        "props": {
-          "direction": "horizontal"
-        }
-      },
-      {
-        "id": "remarks",
-        "type": "text",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 10,
-          "yMm": 155,
-          "widthMm": 140,
-          "heightMm": 10
-        },
-        "style": {
-          "fontSize": 10
-        },
-        "binding": {
-          "path": "remarks",
-          "fallback": "122"
-        },
-        "props": {
-          "label": "备注："
-        }
-      },
-      {
-        "id": "qrcode",
-        "type": "qrcode",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 160,
-          "yMm": 155,
-          "widthMm": 30,
-          "heightMm": 30
-        },
-        "binding": {
-          "path": "qrCodeUrl",
-          "fallback": "https://example.com/tracking/12345"
-        },
-        "props": {
-          "content": ""
-        }
-      },
-      {
-        "id": "signatureRect",
-        "type": "rect",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 10,
-          "yMm": 165,
-          "widthMm": 60,
-          "heightMm": 30
-        },
-        "style": {
-          "border": "1px solid #d9d9d9",
-          "borderRadius": "2px",
-          "background": "transparent"
-        },
-        "props": {}
-      },
-      {
-        "id": "signatureLabel",
-        "type": "text",
-        "layout": {
-          "mode": "absolute",
-          "xMm": 12,
-          "yMm": 172,
-          "widthMm": 56,
-          "heightMm": 6
-        },
-        "style": {
-          "fontSize": 10,
-          "color": "#999"
-        },
-        "binding": {
-          "fallback": "签收人签名："
-        },
-        "props": {}
-      }
-    ],
-    "id": "template-demo-express"
-  },
-  {
     id: 'template-demo-label',
     name: '产品标签模板',
     version: '1.0',
@@ -674,47 +191,88 @@ export const defaultTemplates: PrintTemplate[] = [
     layoutMode: 'absolute',
     components: [
       {
-        id: 'productName',
-        type: 'text',
-        layout: { mode: 'absolute', xMm: 2, yMm: 2, widthMm: 56, heightMm: 6 },
-        style: { fontSize: 10, fontWeight: 'bold', textAlign: 'center' },
-        binding: { fallback: '产品名称' },
-        props: {}
-      },
-      {
-        id: 'barcode',
-        type: 'barcode',
-        layout: { mode: 'absolute', xMm: 5, yMm: 10, widthMm: 50, heightMm: 15 },
-        binding: { path: 'barcode', fallback: '1234567890123' },
-        props: { format: 'CODE128' }
-      },
-      {
-        id: 'spec',
-        type: 'text',
-        layout: { mode: 'absolute', xMm: 2, yMm: 28, widthMm: 28, heightMm: 5 },
-        style: { fontSize: 8 },
-        binding: { fallback: '规格' },
-        props: { label: '规格：' }
-      },
-      {
-        id: 'unit',
-        type: 'text',
-        layout: { mode: 'absolute', xMm: 30, yMm: 28, widthMm: 28, heightMm: 5 },
-        style: { fontSize: 8 },
-        binding: { fallback: '个' },
-        props: { label: '单位：' }
-      },
-      {
-        id: 'date',
-        type: 'text',
-        layout: { mode: 'absolute', xMm: 2, yMm: 32, widthMm: 56, heightMm: 4 },
-        style: { fontSize: 7, textAlign: 'center' },
-        binding: {
-          path: 'createdDate',
-          pipes: [{ type: 'date', options: { format: 'YYYY-MM-DD' } }],
-          fallback: '2024-01-22'
+        "id": "comp-1781249570193",
+        "type": "text",
+        "layout": {
+          "mode": "absolute",
+          "xMm": 2,
+          "yMm": 1.5873015873015874,
+          "widthMm": 55,
+          "heightMm": 6
         },
-        props: {}
+        "binding": {
+          "path": "root.companyName"
+        },
+        "style": {
+          "fontSize": 10,
+          "color": "#262626"
+        },
+        "props": {
+          "label": "公司名称："
+        }
+      },
+      {
+        "id": "comp-1781249604767",
+        "type": "text",
+        "layout": {
+          "mode": "absolute",
+          "xMm": 2,
+          "yMm": 18.109292328042326,
+          "widthMm": 55,
+          "heightMm": 6
+        },
+        "binding": {
+          "path": "root.items.0.unit"
+        },
+        "style": {
+          "fontSize": 10,
+          "color": "#262626"
+        },
+        "props": {
+          "label": "单位："
+        }
+      },
+      {
+        "id": "comp-1781249680347-3e7onuc72",
+        "type": "text",
+        "layout": {
+          "mode": "absolute",
+          "xMm": 2,
+          "yMm": 9.32622354497354,
+          "widthMm": 55,
+          "heightMm": 6
+        },
+        "binding": {
+          "path": "root.items.0.name"
+        },
+        "style": {
+          "fontSize": 10,
+          "color": "#262626"
+        },
+        "props": {
+          "label": "商品："
+        }
+      },
+      {
+        "id": "comp-1781249683937-yw2pi3j3n",
+        "type": "text",
+        "layout": {
+          "mode": "absolute",
+          "xMm": 2,
+          "yMm": 27.051091269841265,
+          "widthMm": 55,
+          "heightMm": 6
+        },
+        "binding": {
+          "path": "root.createdDate"
+        },
+        "style": {
+          "fontSize": 10,
+          "color": "#262626"
+        },
+        "props": {
+          "label": "创建日期："
+        }
       }
     ]
   },
@@ -804,8 +362,8 @@ export const defaultTemplates: PrintTemplate[] = [
           "showHeader": true,
           "columns": [
             { "dataIndex": "product.code", "title": "商品编码" },
-            { "dataIndex": "product.name", "title": "商品名称"},
-            { "dataIndex": "product.category", "title": "分类",  },
+            { "dataIndex": "product.name", "title": "商品名称" },
+            { "dataIndex": "product.category", "title": "分类", },
             { "dataIndex": "quantity", "title": "数量", "width": 30 },
             { "dataIndex": "price", "title": "单价", "width": 30, "pipes": [{ "type": "currency", "options": {} }] },
             { "dataIndex": "amount", "title": "金额", "width": 30, "summary": { "type": "sum", "precision": 2, "prefix": "\uFFE5" } }
@@ -867,7 +425,7 @@ export const defaultTemplates: PrintTemplate[] = [
   },
   {
     id: 'template-continuous-half',
-    name: '二分纸模板（连续纸）',
+    name: '二分纸模板',
     version: '1.0',
     description: '二分纸打印模板，自定义纸张 241mm × 140mm，方便根据内容拆单打印',
     schemaId: 'schema-demo-sales',
@@ -1285,323 +843,323 @@ export const defaultTemplates: PrintTemplate[] = [
     "id": "template-real-template",
     schemaId: '',
     "page": {
-        "size": "CUSTOM",
-        "orientation": "portrait",
-        "marginMm": {
-            "top": 5,
-            "right": 15,
-            "bottom": 5,
-            "left": 10
-        },
-        "widthMm": 241,
-        "heightMm": 140,
-        "pageNumber": {
-            "enabled": true,
-            "position": "top-right",
-            "format": "slash",
-            "prefix": "",
-            "suffix": "",
-            "separator": "/",
-            "offsetX": 0,
-            "offsetY": 0,
-            "style": {
-                "fontSize": 12,
-                "color": "#666666",
-                "fontWeight": "normal"
-            }
-        },
-        "headerEnabled": true,
-        "footerEnabled": true,
-        "headerHeight": 30,
-        "footerHeight": 30
+      "size": "CUSTOM",
+      "orientation": "portrait",
+      "marginMm": {
+        "top": 5,
+        "right": 15,
+        "bottom": 5,
+        "left": 10
+      },
+      "widthMm": 241,
+      "heightMm": 140,
+      "pageNumber": {
+        "enabled": true,
+        "position": "top-right",
+        "format": "slash",
+        "prefix": "",
+        "suffix": "",
+        "separator": "/",
+        "offsetX": 0,
+        "offsetY": 0,
+        "style": {
+          "fontSize": 12,
+          "color": "#666666",
+          "fontWeight": "normal"
+        }
+      },
+      "headerEnabled": true,
+      "footerEnabled": true,
+      "headerHeight": 30,
+      "footerHeight": 30
     },
     "layoutMode": "absolute",
     "components": [
-        {
-            "id": "comp-1778136415446",
-            "type": "table",
-            "layout": {
-                "mode": "absolute",
-                "xMm": 10.5,
-                "yMm": 0.5,
-                "widthMm": 215,
-                "heightMm": 60
+      {
+        "id": "comp-1778136415446",
+        "type": "table",
+        "layout": {
+          "mode": "absolute",
+          "xMm": 10.5,
+          "yMm": 0.5,
+          "widthMm": 215,
+          "heightMm": 60
+        },
+        "style": {
+          "fontSize": 13
+        },
+        "props": {
+          "columns": [
+            {
+              "title": "商品名称",
+              "dataIndex": "materialName",
+              "width": 53
             },
-            "style": {
-                "fontSize": 13
+            {
+              "title": "单位",
+              "dataIndex": "saleUnitName",
+              "width": 12
             },
-            "props": {
-                "columns": [
-                    {
-                        "title": "商品名称",
-                        "dataIndex": "materialName",
-                        "width": 53
-                    },
-                    {
-                        "title": "单位",
-                        "dataIndex": "saleUnitName",
-                        "width": 12
-                    },
-                    {
-                        "title": "数量",
-                        "dataIndex": "saleCount",
-                        "width": 17
-                    },
-                    {
-                        "title": "基准价",
-                        "dataIndex": "scmQuotationMaterialBasePrice",
-                        "width": 18
-                    },
-                    {
-                        "title": "折扣率",
-                        "dataIndex": "scmQuotationMaterialDiscountRate",
-                        "width": 15
-                    },
-                    {
-                        "title": "结算单价",
-                        "dataIndex": "price"
-                    },
-                    {
-                        "title": "金额",
-                        "dataIndex": "amount",
-                        "summary": {
-                            "type": "sum",
-                            "pipe": {
-                                "type": "currency",
-                                "options": {
-                                   
-                                }
-                            }
-                        },
-                        "width": 25
-                    },
-                    {
-                        "title": "备注",
-                        "dataIndex": "remark",
-                        "width": 42
-                    }
-                ],
-                "bordered": true,
-                "showHeader": true,
-                "showSummary": true,
-                "summaryMode": "page",
-                "showRowNumber": true,
-                "borderColor": "#000000",
-                "rowNumberLabel": "",
-                "rowNumberWidth": 12,
-                "summaryExtraRows": [
-                    {
-                        "items": [
-                            {
-                                "label": "大写合计：",
-                                "sourceColumn": "amount",
-                                "pipes": [
-                                    {
-                                        "type": "money",
-                                        "options": {
-                                            "format": "chineseUppercase",
-                                            "mode": "none"
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
+            {
+              "title": "数量",
+              "dataIndex": "saleCount",
+              "width": 17
             },
-            "binding": {
-                "path": "root.orderItemList"
+            {
+              "title": "基准价",
+              "dataIndex": "scmQuotationMaterialBasePrice",
+              "width": 18
+            },
+            {
+              "title": "折扣率",
+              "dataIndex": "scmQuotationMaterialDiscountRate",
+              "width": 15
+            },
+            {
+              "title": "结算单价",
+              "dataIndex": "price"
+            },
+            {
+              "title": "金额",
+              "dataIndex": "amount",
+              "summary": {
+                "type": "sum",
+                "pipe": {
+                  "type": "currency",
+                  "options": {
+
+                  }
+                }
+              },
+              "width": 25
+            },
+            {
+              "title": "备注",
+              "dataIndex": "remark",
+              "width": 42
             }
+          ],
+          "bordered": true,
+          "showHeader": true,
+          "showSummary": true,
+          "summaryMode": "page",
+          "showRowNumber": true,
+          "borderColor": "#000000",
+          "rowNumberLabel": "",
+          "rowNumberWidth": 12,
+          "summaryExtraRows": [
+            {
+              "items": [
+                {
+                  "label": "大写合计：",
+                  "sourceColumn": "amount",
+                  "pipes": [
+                    {
+                      "type": "money",
+                      "options": {
+                        "format": "chineseUppercase",
+                        "mode": "none"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "binding": {
+          "path": "root.orderItemList"
         }
+      }
     ],
     "headerComponents": [
-        {
-            "id": "comp-1778136201561",
-            "type": "text",
-            "layout": {
-                "mode": "absolute",
-                "xMm": 70,
-                "yMm": 0,
-                "widthMm": 105,
-                "heightMm": 10
-            },
-            "style": {
-                "fontSize": 23,
-                "color": "#262626"
-            },
-            "props": {
-                "text": "xxxxx送货单"
-            }
+      {
+        "id": "comp-1778136201561",
+        "type": "text",
+        "layout": {
+          "mode": "absolute",
+          "xMm": 70,
+          "yMm": 0,
+          "widthMm": 105,
+          "heightMm": 10
         },
-        {
-            "id": "comp-1778308422171-ixumpoceo",
-            "type": "text",
-            "layout": {
-                "mode": "absolute",
-                "xMm": 15,
-                "yMm": 10,
-                "widthMm": 140,
-                "heightMm": 10
-            },
-            "style": {
-                "fontSize": 16,
-                "color": "#262626"
-            },
-            "props": {
-                "text": "客户：",
-                "label": "客户："
-            },
-            "binding": {
-                "path": "settleCustomerName"
-            }
+        "style": {
+          "fontSize": 23,
+          "color": "#262626"
         },
-        {
-            "id": "comp-1778750162493",
-            "type": "text",
-            "layout": {
-                "mode": "absolute",
-                "xMm": 15,
-                "yMm": 20,
-                "widthMm": 45,
-                "heightMm": 10
-            },
-            "binding": {
-                "path": "mealName"
-            },
-            "style": {
-                "fontSize": 16,
-                "color": "#262626"
-            },
-            "props": {
-                "label": "餐别："
-            }
-        },
-        {
-            "id": "comp-1778750227507-7htx37sgl",
-            "type": "text",
-            "layout": {
-                "mode": "absolute",
-                "xMm": 80,
-                "yMm": 20,
-                "widthMm": 95,
-                "heightMm": 10
-            },
-            "binding": {
-                "path": "root.orderItemList.0.customNameSuffix"
-            },
-            "style": {
-                "fontSize": 16,
-                "color": "#262626"
-            },
-            "props": {
-                "label": "类别：",
-                "text": ""
-            }
-        },
-        {
-            "id": "comp-1778308845292-p9f7z9wd1",
-            "type": "text",
-            "layout": {
-                "mode": "absolute",
-                "xMm": 160,
-                "yMm": 10,
-                "widthMm": 80,
-                "heightMm": 10
-            },
-            "style": {
-                "fontSize": 16,
-                "color": "#262626"
-            },
-            "props": {
-                "text": "单据编号：",
-                "label": "单据编号："
-            },
-            "binding": {
-                "path": "code"
-            }
-        },
-        {
-            "id": "comp-1778750232900-mrx9vnorj",
-            "type": "text",
-            "layout": {
-                "mode": "absolute",
-                "xMm": 160,
-                "yMm": 20,
-                "widthMm": 80,
-                "heightMm": 10
-            },
-            "binding": {
-                "path": "reconcileDate"
-            },
-            "style": {
-                "fontSize": 16,
-                "color": "#262626"
-            },
-            "props": {
-                "label": "送货日期："
-            }
+        "props": {
+          "text": "xxxxx送货单"
         }
+      },
+      {
+        "id": "comp-1778308422171-ixumpoceo",
+        "type": "text",
+        "layout": {
+          "mode": "absolute",
+          "xMm": 15,
+          "yMm": 10,
+          "widthMm": 140,
+          "heightMm": 10
+        },
+        "style": {
+          "fontSize": 16,
+          "color": "#262626"
+        },
+        "props": {
+          "text": "客户：",
+          "label": "客户："
+        },
+        "binding": {
+          "path": "settleCustomerName"
+        }
+      },
+      {
+        "id": "comp-1778750162493",
+        "type": "text",
+        "layout": {
+          "mode": "absolute",
+          "xMm": 15,
+          "yMm": 20,
+          "widthMm": 45,
+          "heightMm": 10
+        },
+        "binding": {
+          "path": "mealName"
+        },
+        "style": {
+          "fontSize": 16,
+          "color": "#262626"
+        },
+        "props": {
+          "label": "餐别："
+        }
+      },
+      {
+        "id": "comp-1778750227507-7htx37sgl",
+        "type": "text",
+        "layout": {
+          "mode": "absolute",
+          "xMm": 80,
+          "yMm": 20,
+          "widthMm": 95,
+          "heightMm": 10
+        },
+        "binding": {
+          "path": "root.orderItemList.0.customNameSuffix"
+        },
+        "style": {
+          "fontSize": 16,
+          "color": "#262626"
+        },
+        "props": {
+          "label": "类别：",
+          "text": ""
+        }
+      },
+      {
+        "id": "comp-1778308845292-p9f7z9wd1",
+        "type": "text",
+        "layout": {
+          "mode": "absolute",
+          "xMm": 160,
+          "yMm": 10,
+          "widthMm": 80,
+          "heightMm": 10
+        },
+        "style": {
+          "fontSize": 16,
+          "color": "#262626"
+        },
+        "props": {
+          "text": "单据编号：",
+          "label": "单据编号："
+        },
+        "binding": {
+          "path": "code"
+        }
+      },
+      {
+        "id": "comp-1778750232900-mrx9vnorj",
+        "type": "text",
+        "layout": {
+          "mode": "absolute",
+          "xMm": 160,
+          "yMm": 20,
+          "widthMm": 80,
+          "heightMm": 10
+        },
+        "binding": {
+          "path": "reconcileDate"
+        },
+        "style": {
+          "fontSize": 16,
+          "color": "#262626"
+        },
+        "props": {
+          "label": "送货日期："
+        }
+      }
     ],
     "footerComponents": [
-        {
-            "id": "comp-1778137152816-uv0cr7avo",
-            "type": "text",
-            "layout": {
-                "mode": "absolute",
-                "xMm": 20,
-                "yMm": 0,
-                "widthMm": 200,
-                "heightMm": 10
-            },
-            "style": {
-                "fontSize": 16,
-                "color": "#262626"
-            },
-            "props": {
-                "text": "第一联（白）：存根  第二联（红）：客户  第三联（蓝）：记账 第四联（绿）：对账 第五联（黄）：仓库"
-            }
+      {
+        "id": "comp-1778137152816-uv0cr7avo",
+        "type": "text",
+        "layout": {
+          "mode": "absolute",
+          "xMm": 20,
+          "yMm": 0,
+          "widthMm": 200,
+          "heightMm": 10
         },
-        {
-            "id": "comp-1778295350561-08y6ssdtj",
-            "type": "text",
-            "layout": {
-                "mode": "absolute",
-                "xMm": 15,
-                "yMm": 10,
-                "widthMm": 60,
-                "heightMm": 10
-            },
-            "style": {
-                "fontSize": 16,
-                "color": "#262626"
-            },
-            "props": {
-                "text": "",
-                "label": "送货单位及经手人："
-            },
-            "binding": {
-                "path": ""
-            }
+        "style": {
+          "fontSize": 16,
+          "color": "#262626"
         },
-        {
-            "id": "comp-1778309040277-pi9yqwvev",
-            "type": "text",
-            "layout": {
-                "mode": "absolute",
-                "xMm": 105,
-                "yMm": 10,
-                "widthMm": 60,
-                "heightMm": 10
-            },
-            "style": {
-                "fontSize": 16,
-                "color": "#262626"
-            },
-            "props": {
-                "text": "",
-                "label": "收货单位及经手人："
-            }
+        "props": {
+          "text": "第一联（白）：存根  第二联（红）：客户  第三联（蓝）：记账 第四联（绿）：对账 第五联（黄）：仓库"
         }
+      },
+      {
+        "id": "comp-1778295350561-08y6ssdtj",
+        "type": "text",
+        "layout": {
+          "mode": "absolute",
+          "xMm": 15,
+          "yMm": 10,
+          "widthMm": 60,
+          "heightMm": 10
+        },
+        "style": {
+          "fontSize": 16,
+          "color": "#262626"
+        },
+        "props": {
+          "text": "",
+          "label": "送货单位及经手人："
+        },
+        "binding": {
+          "path": ""
+        }
+      },
+      {
+        "id": "comp-1778309040277-pi9yqwvev",
+        "type": "text",
+        "layout": {
+          "mode": "absolute",
+          "xMm": 105,
+          "yMm": 10,
+          "widthMm": 60,
+          "heightMm": 10
+        },
+        "style": {
+          "fontSize": 16,
+          "color": "#262626"
+        },
+        "props": {
+          "text": "",
+          "label": "收货单位及经手人："
+        }
+      }
     ]
-}
+  }
 ];
