@@ -5,7 +5,7 @@
 
 通用打印 SDK - 客户端打印解决方案
 
-**当前版本**: v1.9.0
+**当前版本**: v1.10.0
 
 ## 🎨 在线演示
 
@@ -23,7 +23,7 @@
 - 📄 **多组件支持** - 文本、表格、图片、二维码、条形码等
 - 🔄 **数据绑定** - Schema 驱动的数据绑定系统
 - 📊 **表格高级功能** - 跨页分页、表头重复、表格合计
-- 🔌 **插件化架构** - 易于扩展的渲染器和管道系统
+- 🔌 **插件化架构** - 易于扩展的渲染器和管道系统，支持自定义管道
 - 💯 **TypeScript** - 完整的类型定义
 - 🎯 **高精度计算** - 使用 decimal.js 保证数值精度
 
@@ -81,6 +81,34 @@ await sdk.print({
 ```
 
 ## 📖 API 文档
+
+### `createPrintSDK(options?)`
+
+创建 SDK 实例。
+
+```typescript
+// 基础用法（无需配置）
+const sdk = createPrintSDK();
+
+// 传入自定义管道
+const sdk = createPrintSDK({
+  customPipes: [
+    {
+      type: 'myPipe',
+      label: '我的管道',
+      execute: (value, options) => { /* 自定义逻辑 */ }
+    }
+  ]
+});
+```
+
+**参数：**
+
+```typescript
+interface PrintSDKOptions {
+  customPipes?: PipeExecutor[];  // 自定义管道执行器列表
+}
+```
 
 ### `print(options: PrintOptions)`
 
@@ -270,6 +298,96 @@ interface MultiTemplatePrintProgress {
 ```
 
 ### ChineseNumberPipe 通用大写
+
+```typescript
+{
+  type: 'chineseNumber',
+  options: {
+    mode: 'both',
+    separator: ' 大写：',
+    unit: ''
+  }
+}
+// 输入 3.14 → 输出 3.14 大写：叁点壹肆
+```
+
+### 🧩 自定义管道
+
+内置管道不满足需求时，有两种方式扩展管道系统：
+
+#### 方式一：实例级注入（推荐）
+
+通过 `createPrintSDK({ customPipes })` 注入自定义管道执行器，**仅影响当前实例**：
+
+```typescript
+import { createPrintSDK } from '@jcyao/print-sdk';
+
+const sdk = createPrintSDK({
+  customPipes: [
+    {
+      type: 'phoneMask',
+      label: '手机号掩码',
+      execute: (value: string) => value.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'),
+    },
+    {
+      type: 'idCard',
+      label: '身份证掩码',
+      execute: (value: string) => value.replace(/^(.{6})(?:.*)(.{4})$/, '$1********$2'),
+    },
+  ],
+});
+```
+
+模板中通过 `type` 直接引用：
+
+```typescript
+const template = {
+  // ...
+  components: [{
+    type: 'text',
+    binding: {
+      path: 'phone',
+      pipes: [{ type: 'phoneMask' }]  // 与内置管道用法完全一致
+    }
+  }]
+};
+```
+
+#### 方式二：全局注册
+
+通过 `registerExecutor()` 注册到全局注册表，**影响所有实例**：
+
+```typescript
+import { registerExecutor } from '@jcyao/print-sdk';
+
+// 全局注册自定义管道（所有 SDK 实例都会生效）
+registerExecutor({
+  type: 'phoneMask',
+  label: '手机号掩码',
+  execute: (value: string) => value.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'),
+});
+```
+
+#### 两种方式的区别
+
+| 特性 | `customPipes`（实例级） | `registerExecutor`（全局） |
+|------|------------------------|--------------------------|
+| 作用域 | 仅当前 SDK 实例 | 所有 SDK 实例 |
+| 隔离性 | 不同实例互不影响 | 全局共享，影响所有实例 |
+| 能否覆盖内置管道 | 能（优先级高于内置） | 能（直接覆盖全局注册表） |
+| 推荐场景 | 多实例需要不同管道 / 不想污染全局 | 单例应用 / 确认全局生效 |
+
+> 💡 **推荐**：大多数场景使用 `customPipes`（实例级），仅在确认需要全局生效时使用 `registerExecutor`。
+
+**校验规则（customPipes）：**
+
+| 条件 | 行为 |
+|------|------|
+| `type` 为空 | 抛错 |
+| `execute` 非函数 | 抛错 |
+| `type` 与内置管道重名 | 警告 (`console.warn`)，允许覆盖 |
+| `type` 在 customPipes 中重复 | 警告，后者覆盖前者 |
+| `execute` 执行异常 | 自动捕获，返回原值，管道链不中断 |
 
 ```typescript
 {

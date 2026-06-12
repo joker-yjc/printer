@@ -2,6 +2,46 @@
 
 所有版本的变更记录都列在这里，遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 规范。
 
+## [1.10.0] - 2026-06-12
+
+### ✨ 新增功能
+
+- **自定义 Pipe 适配器（Custom Pipes）**
+  - `createPrintSDK({ customPipes })` 支持传入自定义管道执行器，无需修改 SDK 源码即可扩展或覆盖管道行为
+  - 实例级别隔离：不同 SDK 实例可配置不同的自定义管道，互不干扰
+  - 自定义管道优先级高于内置管道，同名时自动覆盖
+- **补充说明：`customPipes` 与 `registerExecutor` 的区别**
+  - `customPipes`：实例级注入，仅影响当前 SDK 实例，不同实例互不干扰（推荐）
+  - `registerExecutor`：全局注册，写入全局注册表，影响所有 SDK 实例（适用于单例应用或确认全局生效的场景）
+  - 两者均能覆盖内置管道，`customPipes` 优先级最高
+
+### 📖 使用示例
+
+```ts
+const sdk = createPrintSDK({
+  customPipes: [
+    {
+      type: 'phoneMask',
+      label: '手机号掩码',
+      execute: (value) => String(value).replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'),
+    },
+  ],
+});
+```
+
+### ⚠️ 自定义管道校验规则
+
+| 条件 | 行为 |
+|---|---|
+| `type` 为空 | 抛错提示 |
+| `execute` 非函数 | 抛错提示 |
+| `type` 与内置管道重名 | `console.warn` 警告，允许继续 |
+| `type` 在 customPipes 中重复 | 后面的覆盖前面的 |
+
+**影响范围**：`sdk/src/PrintSDK.ts`、`sdk/src/printEngine.ts`、`sdk/src/pipes/executors/index.ts`、`sdk/src/sdk.ts`
+
+---
+
 ## [1.9.0] - 2026-06-10
 
 ### ✨ 新增功能

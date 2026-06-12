@@ -6,6 +6,7 @@
 // 导出SDK主类（解耦版本，无需配置）
 export { PrintSDK, createPrintSDK } from './PrintSDK';
 export type {
+  PrintSDKOptions,
   PrintOptions,
   BatchPrintOptions,
   BatchPrintProgress,
@@ -75,3 +76,6 @@ export type {
   SummaryExtraRow,
   SummaryExtraRowItem,
 } from './types';
+
+// 导出管道类型（供自定义管道使用）
+export type { PipeExecutor } from './pipes/types';
