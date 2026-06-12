@@ -6,12 +6,21 @@
 
 import { createPrintEngine } from './printEngine';
 import type { PrintTemplate } from './types';
+import type { PipeExecutor } from './pipes/types';
 import {
   generateBatchPrintStyles,
   generatePrintHTML,
   getPageSizeFromConfig,
 } from './printEngine/htmlTemplate';
 import { waitForImagesLoaded } from './utils/resourceLoader';
+
+/**
+ * 创建 SDK 实例的配置选项
+ */
+export interface PrintSDKOptions {
+  /** 自定义管道执行器列表 */
+  customPipes?: PipeExecutor[];
+}
 
 /**
  * ✅ 使用 DOMParser 提取 HTML body 内容（比正则更健壮）
@@ -98,7 +107,11 @@ export interface MultiTemplatePrintProgress {
 }
 
 export class PrintSDK {
-  // 无需配置和缓存，完全解耦
+  private customPipes?: PipeExecutor[];
+
+  constructor(options?: PrintSDKOptions) {
+    this.customPipes = options?.customPipes;
+  }
 
   /**
    * 打印
@@ -109,7 +122,7 @@ export class PrintSDK {
    */
   async print(options: PrintOptions): Promise<void> {
     const { template, data, preview = false } = options;
-    const engine = createPrintEngine(template, data);
+    const engine = createPrintEngine(template, data, this.customPipes);
 
     if (preview) {
       // 预览模式：打开新窗口显示
@@ -196,7 +209,7 @@ export class PrintSDK {
    * @returns HTML 字符串
    */
   async generateHTML(template: PrintTemplate, data: any): Promise<string> {
-    const engine = createPrintEngine(template, data);
+    const engine = createPrintEngine(template, data, this.customPipes);
     return await engine.generatePrintHTML();
   }
 
@@ -237,7 +250,7 @@ export class PrintSDK {
       onProgress?.(progress);
 
       try {
-        const engine = createPrintEngine(template, data);
+        const engine = createPrintEngine(template, data, this.customPipes);
         const html = await engine.generatePrintHTML();
         const bodyContent = extractBodyContent(html);
         if (bodyContent) {
@@ -320,7 +333,7 @@ export class PrintSDK {
         onProgress?.(progress);
 
         try {
-          const engine = createPrintEngine(group.template, data);
+          const engine = createPrintEngine(group.template, data, this.customPipes);
           const html = await engine.generatePrintHTML();
           const bodyContent = extractBodyContent(html);
           if (bodyContent) {
@@ -458,9 +471,10 @@ export class PrintSDK {
 }
 
 /**
- * 创建 SDK 实例（无需配置）
+ * 创建 SDK 实例
+ * @param options 配置选项（支持自定义管道等）
  * @returns PrintSDK 实例
  */
-export function createPrintSDK(): PrintSDK {
-  return new PrintSDK();
+export function createPrintSDK(options?: PrintSDKOptions): PrintSDK {
+  return new PrintSDK(options);
 }

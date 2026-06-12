@@ -5,12 +5,13 @@
 
 import type { PrintTemplate, ComponentNode, DataBinding, PipeConfig, TableProps } from './types';
 import type { ComponentRenderer, RenderContext } from './printEngine/types';
+import type { PipeExecutor } from './pipes/types';
 import { MM_TO_PX, TABLE_DEFAULT, TABLE_STYLE_DEFAULT, COMPONENT_DEFAULT_SIZE } from './printEngine/constants';
 import {
   generatePrintPageStyles,
   generatePrintHTML,
 } from './printEngine/htmlTemplate';
-import { executePipe } from './pipes/registry';
+import { executePipe as executeBuiltInPipe, getRegisteredTypes } from './pipes/registry';
 
 // 导入所有渲染器插件
 import {
@@ -32,15 +33,50 @@ export class PrintEngine {
   private template: PrintTemplate;
   private data: any;
   private renderers: Map<string, ComponentRenderer>;
+  private customPipesMap: Map<string, PipeExecutor>;
   private readonly mmToPx = MM_TO_PX; // 使用常量：96 DPI 下 1mm = 3.78px
 
-  constructor(template: PrintTemplate, data: any) {
+  constructor(template: PrintTemplate, data: any, customPipes?: PipeExecutor[]) {
     this.template = template;
     this.data = data;
     this.renderers = new Map();
+    this.customPipesMap = new Map();
 
     // 注册默认渲染器
     this.registerDefaultRenderers();
+
+    // 注册自定义管道
+    if (customPipes && customPipes.length > 0) {
+      this.registerCustomPipes(customPipes);
+    }
+  }
+
+  /**
+   * 注册自定义管道执行器
+   */
+  private registerCustomPipes(pipes: PipeExecutor[]): void {
+    const builtInTypes = getRegisteredTypes();
+    for (const executor of pipes) {
+      if (!executor || typeof executor !== 'object') {
+        throw new Error('[PrintEngine] customPipes 数组中包含无效元素（null 或非对象）');
+      }
+      if (!executor.type) {
+        throw new Error('[PrintEngine] customPipe.type 不能为空');
+      }
+      if (typeof executor.execute !== 'function') {
+        throw new Error(`[PrintEngine] customPipe "${executor.type}" 的 execute 必须是函数`);
+      }
+      if (this.customPipesMap.has(executor.type)) {
+        console.warn(
+          `[PrintEngine] customPipes 中存在重复的 type "${executor.type}"，后者将覆盖前者`
+        );
+      } else if (builtInTypes.has(executor.type)) {
+        console.warn(
+          `[PrintEngine] 自定义 pipe "${executor.type}" 将覆盖内置同名管道`
+        );
+      }
+      this.customPipesMap.set(executor.type, executor);
+    }
   }
 
   /**
@@ -119,10 +155,20 @@ export class PrintEngine {
 
   /**
    * 执行单个管道转换
+   * 优先使用自定义管道，找不到时回退到内置管道
    */
   private executePipe(value: any, pipe: PipeConfig): any {
-    // 使用插件化的管道执行器
-    return executePipe(pipe.type, value, pipe.options);
+    const customExecutor = this.customPipesMap.get(pipe.type);
+    if (customExecutor) {
+      try {
+        return customExecutor.execute(value, pipe.options);
+      } catch (err) {
+        console.error(`[PrintEngine] 自定义 pipe "${pipe.type}" 执行失败:`, err);
+        return value;
+      }
+    }
+    // 回退到内置管道
+    return executeBuiltInPipe(pipe.type, value, pipe.options);
   }
 
   /**
@@ -175,6 +221,7 @@ export class PrintEngine {
       data: this.data,
       resolveBinding: this.resolveBinding.bind(this),
       applyPipes: this.applyPipes.bind(this),
+      executePipe: this.executePipe.bind(this),
       getValueByPath: this.getValueByPath.bind(this),
       formatDate: this.formatDate.bind(this),
       mmToPx: this.mmToPx,
@@ -1119,8 +1166,8 @@ export class PrintEngine {
 /**
  * 工厂函数：创建打印引擎实例
  */
-export function createPrintEngine(template: PrintTemplate, data: any) {
-  const engine = new PrintEngine(template, data);
+export function createPrintEngine(template: PrintTemplate, data: any, customPipes?: PipeExecutor[]) {
+  const engine = new PrintEngine(template, data, customPipes);
 
   return {
     /**

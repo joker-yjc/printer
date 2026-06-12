@@ -7,7 +7,6 @@ import type { ComponentNode, TableColumn, TableProps, SummaryExtraRow } from '..
 import type { ComponentRenderer, RenderContext, StyleObject } from '../types';
 import { buildStyleString, buildPositionStyle } from '../utils/styleBuilder';
 import { COMPONENT_DEFAULT_SIZE, TABLE_DEFAULT, TABLE_STYLE_DEFAULT, TABLE_HEADER_STYLE_DEFAULT, TABLE_DENSITY_PRESETS } from '../constants';
-import { getExecutor } from '../../pipes/registry';
 
 /**
  * HTML 转义，防止 XSS 注入
@@ -459,7 +458,7 @@ export class TableRenderer implements ComponentRenderer {
       // 'both' → 合计行 + 额外行（如有）；'extra-only' → 仅额外行
       summaryHtml = this.renderSummary(
         summaryData, displayColumns, tableProps, cellBorder, cellPadding, cellTextStyle,
-        rowHeightPx, textAlign, colWidths, summaryModeResolved, hasSummaryRow
+        rowHeightPx, textAlign, colWidths, summaryModeResolved, hasSummaryRow, context
       );
     }
 
@@ -482,7 +481,8 @@ export class TableRenderer implements ComponentRenderer {
     defaultTextAlign: string,
     colWidths: string[],
     summaryMode: 'both' | 'none' | 'extra-only' = 'both',
-    hasSummaryRow: boolean = true
+    hasSummaryRow: boolean = true,
+    context: RenderContext
   ): string {
     if (!columns.length) return '';
 
@@ -505,7 +505,7 @@ export class TableRenderer implements ComponentRenderer {
         } else if (col === firstDataColumn) {
           content = summaryLabel;
         } else if (col.summary) {
-          content = this.calculateSummary(data, col);
+          content = this.calculateSummary(data, col, context);
         }
 
         const cellStyle = `
@@ -528,7 +528,7 @@ export class TableRenderer implements ComponentRenderer {
     }
 
     const extraRowsHtml = this.renderSummaryExtraRows(
-      data, columns, props, cellBorder, cellPadding, cellTextStyle, rowHeightPx, columns.length
+      data, columns, props, cellBorder, cellPadding, cellTextStyle, rowHeightPx, columns.length, context
     );
 
     return `<tfoot>${summaryRowHtml}${extraRowsHtml}</tfoot>`;
@@ -537,7 +537,7 @@ export class TableRenderer implements ComponentRenderer {
   /**
    * 计算单列合计值（使用 Decimal.js 解决精度问题）
    */
-  private calculateSummary(data: any[], column: TableColumn): string {
+  private calculateSummary(data: any[], column: TableColumn, context: RenderContext): string {
     if (!data.length) return '-';
 
     const { summary } = column;
@@ -598,10 +598,10 @@ export class TableRenderer implements ComponentRenderer {
       let finalResult = `${prefix}${formatted}${suffix}`;
 
       if (summary.pipe) {
-        const executor = getExecutor(summary.pipe.type);
-
-        if (executor) {
-          finalResult = executor.execute(Number(formatted), summary.pipe.options) || '';
+        const pipedValue = context.executePipe(Number(formatted), summary.pipe);
+        // 仅当管道真正执行了转换时才替换结果（避免找不到执行器时丢失 prefix/suffix）
+        if (pipedValue !== Number(formatted)) {
+          finalResult = pipedValue ?? '';
         }
       }
 
@@ -668,7 +668,8 @@ export class TableRenderer implements ComponentRenderer {
     cellPadding: string,
     cellTextStyle: string,
     rowHeightPx: number,
-    colCount: number
+    colCount: number,
+    context: RenderContext
   ): string {
     const extraRows = props.summaryExtraRows;
     if (!extraRows || extraRows.length === 0) return '';
@@ -691,17 +692,13 @@ export class TableRenderer implements ComponentRenderer {
           if (col) {
             let value: any = this.getColumnSummaryRawValue(data, col);
             if (item.pipes && value !== null) {
-              const originalValue = value;
               try {
                 for (const pipe of item.pipes) {
-                  const executor = getExecutor(pipe.type);
-                  if (executor) {
-                    value = executor.execute(value, pipe.options);
-                  }
+                  value = context.executePipe(value, pipe);
                 }
               } catch (pipeError) {
                 console.error('[TableRenderer] 额外行管道执行失败:', pipeError);
-                value = originalValue; // 保留原始值，不置 null
+                value = this.getColumnSummaryRawValue(data, col);
               }
             }
             if (value !== null && value !== undefined) {

@@ -25,6 +25,11 @@ export interface RenderContext {
   applyPipes(value: any, pipes?: PipeConfig[]): any;
 
   /**
+   * 执行单个管道转换（优先自定义管道，回退内置管道）
+   */
+  executePipe(value: any, pipe: PipeConfig): any;
+
+  /**
    * 根据路径获取数据值
    */
   getValueByPath(path: string, fallback?: string): any;

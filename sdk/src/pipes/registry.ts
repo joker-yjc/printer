@@ -40,6 +40,18 @@ export function getAllPipes(): Array<{ value: string; label: string }> {
 }
 
 /**
+ * 获取所有已注册的管道类型标识（快照）
+ * 用于自定义管道重名校验
+ * 
+ * 注意：返回的是调用时刻的 Set 快照，不是对 registry 的实时视图。
+ * 当前内置管道在模块加载时一次性注册，因此调用时机不影响结果；
+ * 若未来支持运行时动态注册，需重新评估此函数的语义。
+ */
+export function getRegisteredTypes(): Set<string> {
+  return new Set(executorRegistry.keys());
+}
+
+/**
  * 执行管道转换
  */
 export function executePipe(type: string, value: any, options?: Record<string, any>): any {
