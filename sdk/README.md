@@ -5,7 +5,7 @@
 
 通用打印 SDK - 客户端打印解决方案
 
-**当前版本**: v1.10.0
+**当前版本**: v1.11.0
 
 ## 🎨 在线演示
 
@@ -24,6 +24,7 @@
 - 🔄 **数据绑定** - Schema 驱动的数据绑定系统
 - 📊 **表格高级功能** - 跨页分页、表头重复、表格合计
 - 🔌 **插件化架构** - 易于扩展的渲染器和管道系统，支持自定义管道
+- 🛡️ **HTML 转义控制** - 内置 XSS 防护，支持全局/实例级开关，允许富文本渲染
 - 💯 **TypeScript** - 完整的类型定义
 - 🎯 **高精度计算** - 使用 decimal.js 保证数值精度
 
@@ -107,6 +108,7 @@ const sdk = createPrintSDK({
 ```typescript
 interface PrintSDKOptions {
   customPipes?: PipeExecutor[];  // 自定义管道执行器列表
+  escapeHtml?: boolean;          // 是否对输出内容进行 HTML 转义，默认 true
 }
 ```
 
@@ -388,6 +390,65 @@ registerExecutor({
 | `type` 与内置管道重名 | 警告 (`console.warn`)，允许覆盖 |
 | `type` 在 customPipes 中重复 | 警告，后者覆盖前者 |
 | `execute` 执行异常 | 自动捕获，返回原值，管道链不中断 |
+
+## 🛡️ HTML 转义控制
+
+SDK 默认对所有输出内容进行 HTML 转义（防止 XSS 注入）。如需在打印内容中渲染富文本（如 `<b>`、`<span style>` 等 HTML 标签），可关闭转义。
+
+### 优先级规则
+
+```
+实例级 createPrintSDK({ escapeHtml })  >  全局级 configureSDK({ escapeHtml })  >  默认值 true
+```
+
+### 方式一：实例级配置
+
+通过 `createPrintSDK({ escapeHtml })` 设置，**仅影响当前实例**：
+
+```typescript
+const sdk = createPrintSDK({ escapeHtml: false });
+
+// 该实例的打印内容中，HTML 标签会被浏览器渲染（而非转义显示）
+await sdk.print({ template, data });
+```
+
+### 方式二：全局级配置
+
+通过 `configureSDK()` 设置，**影响所有后续创建的实例**：
+
+```typescript
+import { configureSDK } from '@jcyao/print-sdk';
+
+configureSDK({ escapeHtml: false });
+
+// 之后创建的所有 SDK 实例均不转义
+const sdk = createPrintSDK();
+```
+
+### 混合使用
+
+全局关闭 + 实例开启（实例级覆盖全局级）：
+
+```typescript
+configureSDK({ escapeHtml: false });
+const sdk = createPrintSDK({ escapeHtml: true }); // 该实例仍转义
+```
+
+### `configureSDK(config)`
+
+全局配置归一化入口。后续新增的全局级别参数都会加到 `SDKGlobalConfig` 接口，无需新增函数。
+
+```typescript
+interface SDKGlobalConfig {
+  escapeHtml?: boolean;  // 是否对输出内容进行 HTML 转义，默认 true
+}
+
+function configureSDK(config: SDKGlobalConfig): void
+```
+
+> 💡 **`configureSDK` 与 `registerExecutor` 的区别**：
+> - `configureSDK`：管理配置值类型的全局参数（boolean / string / number）
+> - `registerExecutor`：注册管道处理器列表（Map<string, PipeExecutor>），性质不同，保持独立
 
 ```typescript
 {

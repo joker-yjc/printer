@@ -13,6 +13,7 @@ import {
   getPageSizeFromConfig,
 } from './printEngine/htmlTemplate';
 import { waitForImagesLoaded } from './utils/resourceLoader';
+import { getGlobalConfig } from './config/globalConfig';
 
 /**
  * 创建 SDK 实例的配置选项
@@ -20,6 +21,8 @@ import { waitForImagesLoaded } from './utils/resourceLoader';
 export interface PrintSDKOptions {
   /** 自定义管道执行器列表 */
   customPipes?: PipeExecutor[];
+  /** 是否对输出内容进行 HTML 转义，覆盖全局配置，默认 true */
+  escapeHtml?: boolean;
 }
 
 /**
@@ -108,9 +111,11 @@ export interface MultiTemplatePrintProgress {
 
 export class PrintSDK {
   private customPipes?: PipeExecutor[];
+  private escapeHtml: boolean;
 
   constructor(options?: PrintSDKOptions) {
     this.customPipes = options?.customPipes;
+    this.escapeHtml = options?.escapeHtml ?? getGlobalConfig().escapeHtml ?? true;
   }
 
   /**
@@ -122,7 +127,7 @@ export class PrintSDK {
    */
   async print(options: PrintOptions): Promise<void> {
     const { template, data, preview = false } = options;
-    const engine = createPrintEngine(template, data, this.customPipes);
+    const engine = createPrintEngine(template, data, this.customPipes, this.escapeHtml);
 
     if (preview) {
       // 预览模式：打开新窗口显示
@@ -209,7 +214,7 @@ export class PrintSDK {
    * @returns HTML 字符串
    */
   async generateHTML(template: PrintTemplate, data: any): Promise<string> {
-    const engine = createPrintEngine(template, data, this.customPipes);
+    const engine = createPrintEngine(template, data, this.customPipes, this.escapeHtml);
     return await engine.generatePrintHTML();
   }
 
@@ -250,7 +255,7 @@ export class PrintSDK {
       onProgress?.(progress);
 
       try {
-        const engine = createPrintEngine(template, data, this.customPipes);
+        const engine = createPrintEngine(template, data, this.customPipes, this.escapeHtml);
         const html = await engine.generatePrintHTML();
         const bodyContent = extractBodyContent(html);
         if (bodyContent) {
@@ -333,7 +338,7 @@ export class PrintSDK {
         onProgress?.(progress);
 
         try {
-          const engine = createPrintEngine(group.template, data, this.customPipes);
+          const engine = createPrintEngine(group.template, data, this.customPipes, this.escapeHtml);
           const html = await engine.generatePrintHTML();
           const bodyContent = extractBodyContent(html);
           if (bodyContent) {

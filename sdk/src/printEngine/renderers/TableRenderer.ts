@@ -6,19 +6,8 @@ import Decimal from 'decimal.js';
 import type { ComponentNode, TableColumn, TableProps, SummaryExtraRow } from '../../types';
 import type { ComponentRenderer, RenderContext, StyleObject } from '../types';
 import { buildStyleString, buildPositionStyle } from '../utils/styleBuilder';
+import { escapeHtml } from '../../utils/htmlEscape';
 import { COMPONENT_DEFAULT_SIZE, TABLE_DEFAULT, TABLE_STYLE_DEFAULT, TABLE_HEADER_STYLE_DEFAULT, TABLE_DENSITY_PRESETS } from '../constants';
-
-/**
- * HTML 转义，防止 XSS 注入
- */
-function escapeHtml(text: string): string {
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
 
 /**
  * 根据数据路径从对象中取值
@@ -356,7 +345,7 @@ export class TableRenderer implements ComponentRenderer {
           }
           const mergedStyle = mergeColumnStyle(col.headerStyle, baseHeaderStyle);
           const styleStr = buildStyleString(mergedStyle);
-          return `<th style="${styleStr}">${escapeHtml(title)}</th>`;
+          return `<th style="${styleStr}">${escapeHtml(title, context.escapeHtml)}</th>`;
         })
         .join('');
       // 表头使用固定高度，表体使用 min-height
@@ -416,7 +405,7 @@ export class TableRenderer implements ComponentRenderer {
               };
               const dataStyle = mergeColumnStyle(col.style, baseDataStyle);
               const dataStyleStr = buildStyleString(dataStyle);
-              return `<td style="${dataStyleStr}">${escapeHtml(String(value))}</td>`;
+              return `<td style="${dataStyleStr}">${escapeHtml(String(value), context.escapeHtml)}</td>`;
             })
             .join('');
           return `<tr style="min-height: ${rowHeightPx}px;">${cells}</tr>`;
@@ -521,7 +510,7 @@ export class TableRenderer implements ComponentRenderer {
           ${fontSize ? `font-size: ${fontSize}px;` : ''}
         `.trim().replace(/\s+/g, ' ');
 
-        return `<td style="${cellStyle}">${escapeHtml(content)}</td>`;
+        return `<td style="${cellStyle}">${escapeHtml(content, context.escapeHtml)}</td>`;
       }).join('');
 
       summaryRowHtml = `<tr style="min-height: ${rowHeightPx}px;">${cells}</tr>`;
@@ -721,7 +710,7 @@ export class TableRenderer implements ComponentRenderer {
         font-weight: ${fontWeight};
       `.trim().replace(/\s+/g, ' ');
 
-      return `<tr style="min-height: ${rowHeightPx}px;"><td colspan="${colCount}" style="${cellStyle}">${escapeHtml(content)}</td></tr>`;
+      return `<tr style="min-height: ${rowHeightPx}px;"><td colspan="${colCount}" style="${cellStyle}">${escapeHtml(content, context.escapeHtml)}</td></tr>`;
     }).join('');
   }
 

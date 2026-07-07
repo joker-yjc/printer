@@ -45,6 +45,11 @@ export interface RenderContext {
   mmToPx: number;
 
   /**
+   * 是否对输出内容进行 HTML 转义
+   */
+  escapeHtml: boolean;
+
+  /**
    * 页面信息（用于计算可用宽度）
    */
   pageInfo?: {

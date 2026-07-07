@@ -9,6 +9,7 @@
 import type { ComponentNode, PageNumberProps } from '../../types';
 import type { ComponentRenderer, RenderContext, StyleObject } from '../types';
 import { buildStyleString, buildPositionStyle } from '../utils/styleBuilder';
+import { escapeHtml } from '../../utils/htmlEscape';
 import { COMPONENT_DEFAULT_SIZE, STYLE_DEFAULT } from '../constants';
 
 export class PageNumberRenderer implements ComponentRenderer {
@@ -53,7 +54,7 @@ export class PageNumberRenderer implements ComponentRenderer {
 
     const styleStr = buildStyleString(textStyles);
 
-    return `<div style="${styleStr}">${this.escapeHtml(pageText)}</div>`;
+    return `<div style="${styleStr}">${escapeHtml(pageText, context.escapeHtml)}</div>`;
   }
 
   calculateHeight(component: ComponentNode): number {
@@ -91,14 +92,5 @@ export class PageNumberRenderer implements ComponentRenderer {
     }
 
     return `${prefix}${text}${suffix}`;
-  }
-
-  /**
-   * HTML 转义
-   */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
   }
 }

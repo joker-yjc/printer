@@ -12,6 +12,7 @@ import {
   generatePrintHTML,
 } from './printEngine/htmlTemplate';
 import { executePipe as executeBuiltInPipe, getRegisteredTypes } from './pipes/registry';
+import { escapeHtml } from './utils/htmlEscape';
 
 // 导入所有渲染器插件
 import {
@@ -34,13 +35,15 @@ export class PrintEngine {
   private data: any;
   private renderers: Map<string, ComponentRenderer>;
   private customPipesMap: Map<string, PipeExecutor>;
+  private escapeHtmlFlag: boolean;
   private readonly mmToPx = MM_TO_PX; // 使用常量：96 DPI 下 1mm = 3.78px
 
-  constructor(template: PrintTemplate, data: any, customPipes?: PipeExecutor[]) {
+  constructor(template: PrintTemplate, data: any, customPipes?: PipeExecutor[], escapeHtml: boolean = true) {
     this.template = template;
     this.data = data;
     this.renderers = new Map();
     this.customPipesMap = new Map();
+    this.escapeHtmlFlag = escapeHtml;
 
     // 注册默认渲染器
     this.registerDefaultRenderers();
@@ -225,6 +228,7 @@ export class PrintEngine {
       getValueByPath: this.getValueByPath.bind(this),
       formatDate: this.formatDate.bind(this),
       mmToPx: this.mmToPx,
+      escapeHtml: this.escapeHtmlFlag,
       pageInfo: {
         widthMm,
         heightMm,
@@ -443,14 +447,7 @@ export class PrintEngine {
     const alignStyle = position.includes('left') ? 'left' : position.includes('right') ? 'right' : 'center';
     const justifyContent = alignStyle === 'left' ? 'flex-start' : alignStyle === 'right' ? 'flex-end' : 'center';
 
-    return `<div style="position: absolute; left: ${xPx}px; top: ${yPx}px; white-space: nowrap; height: ${heightPx}px; font-size: ${fontSize}px; color: ${color}; font-weight: ${fontWeight}; display: flex; align-items: center; justify-content: ${justifyContent};">${this.escapeHtml(pageText)}</div>`;
-  }
-
-  /**
-   * HTML 转义
-   */
-  private escapeHtml(text: string): string {
-    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    return `<div style="position: absolute; left: ${xPx}px; top: ${yPx}px; white-space: nowrap; height: ${heightPx}px; font-size: ${fontSize}px; color: ${color}; font-weight: ${fontWeight}; display: flex; align-items: center; justify-content: ${justifyContent};">${escapeHtml(pageText, this.escapeHtmlFlag)}</div>`;
   }
 
   /**
@@ -1166,8 +1163,8 @@ export class PrintEngine {
 /**
  * 工厂函数：创建打印引擎实例
  */
-export function createPrintEngine(template: PrintTemplate, data: any, customPipes?: PipeExecutor[]) {
-  const engine = new PrintEngine(template, data, customPipes);
+export function createPrintEngine(template: PrintTemplate, data: any, customPipes?: PipeExecutor[], escapeHtml: boolean = true) {
+  const engine = new PrintEngine(template, data, customPipes, escapeHtml);
 
   return {
     /**

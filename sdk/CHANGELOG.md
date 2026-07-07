@@ -2,6 +2,51 @@
 
 所有版本的变更记录都列在这里，遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 规范。
 
+## [1.11.0] - 2026-07-07
+
+### ✨ 新增功能
+
+- **HTML 转义控制**
+  - 新增 `escapeHtml` 配置项，允许用户关闭 HTML 转义以支持富文本渲染
+  - 默认值 `true`（安全优先），需显式关闭
+- **全局配置归一化入口 `configureSDK()`**
+  - 新增 `configureSDK(config: SDKGlobalConfig)` 方法，统一管理全局级别配置参数
+  - 后续新增的全局参数只需在 `SDKGlobalConfig` 接口加字段，不新增函数
+  - `SDKGlobalConfig` 接口当前包含：`escapeHtml?: boolean`
+- **统一 `escapeHtml` 工具函数**
+  - 将原先分散在 `TableRenderer`、`PageNumberRenderer`、`PrintEngine` 中的三份 `escapeHtml` 实现统一为 `utils/htmlEscape.ts` 中的一份
+  - 新签名：`escapeHtml(text: string, shouldEscape: boolean): string`，`shouldEscape=false` 时原样返回
+
+### 📖 使用示例
+
+```ts
+import { createPrintSDK, configureSDK } from '@jcyao/print-sdk';
+
+// 实例级关闭转义（仅影响该实例）
+const sdk = createPrintSDK({ escapeHtml: false });
+
+// 全局级关闭转义（影响所有后续创建的实例）
+configureSDK({ escapeHtml: false });
+
+// 全局关闭 + 实例开启（实例级覆盖全局级）
+configureSDK({ escapeHtml: false });
+const sdk = createPrintSDK({ escapeHtml: true }); // 该实例转义开启
+```
+
+### ⚙️ 优先级规则
+
+```
+实例级 createPrintSDK({ escapeHtml })  >  全局级 configureSDK({ escapeHtml })  >  默认值 true
+```
+
+### 📝 补充说明
+
+- `configureSDK` 与 `registerExecutor` 的区别：
+  - `configureSDK`：管理配置值类型的全局参数（boolean / string / number）
+  - `registerExecutor`：注册处理器列表（Map<string, PipeExecutor>），性质不同，保持独立
+- 关闭转义后，所有渲染器（表格、页码等）的输出内容均不进行 HTML 转义
+- 向后兼容：不传任何配置时行为不变，默认转义
+
 ## [1.10.0] - 2026-06-12
 
 ### ✨ 新增功能

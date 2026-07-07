@@ -15,6 +15,10 @@ export type {
   MultiTemplatePrintProgress,
 } from './PrintSDK';
 
+// 导出全局配置
+export { configureSDK } from './config/globalConfig';
+export type { SDKGlobalConfig } from './config/globalConfig';
+
 // 导出打印引擎
 export { PrintEngine, createPrintEngine } from './printEngine';
 export type { ComponentRenderer, RenderContext } from './printEngine';
