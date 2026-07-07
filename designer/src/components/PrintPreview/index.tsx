@@ -1,7 +1,7 @@
 import { Modal, Button, Space, message, Select, Segmented } from 'antd';
 import { LeftOutlined, RightOutlined, PrinterOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useState, useEffect, useRef } from 'react';
-import { createPrintEngine, PrintSDK } from '@jcyao/print-sdk';
+import { createPrintSDK } from '@jcyao/print-sdk';
 import { useDesignerStore } from '../../store/designer';
 import { mockDataApi, templateApi } from '../../services/api';
 import type { MockData, PrintTemplate } from '../../types';
@@ -21,6 +21,9 @@ interface TemplateGroup {
 }
 
 let groupKeyCounter = 0;
+
+/** 共享 SDK 实例（无状态，可安全复用；后续如需自定义管道等配置，统一在此处传入） */
+const sdk = createPrintSDK();
 
 const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
   const { generateTemplate, components, headerComponents, footerComponents } = useDesignerStore();
@@ -159,18 +162,6 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
     return mockData.data;
   };
 
-  /** 从完整 HTML 提取 body 内容 */
-  const extractBodyContent = (html: string): string => {
-    try {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-      return doc.body?.innerHTML?.trim() || '';
-    } catch {
-      const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-      return bodyMatch?.[1]?.trim() || '';
-    }
-  };
-
   const handleGeneratePreview = async () => {
     if (templateMode === 'single') {
       await generateSinglePreview();
@@ -179,7 +170,7 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
     }
   };
 
-  /** 单模板模式预览生成（保持原有逻辑） */
+  /** 单模板模式预览生成 */
   const generateSinglePreview = async () => {
     if (!selectedMockDataId) {
       message.error('请选择 Mock 数据');
@@ -194,36 +185,21 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
         return;
       }
 
-      const template = generateTemplate();
+      const template = { ...generateTemplate(), id: 'preview' } as PrintTemplate;
       const isBatchData = Array.isArray(mockData.data);
 
       if (isBatchData) {
         setPrintMode('batch');
         setBatchCount(mockData.data.length);
 
-        const allHtmlPages: string[] = [];
-        for (let i = 0; i < mockData.data.length; i++) {
-          const singleData = mockData.data[i];
-          const engine = createPrintEngine(
-            { ...template, id: `preview-${i}` } as any,
-            singleData
-          );
-          const html = await engine.generatePrintHTML();
-          allHtmlPages.push(html);
-        }
-
-        const mergedHtml = mergeBatchPrintHTML(allHtmlPages);
+        const mergedHtml = await sdk.generateHTMLMultiple(template, mockData.data);
         setPreviewHtml(mergedHtml);
         message.success(`批量预览生成成功（${mockData.data.length} 份文档）`);
       } else {
         setPrintMode('single');
         setBatchCount(0);
 
-        const engine = createPrintEngine(
-          { ...template, id: 'preview' } as any,
-          mockData.data
-        );
-        const html = await engine.generatePrintHTML();
+        const html = await sdk.generateHTML(template, mockData.data);
         setPreviewHtml(html);
         message.success('预览生成成功');
       }
@@ -249,7 +225,7 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
 
     setLoading(true);
     try {
-      const allHtmlPages: string[] = [];
+      const groups: { template: PrintTemplate; dataList: any[] }[] = [];
       let totalDocs = 0;
       let failedCount = 0;
 
@@ -266,26 +242,20 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
           continue;
         }
 
-        const isBatchData = Array.isArray(data);
-        const dataItems: any[] = isBatchData ? data : [data];
-
-        for (let i = 0; i < dataItems.length; i++) {
-          const engine = createPrintEngine(
-            { ...template, id: `${group.key}-${i}` } as any,
-            dataItems[i]
-          );
-          const html = await engine.generatePrintHTML();
-          allHtmlPages.push(html);
-          totalDocs++;
-        }
+        const dataItems: any[] = Array.isArray(data) ? data : [data];
+        groups.push({
+          template: { ...template, id: group.key } as PrintTemplate,
+          dataList: dataItems,
+        });
+        totalDocs += dataItems.length;
       }
 
-      if (allHtmlPages.length === 0) {
+      if (groups.length === 0) {
         message.error('无可打印内容，请检查模板和数据配置');
         return;
       }
 
-      const mergedHtml = mergeBatchPrintHTML(allHtmlPages);
+      const mergedHtml = await sdk.generateHTMLMultiTemplate(groups);
       setPreviewHtml(mergedHtml);
       setPrintMode('batch');
       setBatchCount(totalDocs);
@@ -301,39 +271,6 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const mergeBatchPrintHTML = (htmlPages: string[]): string => {
-    if (htmlPages.length === 0) return '';
-
-    const firstHtml = htmlPages[0];
-    const headMatch = firstHtml.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
-    const head = headMatch ? headMatch[0] : '<head></head>';
-
-    const allBodiesContent = htmlPages.map((html) => {
-      return extractBodyContent(html);
-    }).join('\n');
-
-    /** 对合并后的 .print-page 重新全局编号 data-page */
-    const renumberBodyContent = (bodyHtml: string): string => {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(`<body>${bodyHtml}</body>`, 'text/html');
-      const pages = doc.querySelectorAll('.print-page');
-      pages.forEach((page, i) => {
-        page.setAttribute('data-page', String(i + 1));
-      });
-      return doc.body?.innerHTML || bodyHtml;
-    };
-
-    const numberedBody = renumberBodyContent(allBodiesContent);
-
-    return `<!DOCTYPE html>
-<html>
-${head}
-<body>
-${numberedBody}
-</body>
-</html>`;
   };
 
   /** 打印（通过 SDK API，无需依赖 previewHtml） */
@@ -359,8 +296,7 @@ ${numberedBody}
         return;
       }
 
-      const template = generateTemplate() as PrintTemplate;
-      const sdk = new PrintSDK();
+      const template = { ...generateTemplate(), id: 'preview' } as PrintTemplate;
 
       if (Array.isArray(mockData.data)) {
         await sdk.printMultiple(template, mockData.data, { preview: true });
@@ -386,7 +322,6 @@ ${numberedBody}
 
     setLoading(true);
     try {
-      const sdk = new PrintSDK();
       const groups: { template: PrintTemplate; dataList: any[] }[] = [];
 
       for (const group of validGroups) {
