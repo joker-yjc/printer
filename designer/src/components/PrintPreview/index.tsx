@@ -27,7 +27,7 @@ const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
   /** 懒初始化 SDK 实例，确保 escapeHtml 配置在组件挂载时正确传入 */
   const sdkRef = useRef<PrintSDK>();
   if (!sdkRef.current) {
-    sdkRef.current = createPrintSDK({ escapeHtml: false });
+    sdkRef.current = createPrintSDK();
   }
   const sdk = sdkRef.current;
 
