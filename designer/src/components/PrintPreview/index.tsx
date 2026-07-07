@@ -2,6 +2,7 @@ import { Modal, Button, Space, message, Select, Segmented } from 'antd';
 import { LeftOutlined, RightOutlined, PrinterOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useState, useEffect, useRef } from 'react';
 import { createPrintSDK } from '@jcyao/print-sdk';
+import type { PrintSDK } from '@jcyao/print-sdk';
 import { useDesignerStore } from '../../store/designer';
 import { mockDataApi, templateApi } from '../../services/api';
 import type { MockData, PrintTemplate } from '../../types';
@@ -22,10 +23,14 @@ interface TemplateGroup {
 
 let groupKeyCounter = 0;
 
-/** 共享 SDK 实例（无状态，可安全复用；后续如需自定义管道等配置，统一在此处传入） */
-const sdk = createPrintSDK();
-
 const PrintPreview = ({ open, onClose }: PrintPreviewProps) => {
+  /** 懒初始化 SDK 实例，确保 escapeHtml 配置在组件挂载时正确传入 */
+  const sdkRef = useRef<PrintSDK>();
+  if (!sdkRef.current) {
+    sdkRef.current = createPrintSDK({ escapeHtml: false });
+  }
+  const sdk = sdkRef.current;
+
   const { generateTemplate, components, headerComponents, footerComponents } = useDesignerStore();
   const [mockDataList, setMockDataList] = useState<MockData[]>([]);
   const [selectedMockDataId, setSelectedMockDataId] = useState<string>();
