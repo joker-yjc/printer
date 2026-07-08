@@ -60,4 +60,9 @@ export const chapters: Chapter[] = [
     title: '快捷键速查',
     file: new URL('./docs/11-快捷键速查.md', import.meta.url).href,
   },
+  {
+    id: 'sdk-integration',
+    title: 'SDK 接入',
+    file: new URL('./docs/12-SDK接入.md', import.meta.url).href,
+  },
 ];
