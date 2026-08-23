@@ -126,6 +126,67 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
   );
   const { resizing, currentWidth, handleMouseDown } = useColumnResize(handleColumnWidthChange);
 
+  const groupBy: any = (component.props as any)?.groupBy;
+  const hasGroup = !!groupBy?.field;
+  const colCount = displayCols.length || 1;
+
+  // 分组预览用占位样式
+  const groupHeaderStyle = groupBy?.headerStyle || {};
+  const groupSummaryStyle = groupBy?.summaryStyle || {};
+  const groupHeaderBg = groupHeaderStyle.backgroundColor || '#f5f5f5';
+  const groupHeaderFw = groupHeaderStyle.fontWeight || 'bold';
+  const groupSummaryBg = groupSummaryStyle.backgroundColor || '#f5f5f5';
+  const groupSummaryFw = groupSummaryStyle.fontWeight || 'bold';
+
+  const renderGroupedPlaceholder = () => {
+    if (!hasGroup) return null;
+    const showGroupHeader = groupBy.showHeader !== false;
+    const showGroupSummary = groupBy.showSummary !== false;
+    const mockGroups = [
+      { key: groupBy.emptyGroupLabel || '分组示例 1', rows: 1 },
+      { key: '分组示例 2', rows: 1 },
+    ];
+    let rowNum = 0;
+    return mockGroups.map((g, gi) => (
+      <tbody key={gi} data-group={g.key}>
+        {showGroupHeader && (
+          <tr>
+            <td colSpan={colCount} style={{
+              border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
+              padding: densityPadding, lineHeight: densityLineHeight, textAlign: (groupHeaderStyle.textAlign || 'left') as any,
+              background: groupHeaderBg, fontWeight: groupHeaderFw as any, fontSize: groupHeaderStyle.fontSize,
+              whiteSpace: 'normal', wordBreak: 'break-word',
+            }}>{g.key}</td>
+          </tr>
+        )}
+        {/* 每组一行占位，单元格显示"列标题 + 组序号" */}
+        <tr>
+          {displayCols.map((col: any, ci: number) => {
+            if (col.dataIndex === '__row_number__') {
+              rowNum++;
+              return <td key={ci} style={{ border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none', padding: densityPadding, lineHeight: densityLineHeight, textAlign: 'center', width: colWidths[ci] }}>{rowNum}</td>;
+            }
+            return <td key={ci} style={{ border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none', padding: densityPadding, lineHeight: densityLineHeight, textAlign: col.style?.textAlign || col.align || tableTextAlign as any, width: colWidths[ci], whiteSpace: 'normal', wordBreak: 'break-word' }}>{`${col.title || col.dataIndex} ${gi + 1}`}</td>;
+          })}
+        </tr>
+        {showGroupSummary && (() => {
+          const tpl = groupBy.summaryLabel || '{group}小计';
+          const text = tpl.replace('{group}', g.key);
+          return (
+            <tr>
+              <td colSpan={colCount} style={{
+                border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
+                padding: densityPadding, lineHeight: densityLineHeight, textAlign: (groupSummaryStyle.textAlign || 'left') as any,
+                background: groupSummaryBg, fontWeight: groupSummaryFw as any, fontSize: groupSummaryStyle.fontSize,
+                whiteSpace: 'normal', wordBreak: 'break-word',
+              }}>{text}：--</td>
+            </tr>
+          );
+        })()}
+      </tbody>
+    ));
+  };
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       {resizing && (
@@ -148,7 +209,6 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
                 const colMm = Math.round(parseFloat(colWidths[idx]) / 100 * tableWidthMm * 10) / 10;
                 const maxW = Math.round(computeColumnMaxWidth(displayCols, idx, tableWidthMm) * 10) / 10;
                 const colHeaderStyle = col.headerStyle || {};
-                // 对齐优先级：列级 headerStyle.textAlign > col.align > 表格级 headerStyle.textAlign > 表格级 textAlign
                 const hAlign = colHeaderStyle.textAlign
                   || col.align
                   || headerDefaultAlign
@@ -186,19 +246,21 @@ export const TablePreview = ({ component }: TablePreviewProps) => {
             </tr>
           </thead>
         )}
-        <tbody>
-          <tr>
-            <td colSpan={displayCols.length || 1} style={{
-              border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
-              padding: densityPadding, lineHeight: densityLineHeight, textAlign: 'center', color: '#999',
-            }}>
-              {!showHeader && <p>
-                 表头已隐藏，仅打印数据 !!!
-              </p>}
-              暂无数据
-            </td>
-          </tr>
-        </tbody>
+        {hasGroup ? (
+          <>{renderGroupedPlaceholder()}</>
+        ) : (
+          <tbody>
+            <tr>
+              <td colSpan={colCount} style={{
+                border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
+                padding: densityPadding, lineHeight: densityLineHeight, textAlign: 'center', color: '#999',
+              }}>
+                {!showHeader && <p>表头已隐藏，仅打印数据 !!!</p>}
+                暂无数据
+              </td>
+            </tr>
+          </tbody>
+        )}
       </table>
     </div>
   );

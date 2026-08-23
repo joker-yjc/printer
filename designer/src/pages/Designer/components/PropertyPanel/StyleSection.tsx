@@ -24,7 +24,7 @@ const StyleSection: React.FC<StyleSectionProps> = ({ component, onStyleChange, o
 
   return (
     <div className={styles["property-section"]}>
-      <div className={styles["property-title"]}>🎨 样式属性</div>
+      <div className={styles["property-title"]}>样式属性</div>
       <div className={styles["property-list"]}>
         {content}
       </div>

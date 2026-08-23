@@ -165,7 +165,7 @@ const TableColumnSection: React.FC<TableColumnSectionProps> = ({ component, onPr
 
   return (
     <div className={styles["property-section"]}>
-      <div className={styles["property-title"]}>📋 表格列管理</div>
+      <div className={styles["property-title"]}>表格列管理</div>
       <div className={styles["property-list"]}>
         {/* 表格风格 */}
         <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>

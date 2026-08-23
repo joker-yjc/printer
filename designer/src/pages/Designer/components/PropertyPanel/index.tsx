@@ -11,6 +11,7 @@ import LayoutSection from './LayoutSection';
 import DataBindingSection from './DataBindingSection';
 import StyleSection from './StyleSection';
 import TableColumnSection from './TableColumnSection';
+import TableGroupSection from './TableGroupSection';
 import PageNumberPropertyPanel from './PageNumberPropertyPanel';
 
 const { Title, Text } = Typography;
@@ -151,6 +152,15 @@ const PropertyPanel = () => {
         component={selectedComponent}
         onPropsChange={handlePropsChange}
       />
+
+      {/* 表格分组（仅表格组件显示，与列管理平级） */}
+      {selectedComponent.type === 'table' && (
+        <TableGroupSection
+          component={selectedComponent}
+          onPropsChange={handlePropsChange}
+          updateComponent={updateComponent}
+        />
+      )}
     </div>
   );
 };

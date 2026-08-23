@@ -239,19 +239,20 @@ const ColumnConfigCard: React.FC<ColumnConfigCardProps> = ({
                         </Checkbox>
                       </div>
                     </div>
+                    <div style={{ flex: 1 }}>
+                      <Text className={styles["property-label"]}>对齐</Text>
+                      <Select
+                        size="small"
+                        style={{ width: '100%', marginTop: 4 }}
+                        allowClear
+                        placeholder="继承"
+                        value={col.headerStyle?.textAlign}
+                        onChange={(v) => onHeaderStyleChange(index, 'textAlign', v)}
+                        options={textAlignOptions}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <Text className={styles["property-label"]}>对齐</Text>
-                    <Select
-                      size="small"
-                      style={{ width: '100%', marginTop: 4 }}
-                      allowClear
-                      placeholder="继承"
-                      value={col.headerStyle?.textAlign}
-                      onChange={(v) => onHeaderStyleChange(index, 'textAlign', v)}
-                      options={textAlignOptions}
-                    />
-                  </div>
+
 
                   {/* 数据样式 */}
                   <div style={{ borderTop: '1px solid #e8e8e8', paddingTop: 8, marginTop: 4 }}>
@@ -306,18 +307,18 @@ const ColumnConfigCard: React.FC<ColumnConfigCardProps> = ({
                         </Checkbox>
                       </div>
                     </div>
-                  </div>
-                  <div>
-                    <Text className={styles["property-label"]}>对齐</Text>
-                    <Select
-                      size="small"
-                      style={{ width: '100%', marginTop: 4 }}
-                      allowClear
-                      placeholder="继承"
-                      value={col.style?.textAlign}
-                      onChange={(v) => onStyleChange(index, 'textAlign', v)}
-                      options={textAlignOptions}
-                    />
+                    <div style={{ flex: 1 }}>
+                      <Text className={styles["property-label"]}>对齐</Text>
+                      <Select
+                        size="small"
+                        style={{ width: '100%', marginTop: 4 }}
+                        allowClear
+                        placeholder="继承"
+                        value={col.style?.textAlign}
+                        onChange={(v) => onStyleChange(index, 'textAlign', v)}
+                        options={textAlignOptions}
+                      />
+                    </div>
                   </div>
                 </Space>
               ),

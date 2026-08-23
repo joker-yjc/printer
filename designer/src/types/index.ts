@@ -23,8 +23,10 @@ export type {
   TableColumnStyle,
   TableHeaderStyle,
   TableSummaryStyle,
+  GroupSummaryItem,
   SummaryExtraRowItem,
   SummaryExtraRow,
+  TableGroupConfig,
   TableProps,
   // 模板相关
   ComponentNode,

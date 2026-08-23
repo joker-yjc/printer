@@ -13,6 +13,7 @@ import {
 } from './printEngine/htmlTemplate';
 import { executePipe as executeBuiltInPipe, getRegisteredTypes } from './pipes/registry';
 import { escapeHtml } from './utils/htmlEscape';
+import { groupByField, hasGroupSummary } from './printEngine/utils/groupBy';
 
 // 导入所有渲染器插件
 import {
@@ -696,7 +697,7 @@ export class PrintEngine {
   private async measureTableRowHeights(
     tableComponent: ComponentNode,
     tableData: any[]
-  ): Promise<{ headerHeight: number; rowHeights: number[]; summaryHeight: number }> {
+  ): Promise<{ headerHeight: number; rowHeights: number[]; summaryHeight: number; groupHeaderHeight?: number; groupSummaryHeight?: number }> {
     // 检查是否在浏览器环境
     if (typeof document === 'undefined') {
       // 服务器端：使用估算值（包含额外行）
@@ -789,7 +790,10 @@ export class PrintEngine {
       }
 
       // 测量数据行高度
-      const rows = measureContainer.querySelectorAll('tbody tr');
+      // 分组表格的 tbody 中混有 .group-header / .group-summary 插入行，需排除，
+      // 否则 rowHeights 长度与 tableData 不匹配会触发全量回退估算，导致分页留白/重叠
+      const rows = Array.from(measureContainer.querySelectorAll('tbody tr'))
+        .filter((r) => !r.classList.contains('group-header') && !r.classList.contains('group-summary'));
       const rowHeights: number[] = [];
 
       rows.forEach((row) => {
@@ -797,6 +801,18 @@ export class PrintEngine {
         const heightMm = heightPx / this.mmToPx;
         rowHeights.push(heightMm);
       });
+
+      // 分别测量分组标题行与分组小计行的实际高度（两者内容/样式可能不同，分开取避免混用导致分页估算偏差）
+      let groupHeaderHeight = 0;
+      let groupSummaryHeight = 0;
+      const groupHeaderRow = measureContainer.querySelector('tbody tr.group-header') as HTMLElement | null;
+      const groupSummaryRow = measureContainer.querySelector('tbody tr.group-summary') as HTMLElement | null;
+      if (groupHeaderRow) {
+        groupHeaderHeight = groupHeaderRow.offsetHeight / this.mmToPx;
+      }
+      if (groupSummaryRow) {
+        groupSummaryHeight = groupSummaryRow.offsetHeight / this.mmToPx;
+      }
 
       // 测量合计行高度（包括额外行）
       let summaryHeight = 0;
@@ -814,11 +830,13 @@ export class PrintEngine {
         return {
           headerHeight: this.calculateTableHeaderHeight(tableComponent),
           rowHeights: tableData.map(() => baseRowHeight),
-          summaryHeight: summaryRowHeight + extraRowsCount * baseRowHeight
+          summaryHeight: summaryRowHeight + extraRowsCount * baseRowHeight,
+          groupHeaderHeight: 0,
+          groupSummaryHeight: 0,
         };
       }
 
-      return { headerHeight, rowHeights, summaryHeight };
+      return { headerHeight, rowHeights, summaryHeight, groupHeaderHeight, groupSummaryHeight };
     } finally {
       // 确保无论成功或失败，都清理测量容器
       if (measureContainer.parentNode) {
@@ -868,6 +886,25 @@ export class PrintEngine {
     if (tableData.length === 0) {
       console.info('表格无数据，跳过渲染');
       return { currentPage, currentPageHeight, isTableSplitAcrossPages: false, lastTableFragmentBottom: currentPageHeight };
+    }
+
+    // ── 分组表格分页（keepTogether 优先） ──
+    const groupBy = (tableComponent.props as any)?.groupBy;
+    if (groupBy?.field) {
+      return this.splitGroupedTableWithGap(
+        tableComponent,
+        tableData,
+        gap,
+        isFirstComponentInPage,
+        availableHeightMm,
+        currentPageHeight,
+        pages,
+        currentPage,
+        repeatHeader,
+        showHeader,
+        contentTop,
+        contentBottom
+      );
     }
 
     // ✅ 渲染后测量：获取表头、数据行和合计行的实际高度
@@ -1043,13 +1080,13 @@ export class PrintEngine {
       consumedRowCount += rowsCanFit;
 
       // 计算合计行高度（如果启用合计功能）
-      // ✅ 分别追踪合计行和额外行：额外行仅在 extra-only 或 page 模式、或 total 末页渲染
+      // ✅ 分别追踪合计行和额外行：两者显隐均遵循 summaryMode（page=每页 / total=仅末页）
+      // summaryDisplay='extra-only' 仅隐藏主合计行，不改变额外行的分页行为
       const willRenderSummaryRow = summaryDisplayMode !== 'none' && summaryDisplayMode !== 'extra-only' && (
         summaryMode === 'page' || (summaryMode === 'total' && isLastPage)
       );
       const extraRowsCount = (tableComponent.props?.summaryExtraRows?.length || 0);
       const willRenderExtraRows = summaryDisplayMode !== 'none' && extraRowsCount > 0 && (
-        summaryDisplayMode === 'extra-only' ||
         summaryMode === 'page' || (summaryMode === 'total' && isLastPage)
       );
       // ✅ 使用测量的合计行高度，如果没有测量值则使用平均行高
@@ -1091,6 +1128,220 @@ export class PrintEngine {
       isTableSplitAcrossPages,  // ✅ 返回表格是否跨页的信息
       lastTableFragmentBottom: workingPageHeight  // ✅ 返回最后一个表格片段的底部位置
     };
+  }
+
+  /**
+   * 分组表格跨页拆分（keepTogether 优先，超大组内按行拆分）
+   */
+  private async splitGroupedTableWithGap(
+    tableComponent: ComponentNode,
+    tableData: any[],
+    gap: number,
+    isFirstComponentInPage: boolean,
+    availableHeightMm: number,
+    currentPageHeight: number,
+    pages: ComponentNode[][],
+    currentPage: ComponentNode[],
+    repeatHeader: boolean,
+    showHeader: boolean,
+    contentTop: number,
+    contentBottom: number
+  ): Promise<{ currentPage: ComponentNode[]; currentPageHeight: number; isTableSplitAcrossPages: boolean; lastTableFragmentBottom: number }> {
+    const initialPagesLength = pages.length;
+    const groupBy = (tableComponent.props as any).groupBy;
+    const emptyLabel = groupBy.emptyGroupLabel || '未分组';
+    const showGroupHeader = groupBy.showHeader !== false;
+    // 复用与渲染端一致的判断：是否有可渲染的分组小计行（考虑 summaryItems/自动推断）
+    const needSummary = hasGroupSummary(groupBy);
+
+    const { headerHeight: measuredHeaderHeight, rowHeights, summaryHeight: measuredSummaryHeight, groupHeaderHeight: measuredGroupHeaderHeight, groupSummaryHeight: measuredGroupSummaryHeight } = await this.measureTableRowHeights(tableComponent, tableData);
+    const fallbackRowHeight = this.calculateTableRowHeight(tableComponent);
+    // 分组表格下测量结果已排除插入行，长度应与数据行一致；不一致时回退估算
+    const effectiveRowHeights = rowHeights.length === tableData.length ? rowHeights : tableData.map(() => fallbackRowHeight);
+    const headerH = showHeader ? measuredHeaderHeight : 0;
+    // 组标题/小计行使用实际测量高度（compact 等密度下明显小于估算值，避免分页高估造成大面积留白）
+    const groupHeaderH = showGroupHeader ? (measuredGroupHeaderHeight || fallbackRowHeight) : 0;
+    const groupSummaryH = needSummary ? (measuredGroupSummaryHeight || fallbackRowHeight) : 0;
+
+    /** 行高数组求和 */
+    const sumHeights = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
+    /** 组块高度 = 组标题 + 组内真实行高之和 + 组小计 */
+    const groupBlockH = (g: { heights: number[] }) =>
+      (showGroupHeader ? groupHeaderH : 0) + sumHeights(g.heights) + (needSummary ? groupSummaryH : 0);
+
+    // 预分组：携带每组的真实测量行高（按 startRowIndex 从全量测量结果切片）
+    // 使用真实行高而非均值，避免长文本换行导致估算偏小、后续组件与表格重叠
+    let groups = groupByField(tableData, groupBy.field, emptyLabel);
+    interface RemainingGroup { key: string; items: any[]; startRowIndex: number; heights: number[] }
+    let remainingGroups: RemainingGroup[] = groups.map(g => ({
+      ...g,
+      heights: effectiveRowHeights.slice(g.startRowIndex, g.startRowIndex + g.items.length),
+    }));
+    let consumedRowCount = 0;
+    let workingPage = [...currentPage];
+    let workingPageHeight = currentPageHeight;
+    let isFirstFragment = true;
+
+    // 将 groups 按行高展开为便于分页的片段（超大组会被拆，中间块不带小计）
+    while (remainingGroups.length > 0) {
+      let remainingHeight = contentBottom - workingPageHeight;
+      if (isFirstFragment && !isFirstComponentInPage) remainingHeight -= gap;
+      const needHeader = showHeader && (isFirstFragment || repeatHeader);
+      const summaryMode = tableComponent.props?.summaryMode || 'total';
+      const summaryDisplayMode = resolveSummaryMode((tableComponent.props || {}) as TableProps);
+      const shouldReserveSummaryRow = summaryDisplayMode !== 'none';
+      // page 模式每页都渲染表尾合计，需每页预留；total 模式仅最后一页渲染，
+      // 不预判预留，改为放满后若为最后一页再检查表尾合计是否溢出并回退（与非分组表格语义一致）
+      const reserveSummaryHeight = (shouldReserveSummaryRow && summaryMode === 'page') ? (measuredSummaryHeight || fallbackRowHeight) : 0;
+      let availableForRows = remainingHeight - (needHeader ? headerH : 0) - reserveSummaryHeight - 1;
+
+      // 本页要放的组块：整组优先，放不下时拆组填充剩余空间（中间块不带小计）
+      interface PageBlock { key: string; items: any[]; heights: number[]; isEnd: boolean; }
+      const pageBlocks: PageBlock[] = [];
+      let used = 0;
+      let consumedWholeGroups = 0;
+      let splitRemainder: RemainingGroup | null = null;
+
+      for (let i = 0; i < remainingGroups.length; i++) {
+        const g = remainingGroups[i];
+        const blockH = groupBlockH(g);
+        if (used + blockH <= availableForRows) {
+          // 整组放入
+          pageBlocks.push({ key: g.key, items: g.items, heights: g.heights, isEnd: true });
+          used += blockH;
+          consumedWholeGroups++;
+        } else {
+          // 整组放不下：拆组填充剩余空间（本页为中间块，不带小计）
+          const headerSpace = showGroupHeader ? groupHeaderH : 0;
+          const availForRows = availableForRows - used - headerSpace;
+          let rowsCanFit = 0;
+          let rowsAcc = 0;
+          for (const h of g.heights) {
+            if (rowsAcc + h <= availForRows) {
+              rowsAcc += h;
+              rowsCanFit++;
+            } else {
+              break;
+            }
+          }
+          // 组内行都能放进本页但小计放不下时，退一行，让最后一行 + 小计去下一页
+          if (rowsCanFit >= g.items.length && g.items.length > 1) {
+            rowsCanFit = g.items.length - 1;
+          }
+          // 连组头+首行都放不下：本页已有内容则整组移到下一页（避免强制塞入导致超出页面），
+          // 仅在本页为空（超大组占满整页）时才至少放一行，避免死循环
+          if (rowsCanFit <= 0) {
+            if (pageBlocks.length > 0) {
+              break;
+            }
+            rowsCanFit = 1;
+          }
+          rowsCanFit = Math.min(rowsCanFit, g.items.length);
+          rowsAcc = sumHeights(g.heights.slice(0, rowsCanFit));
+
+          const rest = g.items.slice(rowsCanFit);
+          // 剩余为空（如单行组放完所有行但小计放不下）时，本块即组尾，小计跟随本页渲染
+          const isEnd = rest.length === 0;
+          pageBlocks.push({ key: g.key, items: g.items.slice(0, rowsCanFit), heights: g.heights.slice(0, rowsCanFit), isEnd });
+          used += headerSpace + rowsAcc + (isEnd && needSummary ? groupSummaryH : 0);
+
+          if (rest.length > 0) {
+            splitRemainder = { ...g, items: rest, heights: g.heights.slice(rowsCanFit) };
+          }
+          break;
+        }
+      }
+
+      // 组装本页数据与本页应渲染小计的组 key
+      const rebuildPageData = () => {
+        dataForThisPage = [];
+        groupSummaryKeys.length = 0;
+        for (const b of pageBlocks) {
+          dataForThisPage.push(...b.items);
+          if (b.isEnd && needSummary) groupSummaryKeys.push(b.key);
+        }
+      };
+      let dataForThisPage: any[] = [];
+      const groupSummaryKeys: string[] = [];
+      rebuildPageData();
+
+      // 更新 remainingGroups：整组消费数 + 拆组剩余
+      if (splitRemainder) {
+        remainingGroups = [splitRemainder, ...remainingGroups.slice(consumedWholeGroups + 1)];
+      } else {
+        remainingGroups = remainingGroups.slice(consumedWholeGroups);
+      }
+
+      let isLastPage = remainingGroups.length === 0;
+
+      // total 模式最后一页：表尾合计若溢出，回退最后一块的最后一行到下一页
+      // （不预判预留，放满后按真实溢出情况回退，避免预留导致可用高度无谓变小）
+      if (isLastPage && shouldReserveSummaryRow && summaryMode === 'total') {
+        const tfootH = measuredSummaryHeight || fallbackRowHeight;
+        // 表头 + 组块 + 表尾合计是否超出本页可容纳高度
+        if ((needHeader ? headerH : 0) + used + tfootH > remainingHeight && pageBlocks.length > 0) {
+          const last = pageBlocks[pageBlocks.length - 1];
+          const item = last.items.pop()!;
+          const h = last.heights.pop() ?? fallbackRowHeight;
+          used -= h;
+          if (last.items.length === 0) {
+            // 整块被清空：减去组标题/小计高度
+            pageBlocks.pop();
+            if (showGroupHeader) used -= groupHeaderH;
+            if (last.isEnd && needSummary) used -= groupSummaryH;
+          } else if (last.isEnd && needSummary) {
+            // 块仍有剩余行但不再是组尾：减去小计高度
+            last.isEnd = false;
+            used -= groupSummaryH;
+          }
+          // 被回退的这一行作为剩余组，去下一页（保留原 key，重新渲染标题+小计）
+          remainingGroups.unshift({ key: last.key, items: [item], heights: [h], startRowIndex: 0 });
+          isLastPage = false;
+          if (pageBlocks.length === 0) {
+            console.warn(
+              '[PrintEngine] 分组表格 total 模式：页面内容区高度过小，表头 + 组标题 + 单行 + 组小计 + 表尾合计仍无法放入一页，' +
+              '存在分页死循环风险。建议增大页面高度（连续纸 minHeightMm）或减小字号/行高。'
+            );
+          }
+          rebuildPageData();
+        }
+      }
+
+      const accumulated = used;
+
+      const tableFragmentYMm = isFirstFragment
+        ? (isFirstComponentInPage ? workingPageHeight : workingPageHeight + gap)
+        : contentTop;
+      const tableFragment: ComponentNode = {
+        ...tableComponent,
+        layout: { ...tableComponent.layout, yMm: tableFragmentYMm },
+        props: {
+          ...tableComponent.props,
+          _pageData: dataForThisPage,
+          _showHeader: needHeader,
+          _isLastPage: isLastPage,
+          _totalData: tableData,
+          _startRowIndex: consumedRowCount,
+          _groupSummaryKeys: groupSummaryKeys
+        }
+      };
+      workingPage.push(tableFragment);
+      consumedRowCount += dataForThisPage.length;
+      const fragmentH = (needHeader ? headerH : 0) + accumulated;
+      // 累加高度（包含 header 与组块）
+      if (isFirstFragment && !isFirstComponentInPage) workingPageHeight += gap + fragmentH;
+      else workingPageHeight += fragmentH;
+
+      if (remainingGroups.length > 0) {
+        pages.push(workingPage);
+        workingPage = [];
+        workingPageHeight = contentTop;
+        isFirstFragment = false;
+      }
+    }
+
+    const isTableSplitAcrossPages = pages.length > initialPagesLength;
+    return { currentPage: workingPage, currentPageHeight: workingPageHeight, isTableSplitAcrossPages, lastTableFragmentBottom: workingPageHeight };
   }
 
   /**
