@@ -72,6 +72,8 @@ export type {
   SchemaDictionary,
   MockData,
   TableProps,
+  TableGroupConfig,
+  GroupSummaryItem,
   TableColumn,
   TableColumnSummary,
   TableColumnStyle,

@@ -5,7 +5,7 @@
 
 通用打印 SDK - 客户端打印解决方案
 
-**当前版本**: v1.11.0
+**当前版本**: v1.12.0-alpha.1
 
 ## 🎨 在线演示
 
@@ -22,7 +22,7 @@
 - 🎨 **可视化模板设计** - 拖拽式设计打印模板，支持页头/页脚区域
 - 📄 **多组件支持** - 文本、表格、图片、二维码、条形码等
 - 🔄 **数据绑定** - Schema 驱动的数据绑定系统
-- 📊 **表格高级功能** - 跨页分页、表头重复、表格合计
+- 📊 **表格高级功能** - 跨页分页、表头重复、表格合计、字段分组（组标题 + 组小计）
 - 🔌 **插件化架构** - 易于扩展的渲染器和管道系统，支持自定义管道
 - 🛡️ **HTML 转义控制** - 内置 XSS 防护，支持全局/实例级开关，允许富文本渲染
 - 💯 **TypeScript** - 完整的类型定义
@@ -681,6 +681,71 @@ function configureSDK(config: SDKGlobalConfig): void
 | 中文金额大写 | `{ type: 'money', options: { mode: 'none', format: 'chineseUppercase' } }` |
 | 金额大写 + 原值 | `{ type: 'money', options: { mode: 'none', format: 'chineseUppercase', uppercaseMode: 'both', separator: '  大写：' } }` |
 
+> 注：`summaryExtraRows` 额外行的渲染时机遵循 `summaryMode`——`total`（默认）仅末页渲染，`page` 每页渲染。此前 `extra-only` 模式会无视 `summaryMode` 每页渲染额外行，现已修正。
+
+### 表格分组
+
+按指定字段将数据分组，组间插入组标题行 + 组小计行，常用于按品类/部门分类展示明细。
+
+```typescript
+{
+  type: 'table',
+  binding: { path: 'orders' },
+  props: {
+    columns: [
+      {
+        title: '商品',
+        dataIndex: 'productName',
+      },
+      {
+        title: '金额',
+        dataIndex: 'amount',
+        summary: { type: 'sum', precision: 2 },   // 小计项需引用配了 summary 的列
+      },
+    ],
+    groupBy: {
+      field: 'category',                 // 分组字段，必填，支持点号路径如 product.type
+      showHeader: true,                  // 是否显示组标题行，默认 true
+      emptyGroupLabel: '未分类',          // 空值分组的标题
+      pipes: [],                         // 组标题值管道转换链
+      headerStyle: {                     // 组标题行样式
+        backgroundColor: '#f5f5f5',
+        fontWeight: 'bold',
+        fontSize: 12,
+        textAlign: 'left',               // 'left' | 'center' | 'right'
+      },
+      showSummary: true,                 // 是否显示组小计行，默认 true
+      summaryLabel: '{group}小计',        // 小计标签模板，支持 {group}/{value}/{count}
+      summaryStyle: {                    // 组小计行样式
+        backgroundColor: '#f5f5f5',
+        fontWeight: 'bold',
+        textAlign: 'left',
+      },
+      summaryItems: [                    // 小计数据项，未配置时仅显示标签不做数据汇总
+        { label: '金额：', sourceColumn: 'amount' },
+        { label: '大写：', sourceColumn: 'amount', pipes: [{ type: 'money', options: { mode: 'none', format: 'chineseUppercase' } }] },
+      ],
+    },
+  },
+}
+```
+
+**字段说明：**
+
+| 字段 | 说明 |
+|------|------|
+| `field` | 分组字段（必填），支持点号路径 |
+| `showHeader` | 是否显示组标题行，默认 `true` |
+| `emptyGroupLabel` | 空值分组的标题，默认「未分类」 |
+| `pipes` | 组标题值的管道转换链，空值分组自动跳过 |
+| `headerStyle` | 组标题行样式（`backgroundColor`/`fontWeight`/`fontSize`/`textAlign`） |
+| `showSummary` | 是否显示组小计行，默认 `true` |
+| `summaryLabel` | 小计标签模板，默认 `{group}小计` |
+| `summaryStyle` | 组小计行样式（同 headerStyle） |
+| `summaryItems` | 小计数据项列表，每项引用一个配了 `summary` 的列；**未配置时仅渲染标签行（不汇总数据）**，可用于签字/签收等用途 |
+
+> 跨页时：整组优先保持在同一页，放不下整组跳到下一页；超过一页的组自动组内拆页并重复组标题行。
+
 ## 🔢 页码功能配置
 
 页码功能通过页面配置实现，而非作为组件添加：
@@ -779,6 +844,9 @@ import type {
   PrintTemplate,
   ComponentNode,
   TableColumn,
+  TableSummaryStyle,
+  TableGroupConfig,
+  GroupSummaryItem,
   PipeConfig
 } from '@jcyao/print-sdk';
 ```

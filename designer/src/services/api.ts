@@ -100,7 +100,8 @@ const realMockDataApi = {
     schemaId?: string;
     templateId?: string;
   }): Promise<MockData[]> => {
-    const response = await apiClient.get('/mock-data', { params });
+    // 加时间戳避免浏览器缓存旧列表（开发时新增 Mock 数据后下拉不刷新）
+    const response = await apiClient.get('/mock-data', { params: { ...(params || {}), _t: Date.now() } });
     return response.data;
   },
 

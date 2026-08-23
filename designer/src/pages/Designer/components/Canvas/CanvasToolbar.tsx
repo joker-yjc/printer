@@ -134,7 +134,7 @@ const CanvasToolbar = ({
       </Space>
       <Space>
         <Button onClick={onPageSetting}>
-          📏 {pageConfig.size === 'CONTINUOUS'
+          {pageConfig.size === 'CONTINUOUS'
             ? `连续纸 (${pageConfig.widthMm || CONTINUOUS_PAPER_DEFAULT_WIDTH}mm)`
             : pageConfig.size === 'CUSTOM'
               ? `自定义 (${pageConfig.widthMm}×${pageConfig.heightMm}mm)`

@@ -27,6 +27,8 @@ function parseBody<T>(req: any): Promise<T> {
 function sendJson(res: any, data: any, status = 200) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
+  // 禁用浏览器缓存，避免开发时 Mock 数据更新后页面拿到旧列表
+  res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');

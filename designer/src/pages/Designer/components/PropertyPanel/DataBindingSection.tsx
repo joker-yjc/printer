@@ -18,7 +18,7 @@ interface DataBindingSectionProps {
 const DataBindingSection: React.FC<DataBindingSectionProps> = ({ component, onBindingChange }) => {
   return (
     <div className={styles["property-section"]}>
-      <div className={styles["property-title"]}>🔗 数据绑定</div>
+      <div className={styles["property-title"]}>数据绑定</div>
       <div className={styles["property-list"]}>
         <div className={`${styles["property-item"]} ${styles["property-item-full"]}`}>
           <Tooltip title="数据的JSON路径，如 'user.name'、'items.0.title'，也可从左侧数据资产拖拽">

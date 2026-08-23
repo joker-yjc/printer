@@ -634,5 +634,127 @@ export const defaultMockData: MockData[] = [
         ]
       }
     ]
+  },
+  {
+    id: 'mock-group-001',
+    name: '分组测试数据 - 食材配送单(按分类)',
+    schemaId: 'schema-demo-sales',
+    description: '表格分组功能测试数据 - 4 个分类共 26 个明细项（含 1 条空分类，用于验证"未分组"归组），分组字段为 items[].category',
+    data: {
+      title: '食材配送单',
+      documentNo: 'PS202608190001',
+      deliverDate: '2026-08-19 07:30:00 ~ 2026-08-19 09:30:00',
+      customName: 'XX市阳光幼儿园食堂',
+      contacts: '张老师',
+      phone: '13800138000',
+      items: [
+        // ── 蔬果（18 项，小计 89.19）──
+        { no: 1, category: '蔬果', name: '白萝卜#', unit: '斤', count: 6.3, price: 0.92, amount: 5.80 },
+        { no: 2, category: '蔬果', name: '胡萝卜', unit: '斤', count: 1.07, price: 1.60, amount: 1.71 },
+        { no: 3, category: '蔬果', name: '云南新大蒜#', unit: '斤', count: 2, price: 4.31, amount: 8.62 },
+        { no: 4, category: '蔬果', name: '淮山药', unit: '斤', count: 1, price: 4.52, amount: 4.52 },
+        { no: 5, category: '蔬果', name: '香芹（实心）', unit: '斤', count: 1, price: 2.18, amount: 2.18 },
+        { no: 6, category: '蔬果', name: '西兰花（外地）#', unit: '斤', count: 1.4, price: 2.96, amount: 4.14 },
+        { no: 7, category: '蔬果', name: '空心菜#', unit: '斤', count: 1.5, price: 2.72, amount: 4.08 },
+        { no: 8, category: '蔬果', name: '浆绿叶', unit: '斤', count: 1.1, price: 2.51, amount: 2.76 },
+        { no: 9, category: '蔬果', name: '凤尾', unit: '斤', count: 1, price: 3.39, amount: 3.39 },
+        { no: 10, category: '蔬果', name: '眉山折耳根（人工挑选）', unit: '斤', count: 2, price: 6.32, amount: 12.64 },
+        { no: 11, category: '蔬果', name: '三月瓜（普通）', unit: '斤', count: 1.1, price: 2.11, amount: 2.32 },
+        { no: 12, category: '蔬果', name: '带壳玉米棒', unit: '斤', count: 2, price: 1.17, amount: 2.34 },
+        { no: 13, category: '蔬果', name: '散花菜', unit: '斤', count: 1.7, price: 1.42, amount: 2.41 },
+        { no: 14, category: '蔬果', name: '红小米椒', unit: '斤', count: 1, price: 5.81, amount: 5.81 },
+        { no: 15, category: '蔬果', name: '蒜米普通(5斤)', unit: '斤', count: 5, price: 3.40, amount: 17.00 },
+        { no: 16, category: '蔬果', name: '小葱（切葱白用）', unit: '斤', count: 1, price: 3.76, amount: 3.76 },
+        { no: 17, category: '蔬果', name: '水发大木耳#', unit: '斤', count: 1, price: 2.51, amount: 2.51 },
+        { no: 18, category: '蔬果', name: '银针菇（小袋装）', unit: '袋', count: 2, price: 1.60, amount: 3.20 },
+        // ── 鲜货/水发发私房菜（1 项，小计 15.60）──
+        { no: 19, category: '鲜货/水发发私房菜', name: 'N1 鲜猪脑花##', unit: '个', count: 5, price: 3.12, amount: 15.60 },
+        // ── 肉禽蛋水产私房菜（2 项，小计 55.85）──
+        { no: 20, category: '肉禽蛋水产私房菜', name: '白壳鸡蛋（30枚）/板#', unit: '板', count: 1, price: 23.80, amount: 23.80 },
+        { no: 21, category: '肉禽蛋水产私房菜', name: '龙骨（砍）#', unit: '斤', count: 5, price: 6.41, amount: 32.05 },
+        // ── 豆/面制品私房菜（4 项，小计 11.50）──
+        { no: 22, category: '豆/面制品私房菜', name: '花椒厚豆干#', unit: '斤', count: 1, price: 4.86, amount: 4.86 },
+        { no: 23, category: '豆/面制品私房菜', name: '黄凉粉（米凉粉）', unit: '斤', count: 1, price: 1.12, amount: 1.12 },
+        { no: 24, category: '豆/面制品私房菜', name: '绿豆芽（2斤/袋）#', unit: '斤', count: 2, price: 1.36, amount: 2.72 },
+        { no: 25, category: '豆/面制品私房菜', name: '老豆腐（块）', unit: '块', count: 2, price: 1.40, amount: 2.80 },
+        // ── 空分类（验证 emptyGroupLabel 归入"未分组"）──
+        { no: 26, category: '', name: '未知分类商品', unit: '斤', count: 1, price: 10.00, amount: 10.00 }
+      ],
+      totalAmount: 172.14,
+      remarks: '分组测试数据：表格列 dataIndex 使用 name/count/price/amount，分组字段为 category'
+    }
+  },
+  {
+    id: 'mock-group-batch-001',
+    name: '分组批量测试 - 3份食材配送单',
+    schemaId: 'schema-demo-group',
+    description: '表格分组批量打印测试 - 3 份配送单（各 4~5 组、20+ 明细），用于验证批量模式下的分组渲染与分页',
+    data: (() => {
+      /** 按分类生成一份配送单明细 */
+      const buildItems = (seed: number) => {
+        const cats: [string, number][] = [['蔬果', 12], ['鲜货/水发发私房菜', 3], ['肉禽蛋水产私房菜', 4], ['豆/面制品私房菜', 3]];
+        const items: any[] = [];
+        let no = 1;
+        for (const [cat, count] of cats) {
+          for (let i = 0; i < count; i++) {
+            const idx = seed + i;
+            items.push({
+              no: no++,
+              category: cat,
+              name: `${cat.slice(0, 2)}商品${idx}#`,
+              unit: i % 3 === 0 ? '斤' : i % 3 === 1 ? '个' : '袋',
+              count: 1 + ((idx * 7) % 9) / 2,
+              price: Number((2 + ((idx * 13) % 30) / 10).toFixed(2)),
+              amount: Number(Number((2 + ((idx * 13) % 30) / 10).toFixed(2)) * (1 + ((idx * 7) % 9) / 2)).toFixed(2),
+            });
+          }
+          seed += count;
+        }
+        return items;
+      };
+      return [
+        { title: '食材配送单', documentNo: 'PS202608200001', deliverDate: '2026-08-20 07:30:00 ~ 09:30:00', customName: '阳光幼儿园食堂', contacts: '张老师', phone: '13800138000', items: buildItems(1), totalAmount: 0, remarks: '批量第 1 份' },
+        { title: '食材配送单', documentNo: 'PS202608200002', deliverDate: '2026-08-20 07:30:00 ~ 09:30:00', customName: '希望小学食堂', contacts: '李老师', phone: '13900139000', items: buildItems(30), totalAmount: 0, remarks: '批量第 2 份' },
+        { title: '食材配送单', documentNo: 'PS202608200003', deliverDate: '2026-08-20 07:30:00 ~ 09:30:00', customName: '实验中学食堂', contacts: '王老师', phone: '13700137000', items: buildItems(60), totalAmount: 0, remarks: '批量第 3 份' },
+      ];
+    })()
+  },
+  {
+    id: 'mock-group-large-001',
+    name: '分组大数据量测试 - 8组640行',
+    schemaId: 'schema-demo-group',
+    description: '表格分组压力测试 - 8 个分类共 640 个明细项，用于验证多页分页、keepTogether 与渲染性能',
+    data: (() => {
+      const catNames = ['蔬菜类', '水果类', '肉禽类', '水产类', '豆制品类', '粮油类', '调味品类', '干货类'];
+      const items: any[] = [];
+      let no = 1;
+      for (let c = 0; c < catNames.length; c++) {
+        for (let i = 0; i < 80; i++) {
+          const idx = c * 100 + i;
+          const price = Number((1 + ((idx * 17) % 500) / 100).toFixed(2));
+          const count = 1 + ((idx * 7) % 19) / 2;
+          items.push({
+            no: no++,
+            category: catNames[c],
+            name: `${catNames[c]}-商品${String(i + 1).padStart(3, '0')}${i % 10 === 0 ? '#' : ''}`,
+            unit: ['斤', '个', '袋', '箱', '瓶'][i % 5],
+            count,
+            price,
+            amount: Number((price * count).toFixed(2)),
+          });
+        }
+      }
+      return {
+        title: '食材配送单（大数据量）',
+        documentNo: 'PS202608210001',
+        deliverDate: '2026-08-21 07:30:00 ~ 09:30:00',
+        customName: 'XX市集中采购食堂',
+        contacts: '赵老师',
+        phone: '13600136000',
+        items,
+        totalAmount: 0,
+        remarks: '大数据量分组测试：8 组 × 80 行，验证跨页 keepTogether 与性能'
+      };
+    })()
   }
 ];

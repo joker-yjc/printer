@@ -3,11 +3,12 @@
  */
 
 import Decimal from 'decimal.js';
-import type { ComponentNode, TableColumn, TableProps, SummaryExtraRow } from '../../types';
+import type { ComponentNode, TableColumn, TableProps, SummaryExtraRow, GroupSummaryItem } from '../../types';
 import type { ComponentRenderer, RenderContext, StyleObject } from '../types';
 import { buildStyleString, buildPositionStyle } from '../utils/styleBuilder';
 import { escapeHtml } from '../../utils/htmlEscape';
 import { COMPONENT_DEFAULT_SIZE, TABLE_DEFAULT, TABLE_STYLE_DEFAULT, TABLE_HEADER_STYLE_DEFAULT, TABLE_DENSITY_PRESETS } from '../constants';
+import { groupByField, hasGroupSummary } from '../utils/groupBy';
 
 /**
  * 根据数据路径从对象中取值
@@ -352,16 +353,52 @@ export class TableRenderer implements ComponentRenderer {
       headerHtml = `<thead class="table-header-repeat"><tr style="height: ${headerHeightPx}px;">${headerCells}</tr></thead>`;
     }
 
-    // 渲染表体
+    // 渲染表体（支持分组）
     let bodyHtml = '';
+    const groupBy = (props as any)?.groupBy;
+    const hasGroupBy = !!(groupBy && groupBy.field);
     if (tableData.length > 0 && displayColumns.length > 0) {
-      const startRowIndex = props?._startRowIndex ?? 0;
-      const rows = tableData
-        .map((row: any, rowIndex: number) => {
-          const cells = displayColumns
-            .map((col: any, idx: number) => {
+      if (hasGroupBy) {
+        const emptyLabel = groupBy.emptyGroupLabel || '未分组';
+        // 分组（首版保持首次出现顺序，不排序）
+        const groups = groupByField(tableData, groupBy.field, emptyLabel);
+        // 完整数据的分组映射：分页时 tableData 是当前页切片，跨页组的小计需基于完整组计算
+        const totalSource = props?._totalData && props._totalData.length > 0 ? props._totalData : tableData;
+        const fullItemsMap = new Map<string, any[]>(
+          groupByField(totalSource, groupBy.field, emptyLabel).map(g => [g.key, g.items])
+        );
+        const colCount = displayColumns.length;
+        const baseStartRowIndex = props?._startRowIndex ?? 0;
+        // 若分页已按组切片，startRowIndex 需按组累加；否则按全局连续
+        // 为简化，行号按 baseStartRowIndex + 全局行序连续
+        let globalRowOffset = baseStartRowIndex;
+        const tbodys = groups.map((group) => {
+          // 分组标题
+          let headerRow = '';
+          if (groupBy.showHeader !== false) {
+            let label = group.key;
+            // 管道仅作用于分组字段值；空值归组的固定标题（emptyGroupLabel）不走管道
+            if (!group.isEmpty && groupBy.pipes && groupBy.pipes.length > 0) {
+              try {
+                const piped = context.applyPipes(label, groupBy.pipes);
+                if (piped !== undefined && piped !== null && piped !== '') label = String(piped);
+              } catch (e) {
+                console.error('[TableRenderer] 分组标题管道执行失败:', e);
+              }
+            }
+            const headerStyle = groupBy.headerStyle || {};
+            const bgColor = (headerStyle as any).backgroundColor || '#f5f5f5';
+            const fontWeight = (headerStyle as any).fontWeight || 'bold';
+            const fontSize = (headerStyle as any).fontSize;
+            const align = (headerStyle as any).textAlign || 'left';
+            const cellStyle = `${cellBorder} ${cellPadding} ${cellTextStyle} text-align: ${align}; min-height: ${rowHeightPx}px; box-sizing: border-box; background: ${bgColor}; font-weight: ${fontWeight}; ${fontSize ? `font-size: ${fontSize}px;` : ''}`.trim().replace(/\s+/g, ' ');
+            headerRow = `<tr class="group-header" style="min-height: ${rowHeightPx}px;"><td colspan="${colCount}" style="${cellStyle}">${escapeHtml(label, context.escapeHtml)}</td></tr>`;
+          }
+          // 明细行
+          const rows = group.items.map((row: any, rowIndex: number) => {
+            const cells = displayColumns.map((col: any, idx: number) => {
               if (col.dataIndex === '__row_number__') {
-                const rowNumber = startRowIndex + rowIndex + 1;
+                const rowNumber = globalRowOffset + rowIndex + 1;
                 const baseRowNumStyle: Record<string, string | number> = {
                   border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
                   padding: densityPreset.cellPadding,
@@ -379,17 +416,10 @@ export class TableRenderer implements ComponentRenderer {
                 return `<td style="${rowNumStyleStr}">${rowNumber}</td>`;
               }
               let value = getByPath(row, col.dataIndex) ?? '';
-              // 应用列级管道转换
               if (col.pipes && col.pipes.length > 0) {
                 const rawValue = value;
-                try {
-                  value = context.applyPipes(value, col.pipes);
-                } catch (pipeError) {
-                  console.error('[TableRenderer] 列管道执行失败:', pipeError);
-                  value = rawValue;
-                }
+                try { value = context.applyPipes(value, col.pipes); } catch (pipeError) { console.error('[TableRenderer] 列管道执行失败:', pipeError); value = rawValue; }
               }
-              // 对齐优先级：列级 style.textAlign > col.align > 表格级 textAlign
               const dAlign = col.style?.textAlign || col.align || textAlign;
               const baseDataStyle: Record<string, string | number> = {
                 border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
@@ -406,12 +436,93 @@ export class TableRenderer implements ComponentRenderer {
               const dataStyle = mergeColumnStyle(col.style, baseDataStyle);
               const dataStyleStr = buildStyleString(dataStyle);
               return `<td style="${dataStyleStr}">${escapeHtml(String(value), context.escapeHtml)}</td>`;
-            })
-            .join('');
-          return `<tr style="min-height: ${rowHeightPx}px;">${cells}</tr>`;
-        })
-        .join('');
-      bodyHtml = `<tbody>${rows}</tbody>`;
+            }).join('');
+            return `<tr style="min-height: ${rowHeightPx}px;">${cells}</tr>`;
+          }).join('');
+          // 分组小计：仅对「本页结束的组」渲染（中间拆分块不渲染，小计只在组尾出现）
+          let summaryRow = '';
+          const groupSummaryKeys = (props as any)?._groupSummaryKeys;
+          const shouldRenderSummary = groupBy.showSummary !== false && (
+            !groupSummaryKeys || groupSummaryKeys.includes(group.key)
+          );
+          if (shouldRenderSummary) {
+            // 跨页组的小计基于完整组 items 计算，而非当前页切片
+            const summaryGroup = { key: group.key, items: fullItemsMap.get(group.key) ?? group.items, isEmpty: group.isEmpty };
+            const summaryContent = this.buildGroupSummaryText(summaryGroup, groupBy, displayColumns, context);
+            if (summaryContent) {
+              const summaryStyle = groupBy.summaryStyle || {};
+              const bgColor = (summaryStyle as any).backgroundColor || '#f5f5f5';
+              const fontWeight = (summaryStyle as any).fontWeight || 'bold';
+              const fontSize = (summaryStyle as any).fontSize;
+              const align = (summaryStyle as any).textAlign || 'left';
+              const cellStyle = `${cellBorder} ${cellPadding} ${cellTextStyle} text-align: ${align}; min-height: ${rowHeightPx}px; box-sizing: border-box; background: ${bgColor}; font-weight: ${fontWeight}; ${fontSize ? `font-size: ${fontSize}px;` : ''}`.trim().replace(/\s+/g, ' ');
+              summaryRow = `<tr class="group-summary" style="min-height: ${rowHeightPx}px;"><td colspan="${colCount}" style="${cellStyle}">${escapeHtml(summaryContent, context.escapeHtml)}</td></tr>`;
+            }
+          }
+          const tbody = `<tbody data-group="${escapeHtml(group.key, context.escapeHtml)}">${headerRow}${rows}${summaryRow}</tbody>`;
+          globalRowOffset += group.items.length;
+          return tbody;
+        }).join('');
+        bodyHtml = tbodys;
+      } else {
+        const startRowIndex = props?._startRowIndex ?? 0;
+        const rows = tableData
+          .map((row: any, rowIndex: number) => {
+            const cells = displayColumns
+              .map((col: any, idx: number) => {
+                if (col.dataIndex === '__row_number__') {
+                  const rowNumber = startRowIndex + rowIndex + 1;
+                  const baseRowNumStyle: Record<string, string | number> = {
+                    border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
+                    padding: densityPreset.cellPadding,
+                    'white-space': 'normal',
+                    'word-break': 'break-word',
+                    'line-height': cellLineHeight,
+                    'vertical-align': 'middle',
+                    'text-align': col.style?.textAlign || col.align || 'center',
+                    width: colWidths[idx],
+                    'min-height': `${rowHeightPx}px`,
+                    'box-sizing': 'border-box',
+                  };
+                  const rowNumStyle = mergeColumnStyle(col.style, baseRowNumStyle);
+                  const rowNumStyleStr = buildStyleString(rowNumStyle);
+                  return `<td style="${rowNumStyleStr}">${rowNumber}</td>`;
+                }
+                let value = getByPath(row, col.dataIndex) ?? '';
+                // 应用列级管道转换
+                if (col.pipes && col.pipes.length > 0) {
+                  const rawValue = value;
+                  try {
+                    value = context.applyPipes(value, col.pipes);
+                  } catch (pipeError) {
+                    console.error('[TableRenderer] 列管道执行失败:', pipeError);
+                    value = rawValue;
+                  }
+                }
+                // 对齐优先级：列级 style.textAlign > col.align > 表格级 textAlign
+                const dAlign = col.style?.textAlign || col.align || textAlign;
+                const baseDataStyle: Record<string, string | number> = {
+                  border: bordered ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
+                  padding: densityPreset.cellPadding,
+                  'white-space': 'normal',
+                  'word-break': 'break-word',
+                  'line-height': cellLineHeight,
+                  'vertical-align': 'middle',
+                  'text-align': dAlign,
+                  width: colWidths[idx],
+                  'min-height': `${rowHeightPx}px`,
+                  'box-sizing': 'border-box',
+                };
+                const dataStyle = mergeColumnStyle(col.style, baseDataStyle);
+                const dataStyleStr = buildStyleString(dataStyle);
+                return `<td style="${dataStyleStr}">${escapeHtml(String(value), context.escapeHtml)}</td>`;
+              })
+              .join('');
+            return `<tr style="min-height: ${rowHeightPx}px;">${cells}</tr>`;
+          })
+          .join('');
+        bodyHtml = `<tbody>${rows}</tbody>`;
+      }
     } else {
       const colspan = displayColumns.length || 1;
       bodyHtml = `<tbody><tr style="min-height: ${rowHeightPx}px;"><td colspan="${colspan}" style="${cellBorder} ${cellPadding} line-height: ${cellLineHeight}; text-align: center; color: #999; min-height: ${rowHeightPx}px; box-sizing: border-box;">暂无数据</td></tr></tbody>`;
@@ -429,8 +540,9 @@ export class TableRenderer implements ComponentRenderer {
       (legacySummaryMode === 'total' && isLastPage) // 仅最后一页显示
     );
     const hasExtraRows = (tableProps.summaryExtraRows?.length ?? 0) > 0;
+    // 额外行显隐遵循 summaryMode：page=每页渲染，total=仅最后一页渲染
+    // summaryDisplay='extra-only' 仅表示隐藏主合计行，不再改变额外行的分页行为
     const extraRowsShouldRender = hasExtraRows && (
-      summaryModeResolved === 'extra-only' || // extra-only 模式每页渲染额外行
       legacySummaryMode === 'page' ||
       (legacySummaryMode === 'total' && isLastPage)
     );
@@ -714,6 +826,78 @@ export class TableRenderer implements ComponentRenderer {
     }).join('');
   }
 
+  
+  
+  /**
+   * 生成分组小计文本（统一出口）
+   * - 配置了 summaryItems：逐项计算，label 前缀 + 值，每项支持独立 pipes
+   * - 未配置：自动推断所有配了 summary 的列，值按顺序拼接
+   * 最终套用 summaryLabel 模板（支持 {group} 占位）
+   */
+  private buildGroupSummaryText(
+    group: { key: string; items: any[]; isEmpty?: boolean },
+    groupBy: any,
+    displayColumns: TableColumn[],
+    context: RenderContext
+  ): string {
+    // 组名应用标题管道，保证与小计标签一致；空值归组固定标题不走管道
+    let groupLabel = group.key;
+    if (!group.isEmpty && groupBy?.pipes && groupBy.pipes.length > 0) {
+      try {
+        const piped = context.applyPipes(groupLabel, groupBy.pipes);
+        if (piped !== undefined && piped !== null && piped !== '') groupLabel = String(piped);
+      } catch (e) {
+        console.error('[TableRenderer] 分组小计管道执行失败:', e);
+      }
+    }
+
+    const summaryItems = groupBy?.summaryItems as GroupSummaryItem[] | undefined;
+    const parts: string[] = [];
+    if (summaryItems && summaryItems.length > 0) {
+      // 逐数据项渲染
+      for (const item of summaryItems) {
+        const col = displayColumns.find(c => c.dataIndex === item.sourceColumn);
+        if (!col || !col.summary) continue; // 引用列必须配置 summary
+
+        if (item.pipes && item.pipes.length > 0) {
+          // 有管道：从原始数值开始逐个执行（与额外行语义一致）
+          let value: any = this.getColumnSummaryRawValue(group.items, col);
+          if (value === null || value === undefined) continue;
+          try {
+            for (const pipe of item.pipes) {
+              value = context.executePipe(value, pipe);
+            }
+          } catch (pipeError) {
+            console.error('[TableRenderer] 分组小计管道执行失败:', pipeError);
+            value = this.getColumnSummaryRawValue(group.items, col);
+          }
+          parts.push(`${item.label ?? ''}${String(value)}`);
+        } else {
+          // 无管道：使用 calculateSummary 的完整格式化（precision/prefix/suffix）
+          const text = this.calculateSummary(group.items, col, context);
+          if (!text || text === '-') continue;
+          parts.push(`${item.label ?? ''}${text}`);
+        }
+      }
+    }
+
+    const summaryText = parts.join('  ');
+    const labelTemplate = groupBy?.summaryLabel || '{group}小计';
+    // 模板含 {value} 时直接替换，不再追加
+    if (labelTemplate.includes('{value}')) {
+      return labelTemplate
+        .replace('{group}', groupLabel)
+        .replace('{value}', summaryText)
+        .replace('{count}', String(group.items.length));
+    }
+    let content = labelTemplate.replace('{group}', groupLabel).replace('{count}', String(group.items.length));
+    // 未配置数据项（summaryText 为空）时仅渲染标签，供签收/签字等用途
+    if (summaryText === '') return content;
+    const needsColon = !content.endsWith('：') && !content.endsWith(':') && !content.endsWith(' ');
+    return needsColon ? `${content}：${summaryText}` : `${content}${summaryText}`;
+  }
+
+  
   calculateHeight(component: ComponentNode, context: RenderContext): number {
     // 表格高度：简单估算（用于初始布局计算，实际分页使用 measureTableRowHeights）
     const summaryMode = resolveSummaryMode((component.props || {}) as TableProps);
@@ -735,7 +919,18 @@ export class TableRenderer implements ComponentRenderer {
         // 'extra-only' 时不渲染合计行，summaryHeight 为 0
         const summaryHeight = (summaryMode !== 'none' && summaryMode !== 'extra-only') ? rowHeight : 0;
 
-        return headerHeight + data.length * rowHeight + summaryHeight + extraRowsCount * rowHeight;
+        // 分组额外高度（估算性质：calculateHeight 仅用于初始布局，实际分页走 measureTableRowHeights 精确测量）
+        let groupExtraHeight = 0;
+        const groupBy = (component.props as any)?.groupBy;
+        if (groupBy?.field) {
+          const groups = groupByField(data, groupBy.field, groupBy.emptyGroupLabel || '未分组');
+          const headerRows = groupBy.showHeader !== false ? groups.length : 0;
+          // 小计行仅当有小计列时才计高度，复用与渲染端一致的判断逻辑
+          const summaryRows = hasGroupSummary(groupBy) ? groups.length : 0;
+          groupExtraHeight = (headerRows + summaryRows) * rowHeight;
+        }
+
+        return headerHeight + data.length * rowHeight + summaryHeight + extraRowsCount * rowHeight + groupExtraHeight;
       }
     }
 

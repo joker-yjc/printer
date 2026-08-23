@@ -19,3 +19,5 @@ export { waitForImagesLoaded, waitForPrintResourcesReady } from './utils/resourc
 
 // 导出表格工具函数（供设计器复用）
 export { computeColWidths, computeColumnMaxWidth } from './printEngine/renderers/TableRenderer';
+export { groupByField } from './printEngine/utils/groupBy';
+export type { GroupedData } from './printEngine/utils/groupBy';

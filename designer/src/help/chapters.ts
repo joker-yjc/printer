@@ -65,4 +65,9 @@ export const chapters: Chapter[] = [
     title: 'SDK 接入',
     file: new URL('./docs/12-SDK接入.md', import.meta.url).href,
   },
+  {
+    id: 'api-reference',
+    title: 'API 参考',
+    file: new URL('./docs/13-API参考.md', import.meta.url).href,
+  },
 ];

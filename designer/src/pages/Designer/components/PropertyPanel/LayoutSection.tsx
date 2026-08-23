@@ -17,11 +17,11 @@ interface LayoutSectionProps {
 const LayoutSection: React.FC<LayoutSectionProps> = ({ component, onChange }) => {
   return (
     <div className={styles["property-section"]}>
-      <div className={styles["property-title"]}>📍 布局属性</div>
+      <div className={styles["property-title"]}>布局属性</div>
       <div className={styles["property-list"]}>
         <div className={styles["property-item"]}>
           <Tooltip title="组件相对于页面左侧的横向位置，可拖拽或直接输入">
-            <Text className={styles["property-label"]}>📍 X 坐标 (mm)</Text>
+            <Text className={styles["property-label"]}>X 坐标 (mm)</Text>
           </Tooltip>
           <InputNumber
             style={{ width: '100%' }}
@@ -33,7 +33,7 @@ const LayoutSection: React.FC<LayoutSectionProps> = ({ component, onChange }) =>
         </div>
         <div className={styles["property-item"]}>
           <Tooltip title="组件相对于页面顶部的纵向位置，可拖拽或直接输入">
-            <Text className={styles["property-label"]}>📍 Y 坐标 (mm)</Text>
+            <Text className={styles["property-label"]}>Y 坐标 (mm)</Text>
           </Tooltip>
           <InputNumber
             style={{ width: '100%' }}
@@ -45,7 +45,7 @@ const LayoutSection: React.FC<LayoutSectionProps> = ({ component, onChange }) =>
         </div>
         <div className={styles["property-item"]}>
           <Tooltip title="组件的宽度，可拖拽边框或直接输入">
-            <Text className={styles["property-label"]}>📏 宽度 (mm)</Text>
+            <Text className={styles["property-label"]}>宽度 (mm)</Text>
           </Tooltip>
           <InputNumber
             style={{ width: '100%' }}
@@ -57,7 +57,7 @@ const LayoutSection: React.FC<LayoutSectionProps> = ({ component, onChange }) =>
         </div>
         <div className={styles["property-item"]}>
           <Tooltip title="组件的高度，可拖拽边框或直接输入">
-            <Text className={styles["property-label"]}>📏 高度 (mm)</Text>
+            <Text className={styles["property-label"]}>高度 (mm)</Text>
           </Tooltip>
           <InputNumber
             style={{ width: '100%' }}

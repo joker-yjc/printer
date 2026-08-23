@@ -733,7 +733,7 @@ export const defaultTemplates: PrintTemplate[] = [
         id: 'itemsTable',
         type: 'table',
         layout: { mode: 'absolute', xMm: 10, yMm: 5, widthMm: 190, heightMm: 80 },
-        style: { fontSize: 18, textAlign: 'center' },
+        style: { fontSize: 14, textAlign: 'center' },
         binding: { path: 'items' },
         props: {
           bordered: true,
@@ -1159,6 +1159,184 @@ export const defaultTemplates: PrintTemplate[] = [
           "text": "",
           "label": "收货单位及经手人："
         }
+      }
+    ]
+  },
+  {
+    "id": "template-demo-group",
+    "name": "食材配送单（分组测试模板）",
+    "version": "1.0.0",
+    "schemaId": "schema-demo-group",
+    "page": {
+      "size": "A4",
+      "orientation": "portrait",
+      "marginMm": { "top": 10, "right": 10, "bottom": 10, "left": 10 }
+    },
+    "layoutMode": "absolute",
+    "components": [
+      {
+        "id": "doc-title",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 0, "widthMm": 100, "heightMm": 8 },
+        "style": { "fontSize": 16, "fontWeight": "bold" },
+        "binding": { "path": "title", "fallback": "食材配送单" }
+      },
+      {
+        "id": "documentNo",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 10, "widthMm": 80, "heightMm": 8 },
+        "style": { "fontSize": 12 },
+        "binding": { "path": "documentNo", "fallback": "ORD-" },
+        "props": { "label": "订单编号：" }
+      },
+      {
+        "id": "createdDate",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 120, "yMm": 10, "widthMm": 80, "heightMm": 8 },
+        "style": { "fontSize": 12, "textAlign": "right" },
+        "binding": {
+          "path": "createdDate",
+          "pipes": [{ "type": "date", "options": { "format": "YYYY-MM-DD HH:mm" } }],
+          "fallback": "2024-01-22"
+        },
+        "props": { "label": "日期：" }
+      },
+      {
+        "id": "orderBarcode",
+        "type": "barcode",
+        "layout": { "mode": "absolute", "xMm": 140, "yMm": 0, "widthMm": 60, "heightMm": 12 },
+        "binding": { "path": "barcode", "fallback": "ORD202401220001" },
+        "props": { "format": "CODE128" }
+      },
+      {
+        "id": "customerTitle",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 35, "widthMm": 40, "heightMm": 8 },
+        "style": { "fontSize": 14, "fontWeight": "bold" },
+        "binding": { "fallback": "客户信息" },
+        "props": { "text": "收件人信息" }
+      },
+      {
+        "id": "customerName",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 45, "widthMm": 80, "heightMm": 6 },
+        "style": { "fontSize": 11 },
+        "binding": { "path": "customer.name", "fallback": "客户名称" },
+        "props": { "label": "姓名：" }
+      },
+      {
+        "id": "customerPhone",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 55, "widthMm": 80, "heightMm": 6 },
+        "style": { "fontSize": 11 },
+        "binding": { "path": "customer.phone", "fallback": "138****8888" },
+        "props": { "label": "电话：" }
+      },
+      {
+        "id": "customerAddress",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 65, "widthMm": 100, "heightMm": 10 },
+        "style": { "fontSize": 11 },
+        "binding": { "path": "customer.address", "fallback": "收货地址" },
+        "props": { "label": "地址：" }
+      },
+      {
+        "id": "qrcode",
+        "type": "qrcode",
+        "layout": { "mode": "absolute", "xMm": 165, "yMm": 25, "widthMm": 35, "heightMm": 35 },
+        "binding": { "path": "qrCodeUrl", "fallback": "https://example.com/order/12345" },
+        "props": { "content": "" }
+      },
+      {
+        "id": "line2",
+        "type": "line",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 75, "widthMm": 190, "heightMm": 2 },
+        "style": { "borderTopWidth": 1, "borderTopStyle": "dashed", "borderTopColor": "#999999" },
+        "props": { "direction": "horizontal" }
+      },
+      {
+        "id": "custom-name",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 22, "widthMm": 95, "heightMm": 6 },
+        "style": { "fontSize": 11 },
+        "binding": { "path": "customName" },
+        "props": { "label": "客户：" }
+      },
+      {
+        "id": "contacts-info",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 105, "yMm": 22, "widthMm": 95, "heightMm": 6 },
+        "style": { "fontSize": 11 },
+        "binding": { "path": "contacts" },
+        "props": { "label": "联系人：" }
+      },
+      {
+        "id": "group-table",
+        "type": "table",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 80, "widthMm": 190, "heightMm": 80 },
+        "style": { "fontSize": 12 },
+        "binding": { "path": "items" },
+        "props": {
+          "columns": [
+            { "title": "商品名", "dataIndex": "name" },
+            { "title": "单位", "dataIndex": "unit", "width": 20 },
+            { "title": "实配", "dataIndex": "count", "width": 25, "align": "right" },
+            { "title": "单价", "dataIndex": "price", "width": 30, "align": "right" },
+            {
+              "title": "应付金额",
+              "dataIndex": "amount",
+              "width": 35,
+              "align": "right",
+              "summary": { "type": "sum", "precision": 2 }
+            }
+          ],
+          "showHeader": true,
+          "bordered": true,
+          "repeatHeader": true,
+          "showRowNumber": true,
+          "rowNumberWidth": 15,
+          "rowNumberLabel": "序号",
+          "summaryDisplay": "extra-only",
+          "summaryMode": "total",
+          "summaryExtraRows": [{ "items": [{ "sourceColumn": "amount", "label": "总计：" }] }],
+          "groupBy": {
+            "field": "category",
+            "showHeader": true,
+            "showSummary": true,
+            "emptyGroupLabel": "未分组",
+            "headerStyle": { "backgroundColor": "#f5f5f5", "fontWeight": "bold" },
+            "summaryStyle": { "backgroundColor": "#f5f5f5", "fontWeight": "bold" }
+          }
+        }
+      },
+      {
+        "id": "remarks",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 165, "widthMm": 190, "heightMm": 25 },
+        "style": { "fontSize": 10 },
+        "binding": { "path": "remarks", "fallback": "备注信息" },
+        "props": { "label": "备注：" }
+      },
+      {
+        "id": "comp-signature",
+        "type": "text",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 200, "widthMm": 15, "heightMm": 10 },
+        "style": { "fontSize": 14, "color": "#262626" },
+        "props": { "text": "签名：" }
+      },
+      {
+        "id": "customerRect",
+        "type": "rect",
+        "layout": { "mode": "absolute", "xMm": 25, "yMm": 200, "widthMm": 85, "heightMm": 20 },
+        "style": { "border": "1px solid #d9d9d9", "borderRadius": "2px", "background": "#fafafa" },
+        "props": {}
+      },
+      {
+        "id": "companyLogo",
+        "type": "image",
+        "layout": { "mode": "absolute", "xMm": 10, "yMm": 225, "widthMm": 35, "heightMm": 15 },
+        "binding": { "path": "companyLogo", "fallback": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzE4OTBmZiIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TE9HTzwvdGV4dD48L3N2Zz4=" },
+        "props": { "fit": "contain" }
       }
     ]
   }

@@ -48,7 +48,6 @@
 - 多级嵌套分组（`category → subCategory` 两级）—— 接口预留，不实现
 - 分组折叠/展开交互（前端交互状态）
 - 组内再排序（组内保持原序）
-- 设计器 UI（第一版 SDK 先上，设计器预留配置透传）
 - 分组聚合类型超出 `sum/avg/max/min/count` 的扩展
 - 服务端预聚合数据的透传覆盖（`summary: 89.19` 这种后端算好直接用的模式，预留 `groupSummary` 覆盖字段，不在首版实现）
 
@@ -94,37 +93,40 @@ export interface TableGroupConfig {
   /** 分组字段，支持点号路径，如 "category" / "product.type"，必填 */
   field: string;
 
-  /** 分组标题排序：'asc' | 'desc' | 'none'，默认 'none'（保持首次出现顺序） */
-  sort?: 'asc' | 'desc' | 'none';
+  // ── 分组标题（header）相关：集中在一起 ──
 
   /** 是否显示分组标题行，默认 true */
   showHeader?: boolean;
+
+  /** 空值分组的标题，默认 "未分组"（归入标题分区，便于与标题样式一起配置） */
+  emptyGroupLabel?: string;
+
+  /**
+   * 分组键的管道转换，复用现有 Pipe 系统
+   * 用于对分组字段原始值做展示层转换（如字典映射、日期格式化、大小写等）
+   * 例：field="status" + pipes=[{type:'dict', options:{map:{'01':'蔬果'}}}] → 标题显示"蔬果"
+   * 执行时机：TableRenderer 渲染分组标题前 `context.applyPipes(rawGroupKey, pipes)`
+   * 失败回退：管道抛错时回退原值，不阻塞渲染（与列级 pipes 一致）
+   * 若评估改动过大或不需要，可直接取消本字段，标题即原值
+   */
+  pipes?: PipeConfig[];
+
+  /** 分组标题行样式，复用 TableSummaryStyle 形态 */
+  headerStyle?: TableSummaryStyle;
+
+  // ── 分组小计（summary）相关：集中在一起 ──
 
   /** 是否显示分组小计行，默认 true */
   showSummary?: boolean;
 
   /**
-   * 分组标题模板，支持占位符 {value} / {group} / {count}
-   * 默认 "{value}"，示例 "【{value}】" / "{value}（{count}项）"
-   */
-  headerFormatter?: string;
-
-  /**
-   * 分组小计标签模板，支持占位符 {group} / {value} / {count}
-   * 默认 "{group}小计"
-   * 最终文本为：模板 + 汇总列拼接（如 "蔬果小计：89.19"）
-   * 若模板已包含数值占位，可不拼接
+   * 分组小计标签，默认 "{group}小计"
+   * 支持占位 {group}，最终文本为：标签 + 汇总列拼接（如 "蔬果小计：89.19"）
    */
   summaryLabel?: string;
 
-  /** 分组标题行样式，复用 TableSummaryStyle 形态 */
-  headerStyle?: TableSummaryStyle;
-
   /** 分组小计行样式，复用 TableSummaryStyle 形态 */
   summaryStyle?: TableSummaryStyle;
-
-  /** 空值分组的标题，默认 "未分组" */
-  emptyGroupLabel?: string;
 
   /**
    * 小计列指定（可选）
@@ -132,6 +134,18 @@ export interface TableGroupConfig {
    * 传了则只对指定 dataIndex 的列做小计
    */
   summaryColumns?: string[];
+
+  /**
+   * 预留：分组排序扩展位（本期不实现）
+   * 首版组顺序 = 数据中首次出现顺序（稳定，不排序）
+   * 后续计划二选一或组合：
+   *  1) 模板内声明式：{ sortField: string, sortOrder: 'asc'|'desc' } 按组键或组内聚合值排序
+   *  2) 运行时函数式：createPrintSDK({ groupSortComparator: (a,b)=>number }) 传入自定义比较函数（函数不进模板 JSON，避免序列化问题）
+   * 本期接口先不暴露，保持可扩展，避免让用户在"按哪个字段排"上做额外选择
+   */
+  // sort?: 'asc' | 'desc' | 'none'; // 预留，未启用
+  // sortField?: string; sortOrder?: 'asc'|'desc'; // 预留
+  // groupSortComparator?: (a: GroupedData, b: GroupedData) => number; // 预留（运行时）
 }
 
 export interface TableProps {
@@ -147,7 +161,7 @@ export interface TableProps {
 ```ts
 interface GroupedData {
   key: string;        // 分组键，已 escapeHtml 前的原始值
-  label: string;      // 展示用标题（经 headerFormatter 格式化）
+  label: string;      // 展示用标题（经 pipes 转换后）
   items: any[];       // 组内明细
   startRowIndex: number; // 组在原扁平数组中的起始序号（用于 rowNumber 连续）
 }
@@ -156,12 +170,14 @@ interface GroupedData {
 `groupByField` 为纯函数，无副作用，便于单测：
 
 ```ts
-function groupByField(data: any[], field: string, sort: 'asc'|'desc'|'none'): GroupedData[]
+function groupByField(data: any[], field: string): GroupedData[]
+// 后续扩展：function groupByField(data, field, sortOptions?): GroupedData[]
 ```
 
 - 取值：`getByPath(row, field)`，`null/undefined/''` 归入 `emptyGroupLabel`
-- 顺序：`none` 时按首次出现顺序；`asc/desc` 按 `key` 字符串 `localeCompare('zh-CN')`
+- 顺序：首版固定按首次出现顺序（稳定，不排序），不做 `asc/desc` 处理
 - 保持稳定：同 key 的 items 保持原序
+- 预留：后续 `sort` 将通过 `sortField + sortOrder` 或运行时 `comparator` 扩展，接口见 `TableGroupConfig` 注释
 
 ## 5. 渲染设计
 
@@ -193,13 +209,15 @@ function groupByField(data: any[], field: string, sort: 'asc'|'desc'|'none'): Gr
 - `borderCollapse: collapse` 边框连续，无需处理小表间双边框
 - 语义上仍是一张表，利于打印样式和无障碍
 
-### 5.2 分组标题行：复用 summaryExtraRows
+### 5.2 分组标题行：复用 summaryExtraRows + Pipe
 
 标题行与现有额外行同构，复用点：
+- 值转换：`rawKey → context.applyPipes(rawKey, groupBy.pipes) → label`，复用现有 `DataField.pipes` 管道链（与列级 `pipes`、`SummaryExtraRowItem.pipes` 一致），支持字典映射/日期格式化等；管道失败回退原值
 - 样式：`headerStyle` → `backgroundColor / fontWeight / fontSize / textAlign`，缺省回退 `TableSummaryStyle` 默认值（`#f5f5f5 / bold`），与 `renderSummaryExtraRows` 一致
 - 结构：`<tr><td colspan="${colCount}" style="${cellBorder} ${cellPadding} ${cellTextStyle} background...">text</td></tr>`
 - 高度：`rowHeightPx`（与数据行同高，受 `density` 影响），计入分页测量
 - 转义：`escapeHtml(label, context.escapeHtml)` 复用现有转义开关
+- 可选性：若 `pipes` 评估改动过大，可直接取消该字段，标题即 `String(rawKey)`
 
 ### 5.3 分组小计行：复用 calculateSummary
 
@@ -287,22 +305,53 @@ groupBlockHeight = headerHeight(若 showHeader) + sum(rowHeights of groupItems) 
 
 与现有 `summaryStyle` 回退链一致，避免引入新常量。
 
-### 7.2 设计器（本期不做，预留）
+### 7.2 设计器（与 SDK 同步交付，便于测试与发布）
 
-- 属性面板新增"分组"折叠区：字段下拉（来自 `SchemaDictionary` 的叶子字段）、排序、标题/小计开关、模板输入、样式拾色器
-- 模板 JSON 中 `props.groupBy` 透传，`loadTemplate`/`generateTemplate` 无需改动
-- 预留 `table-group` 预览：设计器画布对表格组件按 mock 数据做分组预览（复用同一 `groupByField`）
+> 按评论要求，设计器与 SDK 同步实现，不做"预留"。
+
+#### 属性面板
+
+- 新增 `TableGroupSection.tsx`（参考 `SummaryExtraRowsSection` 形态），挂在 `TableColumnSection` 之后，面板内按"标题在上、小计在下"分区，避免杂乱
+- 控件清单（按分区排序）：
+  - 【基础】分组开关 `Switch`（控制 `props.groupBy` 有无）
+  - 【基础】分组字段 `Select`（来自 `SchemaDictionary` 叶子字段，支持嵌套路径 `a.b`）
+  - 【分组标题】是否显示标题 `Checkbox`（`showHeader`）
+  - 【分组标题】空组标签 `Input`（`emptyGroupLabel`，占位"未分组"，归入标题分区）
+  - 【分组标题】标题管道 `PipeConfigPanel`（复用现有管道配置面板，绑定 `groupBy.pipes`）
+  - 【分组标题】标题样式 `TableStylePlugin` 复用（`headerStyle`：背景色、字重、字号、对齐）
+  - 【分组小计】是否显示小计 `Checkbox`（`showSummary`）
+  - 【分组小计】小计标签 `Input`（`summaryLabel`，占位提示 "{group}小计"）
+  - 【分组小计】小计样式 `TableStylePlugin` 复用（`summaryStyle`）
+  - 【分组小计】小计列多选 `Select mode="multiple"`（`summaryColumns`，选项来自 `columns[].dataIndex`）
+  - 【预留】排序：首版不展示控件，接口预留，后续支持声明式 `sortField/sortOrder` 或运行时 `groupSortComparator` 函数
+- 交互：关闭分组开关时清空 `props.groupBy`；字段未选时禁用标题/小计等子项；标题/小计分区显隐跟随对应 Checkbox
+
+#### 预览
+
+- `designer/src/pages/Designer/components/Canvas/componentRenderers/TablePreview.tsx` 增加分组预览分支：复用 SDK 的 `groupByField` 纯函数（抽到 `sdk/src/printEngine/utils/groupBy.ts` 供两端共享，或设计器侧轻量实现），按 `groupBy.field` 对 mock 数据分组，渲染分组标题/小计行，样式与 `TableRenderer` 保持一致（`density` / `border` / `headerStyle`）
+- 空数据/未分组时退化为现有普通表格预览
+
+#### Store 与模板
+
+- `useDesignerStore` 无需新增 action，`updateComponent` / `onPropsChange('groupBy', ...)` 直接透传
+- `generateTemplate` / `loadTemplate` 已透传 `props`，无需改动
+- `designer/src/types/index.ts` 从 `@jcyao/print-sdk` 重新导出 `TableGroupConfig`，保持单一数据源
 
 ## 8. 改动范围
 
 | 文件 | 改动内容 |
 |---|---|
-| `sdk/src/types.ts` | **新增** `TableGroupConfig` 接口，`TableProps` 增加 `groupBy?: TableGroupConfig` |
-| `sdk/src/printEngine/renderers/TableRenderer.ts` | 新增 `groupByField` 纯函数；`render` 中分支：无 `groupBy` 走原逻辑，有则按组循环渲染；新增 `renderGroupHeader` / `renderGroupSummary`（复用 `renderSummaryExtraRows` / `calculateSummary` 形态）；`calculateHeight` 增加分组行高度估算 |
-| `sdk/src/printEngine.ts` | `splitTableWithGap` 支持按组块分页（`keepTogether` 优先，组内可拆）；`measureTableRowHeights` 注释扩展；`calculateTableHeaderHeight/RowHeight` 保持不变 |
+| `sdk/src/types.ts` | **新增** `TableGroupConfig` 接口（`field/showHeader/emptyGroupLabel/pipes/headerStyle/showSummary/summaryLabel/summaryStyle/summaryColumns`，`sort` 预留不实现），`TableProps` 增加 `groupBy?: TableGroupConfig`，`pipes` 复用 `PipeConfig[]`；配置项按"标题在上、小计在下"分区，`emptyGroupLabel` 归入标题分区 |
+| `sdk/src/printEngine/renderers/TableRenderer.ts` | 新增 `groupByField` 纯函数；`render` 分支：无 `groupBy` 走原逻辑，有则按组循环渲染；新增 `renderGroupHeader`（`applyPipes` + `escapeHtml` + `headerStyle`） / `renderGroupSummary`（复用 `calculateSummary` / `getColumnSummaryRawValue`）；`calculateHeight` 增加分组行高度估算 |
+| `sdk/src/printEngine/utils/groupBy.ts` | **新增**（可选）：抽离 `groupByField` 供 SDK 与 Designer 复用；或暂放 `TableRenderer.ts` 内 |
+| `sdk/src/printEngine.ts` | `splitTableWithGap` 支持按组块分页（`keepTogether` 优先，组内可拆）；`measureTableRowHeights` 扩展分组标题/小计高度；`calculateTableHeaderHeight/RowHeight` 保持不变 |
 | `sdk/src/printEngine/constants.ts` | （可选）新增 `TABLE_GROUP_DEFAULT` 常量，收敛空组标签等默认值 |
+| `designer/src/pages/Designer/components/PropertyPanel/TableGroupSection.tsx` | **新增**：分组配置面板（开关、字段、排序、标题/小计显隐、管道、标签、样式、小计列多选） |
+| `designer/src/pages/Designer/components/PropertyPanel/TableColumnSection.tsx` | 引入 `TableGroupSection`，布局调整 |
+| `designer/src/pages/Designer/components/Canvas/componentRenderers/TablePreview.tsx` | 增加分组预览分支，复用 `groupByField`，渲染标题/小计行 |
+| `designer/src/types/index.ts` | 重新导出 `TableGroupConfig` |
 | `sdk/CHANGELOG.md` | 记录新增 `groupBy` 功能及兼容说明 |
-| `sdk/README.md` | 补充分组用法示例 |
+| `sdk/README.md` | 补充分组用法示例（含 `pipes` 用法） |
 
 ## 9. 向后兼容与迁移
 

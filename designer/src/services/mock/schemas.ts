@@ -142,5 +142,42 @@ export const defaultSchemas: SchemaDictionary[] = [
         { key: 'remarks', label: '备注', type: 'string' }
       ]
     }
+  },
+  {
+    id: 'schema-demo-group',
+    name: '食材配送单（分组）',
+    rootType: 'object',
+    version: '1.0',
+    description: '表格分组功能演示 Schema，items 中包含 category 分类字段，配合 mock-group-001 数据使用',
+    root: {
+      key: 'root',
+      label: '食材配送单',
+      type: 'object',
+      children: [
+        { key: 'title', label: '标题', type: 'string' },
+        { key: 'documentNo', label: '配送单号', type: 'string' },
+        { key: 'deliverDate', label: '配送时间', type: 'string' },
+        { key: 'customName', label: '客户名称', type: 'string' },
+        { key: 'contacts', label: '联系人', type: 'string' },
+        { key: 'phone', label: '联系电话', type: 'string' },
+        {
+          key: 'items',
+          label: '商品明细',
+          type: 'array',
+          description: '按 category 字段分组的明细列表',
+          children: [
+            { key: 'no', label: '序号', type: 'number' },
+            { key: 'category', label: '分类（分组字段）', type: 'string' },
+            { key: 'name', label: '商品名称', type: 'string' },
+            { key: 'unit', label: '单位', type: 'string' },
+            { key: 'count', label: '实配数量', type: 'number' },
+            { key: 'price', label: '单价', type: 'number' },
+            { key: 'amount', label: '应付金额', type: 'number' }
+          ]
+        },
+        { key: 'totalAmount', label: '总金额', type: 'number' },
+        { key: 'remarks', label: '备注', type: 'string' }
+      ]
+    }
   }
 ];
