@@ -4,6 +4,8 @@
  * @module globalConfig
  */
 
+import type { AggregatorExecutor } from '../aggregators/types';
+
 /**
  * SDK 全局配置接口
  * 后续新增的全局级别参数都加到此接口，不新增函数
@@ -11,6 +13,8 @@
 export interface SDKGlobalConfig {
   /** 是否对输出内容进行 HTML 转义（防止 XSS），默认 true */
   escapeHtml?: boolean;
+  /** 全局聚合器执行器列表（实例级可覆盖） */
+  aggregators?: AggregatorExecutor[];
 }
 
 /** 全局配置存储（模块级单例） */

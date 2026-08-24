@@ -85,3 +85,6 @@ export type {
 
 // 导出管道类型（供自定义管道使用）
 export type { PipeExecutor } from './pipes/types';
+
+// 导出聚合器类型（供自定义聚合器使用）
+export type { AggregatorExecutor } from './aggregators/types';

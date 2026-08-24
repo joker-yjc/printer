@@ -2,6 +2,26 @@
 
 所有版本的变更记录都列在这里，遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 规范。
 
+## [1.12.0] - 2026-08-24
+
+> 🎉 正式发布：包含 [1.12.0-alpha.1] 的表格分组功能，并新增可覆盖聚合器、修复 HTML 转义覆盖范围。
+
+### ✨ 新增功能
+
+- **可覆盖聚合器（自定义聚合）**
+  - 新增 `AggregatorExecutor` 接口与内置 `sum/avg/max/min/count` 聚合器，支持 `createPrintSDK({ customAggregators })` / `configureSDK({ aggregators })` 运行时注册与同名覆盖（优先级：实例 > 全局 > 内置）
+  - `TableColumnSummary.type` 放宽为 `string`（支持自定义聚合器 type），新增 `options` 字段用于向聚合器传参
+  - `GroupSummaryItem` 由 `sourceColumn` 迁移为 `dataIndex + summary`，分组小计可独立于列配置聚合类型；`sourceColumn` 标记 `@deprecated` 兼容老模板
+  - 聚合器返回 `string` 时，结果同样承载到额外行/带管道小计的 `raw`，可直接展示或继续走管道
+
+### 🐛 问题修复
+
+- **HTML 转义未覆盖文本组件**：`escapeHtml` 此前仅作用于表格与页码，`text` 组件的绑定取值未转义，存在 XSS 注入缺口；现已纳入 `escapeHtml` 控制范围
+
+### ⚠️ 行为变更（破坏性）
+
+- 无（`sourceColumn` 保留兼容，老模板行为不变）
+
 ## [1.12.0-alpha.1] - 2026-08-23
 
 > ⚠️ 灰度测试版本（Alpha）：表格分组功能首发，API 已定型但可能随反馈微调，不建议生产环境直接使用。

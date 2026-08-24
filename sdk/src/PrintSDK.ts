@@ -7,6 +7,7 @@
 import { createPrintEngine } from './printEngine';
 import type { PrintTemplate } from './types';
 import type { PipeExecutor } from './pipes/types';
+import type { AggregatorExecutor } from './aggregators/types';
 import {
   generateBatchPrintStyles,
   generatePrintHTML,
@@ -21,6 +22,8 @@ import { getGlobalConfig } from './config/globalConfig';
 export interface PrintSDKOptions {
   /** 自定义管道执行器列表 */
   customPipes?: PipeExecutor[];
+  /** 自定义聚合器执行器列表，覆盖全局与内置同名聚合器 */
+  customAggregators?: AggregatorExecutor[];
   /** 是否对输出内容进行 HTML 转义，覆盖全局配置，默认 true */
   escapeHtml?: boolean;
 }
@@ -111,11 +114,16 @@ export interface MultiTemplatePrintProgress {
 
 export class PrintSDK {
   private customPipes?: PipeExecutor[];
+  private customAggregators?: AggregatorExecutor[];
   private escapeHtml: boolean;
 
   constructor(options?: PrintSDKOptions) {
     this.customPipes = options?.customPipes;
     this.escapeHtml = options?.escapeHtml ?? getGlobalConfig().escapeHtml ?? true;
+    // 合并：全局在前、实例在后（实例覆盖全局），最终传给 PrintEngine
+    const globalAggregators = getGlobalConfig().aggregators ?? [];
+    const instanceAggregators = options?.customAggregators ?? [];
+    this.customAggregators = [...globalAggregators, ...instanceAggregators];
   }
 
   /**
@@ -127,7 +135,7 @@ export class PrintSDK {
    */
   async print(options: PrintOptions): Promise<void> {
     const { template, data, preview = false } = options;
-    const engine = createPrintEngine(template, data, this.customPipes, this.escapeHtml);
+    const engine = createPrintEngine(template, data, this.customPipes, this.escapeHtml, this.customAggregators);
 
     if (preview) {
       // 预览模式：打开新窗口显示
@@ -214,7 +222,7 @@ export class PrintSDK {
    * @returns HTML 字符串
    */
   async generateHTML(template: PrintTemplate, data: any): Promise<string> {
-    const engine = createPrintEngine(template, data, this.customPipes, this.escapeHtml);
+    const engine = createPrintEngine(template, data, this.customPipes, this.escapeHtml, this.customAggregators);
     return await engine.generatePrintHTML();
   }
 
@@ -255,7 +263,7 @@ export class PrintSDK {
       onProgress?.(progress);
 
       try {
-        const engine = createPrintEngine(template, data, this.customPipes, this.escapeHtml);
+        const engine = createPrintEngine(template, data, this.customPipes, this.escapeHtml, this.customAggregators);
         const html = await engine.generatePrintHTML();
         const bodyContent = extractBodyContent(html);
         if (bodyContent) {
@@ -338,7 +346,7 @@ export class PrintSDK {
         onProgress?.(progress);
 
         try {
-          const engine = createPrintEngine(group.template, data, this.customPipes, this.escapeHtml);
+          const engine = createPrintEngine(group.template, data, this.customPipes, this.escapeHtml, this.customAggregators);
           const html = await engine.generatePrintHTML();
           const bodyContent = extractBodyContent(html);
           if (bodyContent) {

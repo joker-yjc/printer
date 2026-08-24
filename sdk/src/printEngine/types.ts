@@ -30,6 +30,12 @@ export interface RenderContext {
   executePipe(value: any, pipe: PipeConfig): any;
 
   /**
+   * 执行聚合（优先自定义聚合器，回退内置聚合器）
+   * 找不到执行器时返回 undefined
+   */
+  executeAggregate(type: string, values: any[], options?: Record<string, any>): number | string | undefined;
+
+  /**
    * 根据路径获取数据值
    */
   getValueByPath(path: string, fallback?: string): any;

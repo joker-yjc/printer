@@ -3,7 +3,7 @@
  */
 
 import Decimal from 'decimal.js';
-import type { ComponentNode, TableColumn, TableProps, SummaryExtraRow, GroupSummaryItem } from '../../types';
+import type { ComponentNode, TableColumn, TableProps, SummaryExtraRow, GroupSummaryItem, TableColumnSummary } from '../../types';
 import type { ComponentRenderer, RenderContext, StyleObject } from '../types';
 import { buildStyleString, buildPositionStyle } from '../utils/styleBuilder';
 import { escapeHtml } from '../../utils/htmlEscape';
@@ -636,61 +636,31 @@ export class TableRenderer implements ComponentRenderer {
   }
 
   /**
-   * 计算单列合计值（使用 Decimal.js 解决精度问题）
+   * 统一聚合出口：输入数据 + 取数路径 + 聚合配置
+   * 聚合器返回 number → 走 precision/prefix/suffix/pipe 格式化；
+   * 返回 string → 作为最终文本直接输出；undefined（找不到/失败）→ '-'
+   * @param data 数据数组
+   * @param dataIndex 取数路径
+   * @param summary 聚合配置
+   * @param context 渲染上下文
+   * @returns raw 聚合器原始返回（number 或 string，供额外行/小计 pipes 消费）；text 格式化文本
    */
-  private calculateSummary(data: any[], column: TableColumn, context: RenderContext): string {
-    if (!data.length) return '-';
+  private computeSummary(data: any[], dataIndex: string, summary: TableColumnSummary, context: RenderContext): { raw: number | string | null; text: string } {
+    if (!data.length) return { raw: null, text: '-' };
 
-    const { summary } = column;
-    if (!summary) return '';
+    const rawValues = data.map(row => getByPath(row, dataIndex));
+    const agg = context.executeAggregate(summary.type, rawValues, summary.options);
+    // undefined（无数值/找不到执行器/执行失败）统一落 '-'
+    if (agg === undefined) return { raw: null, text: '-' };
 
-    const values = data
-      .map(row => {
-        const val = getByPath(row, column.dataIndex);
-        // 尝试转换为数字，失败则返回 null
-        const num = Number(val);
-        return isNaN(num) ? null : num;
-      })
-      .filter(val => val !== null) as number[];
+    // string 结果直接输出，不走 precision；raw 同样承载该字符串，供额外行/带管道小计消费
+    if (typeof agg === 'string') return { raw: agg, text: agg };
 
-    if (!values.length) return '-';
+    // 非有限数值（NaN/Infinity）视为无效，避免渲染出 'NaN'/'Infinity' 文本
+    if (!Number.isFinite(agg)) return { raw: null, text: '-' };
 
-    let result: Decimal;
     try {
-      switch (summary.type) {
-        case 'sum':
-          result = values.reduce((sum, val) => sum.plus(val), new Decimal(0));
-          break;
-        case 'avg':
-          const sum = values.reduce((s, val) => s.plus(val), new Decimal(0));
-          result = sum.dividedBy(values.length);
-          break;
-        case 'max':
-          result = Decimal.max(...values.map(v => new Decimal(v)));
-          break;
-        case 'min':
-          result = Decimal.min(...values.map(v => new Decimal(v)));
-          break;
-        case 'count':
-          result = new Decimal(values.length);
-          break;
-        default:
-          return '-';
-      }
-    } catch (error) {
-      console.error('[TableRenderer] 合计计算错误:', error);
-      // ✅ 返回友好的错误提示，而不是静默失败
-      return '计算错误';
-    }
-
-    // ✅ 格式化前检查结果是否有效
-    if (!result || typeof result.toFixed !== 'function') {
-      console.warn('[TableRenderer] 合计结果无效:', result);
-      return '-';
-    }
-
-    // 格式化
-    try {
+      const result = new Decimal(agg);
       const precision = summary.precision ?? 2;
       const formatted = result.toFixed(precision);
       const prefix = summary.prefix || '';
@@ -706,56 +676,27 @@ export class TableRenderer implements ComponentRenderer {
         }
       }
 
-      return finalResult;
+      return { raw: agg, text: finalResult };
     } catch (formatError) {
       console.error('[TableRenderer] 格式化合计结果失败:', formatError);
-      return '-';
+      return { raw: null, text: '-' };
     }
   }
 
   /**
-   * 获取列合计的原始数值（用于额外行管道处理）
+   * 计算单列合计值（委托 computeSummary）
    */
-  private getColumnSummaryRawValue(data: any[], column: TableColumn): number | null {
-    if (!data.length || !column.summary) return null;
+  private calculateSummary(data: any[], column: TableColumn, context: RenderContext): string {
+    if (!column.summary) return '';
+    return this.computeSummary(data, column.dataIndex, column.summary, context).text;
+  }
 
-    const values = data
-      .map(row => {
-        const val = getByPath(row, column.dataIndex);
-        const num = Number(val);
-        return isNaN(num) ? null : num;
-      })
-      .filter(val => val !== null) as number[];
-
-    if (!values.length) return null;
-
-    const { summary } = column;
-    let result: Decimal;
-
-    try {
-      switch (summary.type) {
-        case 'sum':
-          result = values.reduce((sum, val) => sum.plus(val), new Decimal(0));
-          break;
-        case 'avg':
-          result = values.reduce((sum, val) => sum.plus(val), new Decimal(0)).dividedBy(values.length);
-          break;
-        case 'max':
-          result = Decimal.max(...values.map(v => new Decimal(v)));
-          break;
-        case 'min':
-          result = Decimal.min(...values.map(v => new Decimal(v)));
-          break;
-        case 'count':
-          result = new Decimal(values.length);
-          break;
-        default:
-          return null;
-      }
-      return result.toNumber();
-    } catch {
-      return null;
-    }
+  /**
+   * 获取列合计的原始返回（委托 computeSummary）
+   */
+  private getColumnSummaryRawValue(data: any[], column: TableColumn, context: RenderContext): number | string | null {
+    if (!column.summary) return null;
+    return this.computeSummary(data, column.dataIndex, column.summary, context).raw;
   }
 
   /**
@@ -791,7 +732,7 @@ export class TableRenderer implements ComponentRenderer {
         if (item.sourceColumn) {
           const col = columns.find(c => c.dataIndex === item.sourceColumn);
           if (col) {
-            let value: any = this.getColumnSummaryRawValue(data, col);
+            let value: any = this.getColumnSummaryRawValue(data, col, context);
             if (item.pipes && value !== null) {
               try {
                 for (const pipe of item.pipes) {
@@ -799,7 +740,7 @@ export class TableRenderer implements ComponentRenderer {
                 }
               } catch (pipeError) {
                 console.error('[TableRenderer] 额外行管道执行失败:', pipeError);
-                value = this.getColumnSummaryRawValue(data, col);
+                value = this.getColumnSummaryRawValue(data, col, context);
               }
             }
             if (value !== null && value !== undefined) {
@@ -854,27 +795,32 @@ export class TableRenderer implements ComponentRenderer {
     const summaryItems = groupBy?.summaryItems as GroupSummaryItem[] | undefined;
     const parts: string[] = [];
     if (summaryItems && summaryItems.length > 0) {
-      // 逐数据项渲染
       for (const item of summaryItems) {
-        const col = displayColumns.find(c => c.dataIndex === item.sourceColumn);
-        if (!col || !col.summary) continue; // 引用列必须配置 summary
+        // 取数路径：dataIndex 优先，回退 sourceColumn（老模板兼容）
+        const ref = item.dataIndex ?? item.sourceColumn;
+        if (!ref) continue;
+        // 聚合配置：自带 summary 优先，缺省回退查列 summary（老模板兼容）
+        const summary: TableColumnSummary | undefined = item.summary
+          ?? (displayColumns.find(c => c.dataIndex === ref)?.summary);
+        if (!summary) continue;
 
         if (item.pipes && item.pipes.length > 0) {
           // 有管道：从原始数值开始逐个执行（与额外行语义一致）
-          let value: any = this.getColumnSummaryRawValue(group.items, col);
-          if (value === null || value === undefined) continue;
+          const { raw } = this.computeSummary(group.items, ref, summary, context);
+          if (raw === null) continue;
+          let value: any = raw;
           try {
             for (const pipe of item.pipes) {
               value = context.executePipe(value, pipe);
             }
           } catch (pipeError) {
             console.error('[TableRenderer] 分组小计管道执行失败:', pipeError);
-            value = this.getColumnSummaryRawValue(group.items, col);
+            value = raw;
           }
           parts.push(`${item.label ?? ''}${String(value)}`);
         } else {
-          // 无管道：使用 calculateSummary 的完整格式化（precision/prefix/suffix）
-          const text = this.calculateSummary(group.items, col, context);
+          // 无管道：使用 computeSummary 的完整格式化（precision/prefix/suffix）
+          const text = this.computeSummary(group.items, ref, summary, context).text;
           if (!text || text === '-') continue;
           parts.push(`${item.label ?? ''}${text}`);
         }
