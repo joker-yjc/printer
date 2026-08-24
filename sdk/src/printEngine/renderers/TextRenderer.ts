@@ -5,6 +5,7 @@
 import type { ComponentNode } from '../../types';
 import type { ComponentRenderer, RenderContext, StyleObject } from '../types';
 import { buildStyleString, buildPositionStyle } from '../utils/styleBuilder';
+import { escapeHtml } from '../../utils/htmlEscape';
 import { COMPONENT_DEFAULT_SIZE, STYLE_DEFAULT } from '../constants';
 
 export class TextRenderer implements ComponentRenderer {
@@ -49,7 +50,7 @@ export class TextRenderer implements ComponentRenderer {
 
     const styleStr = buildStyleString(textStyles);
 
-    return `<div style="${styleStr}">${fullText}</div>`;
+    return `<div style="${styleStr}">${escapeHtml(fullText, context.escapeHtml)}</div>`;
   }
 
   calculateHeight(component: ComponentNode): number {

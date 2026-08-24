@@ -6,12 +6,14 @@
 import type { PrintTemplate, ComponentNode, DataBinding, PipeConfig, TableProps } from './types';
 import type { ComponentRenderer, RenderContext } from './printEngine/types';
 import type { PipeExecutor } from './pipes/types';
+import type { AggregatorExecutor } from './aggregators/types';
 import { MM_TO_PX, TABLE_DEFAULT, TABLE_STYLE_DEFAULT, COMPONENT_DEFAULT_SIZE } from './printEngine/constants';
 import {
   generatePrintPageStyles,
   generatePrintHTML,
 } from './printEngine/htmlTemplate';
 import { executePipe as executeBuiltInPipe, getRegisteredTypes } from './pipes/registry';
+import { executeAggregate as executeBuiltInAggregate, getRegisteredAggregatorTypes } from './aggregators/registry';
 import { escapeHtml } from './utils/htmlEscape';
 import { groupByField, hasGroupSummary } from './printEngine/utils/groupBy';
 
@@ -36,14 +38,16 @@ export class PrintEngine {
   private data: any;
   private renderers: Map<string, ComponentRenderer>;
   private customPipesMap: Map<string, PipeExecutor>;
+  private customAggregatorsMap: Map<string, AggregatorExecutor>;
   private escapeHtmlFlag: boolean;
   private readonly mmToPx = MM_TO_PX; // 使用常量：96 DPI 下 1mm = 3.78px
 
-  constructor(template: PrintTemplate, data: any, customPipes?: PipeExecutor[], escapeHtml: boolean = true) {
+  constructor(template: PrintTemplate, data: any, customPipes?: PipeExecutor[], escapeHtml: boolean = true, customAggregators?: AggregatorExecutor[]) {
     this.template = template;
     this.data = data;
     this.renderers = new Map();
     this.customPipesMap = new Map();
+    this.customAggregatorsMap = new Map();
     this.escapeHtmlFlag = escapeHtml;
 
     // 注册默认渲染器
@@ -52,6 +56,10 @@ export class PrintEngine {
     // 注册自定义管道
     if (customPipes && customPipes.length > 0) {
       this.registerCustomPipes(customPipes);
+    }
+    // 注册自定义聚合器
+    if (customAggregators && customAggregators.length > 0) {
+      this.registerCustomAggregators(customAggregators);
     }
   }
 
@@ -80,6 +88,34 @@ export class PrintEngine {
         );
       }
       this.customPipesMap.set(executor.type, executor);
+    }
+  }
+
+  /**
+   * 注册自定义聚合器执行器
+   */
+  private registerCustomAggregators(aggregators: AggregatorExecutor[]): void {
+    const builtInTypes = getRegisteredAggregatorTypes();
+    for (const executor of aggregators) {
+      if (!executor || typeof executor !== 'object') {
+        throw new Error('[PrintEngine] customAggregators 数组中包含无效元素（null 或非对象）');
+      }
+      if (!executor.type) {
+        throw new Error('[PrintEngine] customAggregator.type 不能为空');
+      }
+      if (typeof executor.aggregate !== 'function') {
+        throw new Error(`[PrintEngine] customAggregator "${executor.type}" 的 aggregate 必须是函数`);
+      }
+      if (this.customAggregatorsMap.has(executor.type)) {
+        console.warn(
+          `[PrintEngine] customAggregators 中存在重复的 type "${executor.type}"，后者将覆盖前者`
+        );
+      } else if (builtInTypes.has(executor.type)) {
+        console.warn(
+          `[PrintEngine] 自定义聚合器 "${executor.type}" 将覆盖内置同名聚合器`
+        );
+      }
+      this.customAggregatorsMap.set(executor.type, executor);
     }
   }
 
@@ -176,6 +212,23 @@ export class PrintEngine {
   }
 
   /**
+   * 执行聚合
+   * 优先使用自定义聚合器，找不到时回退到内置聚合器
+   */
+  private executeAggregate(type: string, values: any[], options?: Record<string, any>): number | string | undefined {
+    const customExecutor = this.customAggregatorsMap.get(type);
+    if (customExecutor) {
+      try {
+        return customExecutor.aggregate(values, options);
+      } catch (err) {
+        console.error(`[PrintEngine] 自定义聚合器 "${type}" 执行失败:`, err);
+        return undefined;
+      }
+    }
+    return executeBuiltInAggregate(type, values, options);
+  }
+
+  /**
    * 简单的日期格式化
    */
   private formatDate(value: any, format: string): string {
@@ -226,6 +279,7 @@ export class PrintEngine {
       resolveBinding: this.resolveBinding.bind(this),
       applyPipes: this.applyPipes.bind(this),
       executePipe: this.executePipe.bind(this),
+      executeAggregate: this.executeAggregate.bind(this),
       getValueByPath: this.getValueByPath.bind(this),
       formatDate: this.formatDate.bind(this),
       mmToPx: this.mmToPx,
@@ -1414,8 +1468,8 @@ export class PrintEngine {
 /**
  * 工厂函数：创建打印引擎实例
  */
-export function createPrintEngine(template: PrintTemplate, data: any, customPipes?: PipeExecutor[], escapeHtml: boolean = true) {
-  const engine = new PrintEngine(template, data, customPipes, escapeHtml);
+export function createPrintEngine(template: PrintTemplate, data: any, customPipes?: PipeExecutor[], escapeHtml: boolean = true, customAggregators?: AggregatorExecutor[]) {
+  const engine = new PrintEngine(template, data, customPipes, escapeHtml, customAggregators);
 
   return {
     /**

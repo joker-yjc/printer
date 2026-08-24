@@ -1,6 +1,6 @@
 # API 参考
 
-> 适用版本：`@jcyao/print-sdk >= 1.12.0-alpha.1` | 源码：`sdk/src/types.ts`、`sdk/src/PrintSDK.ts` | 完整类型：`sdk/README.md#类型定义`
+> 适用版本：`@jcyao/print-sdk >= 1.12.0` | 源码：`sdk/src/types.ts`、`sdk/src/PrintSDK.ts` | 完整类型：`sdk/README.md#类型定义`
 
 ---
 
@@ -42,12 +42,14 @@ configureSDK({ escapeHtml: false });
 | 字段 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
 | `customPipes` | `PipeExecutor[]` | 否 | - | 自定义管道执行器，`{ type, label, execute }` |
+| `customAggregators` | `AggregatorExecutor[]` | 否 | - | 自定义聚合器，`{ type, label, aggregate }` |
 | `escapeHtml` | `boolean` | 否 | `true` | 是否对输出 HTML 转义，`false` 允许富文本 |
 
 ### SDKGlobalConfig
 
 | 字段 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
+| `aggregators` | `AggregatorExecutor[]` | 否 | - | 全局自定义聚合器 |
 | `escapeHtml` | `boolean` | 否 | `true` | 全局 HTML 转义开关 |
 
 ---
@@ -211,11 +213,25 @@ interface PrintTemplate {
 
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `type` | `'sum' \| 'avg' \| 'max' \| 'min' \| 'count'` | - | 聚合类型 |
+| `type` | `string` | `'sum'` | 聚合类型，内置 `sum/avg/max/min/count`，可填自定义聚合器 type |
 | `precision` | `number` | `2` | 小数位 |
 | `prefix` | `string` | - | 前缀如 `¥` |
 | `suffix` | `string` | - | 后缀如 `元` |
 | `pipe` | `PipeConfig` | - | 合计值管道（如中文大写） |
+| `options` | `Record<string, any>` | - | 传给聚合器的选项 |
+
+### AggregatorExecutor（自定义聚合器）
+
+```typescript
+interface AggregatorExecutor {
+  type: string;    // 聚合类型标识，可与内置同名覆盖
+  label: string;   // 显示名称
+  // number → 继续走 precision/prefix/suffix/pipe；string → 作为最终文本直接输出；undefined → 显示 '-'
+  aggregate(values: any[], options?: Record<string, any>): number | string | undefined;
+}
+```
+
+通过 `createPrintSDK({ customAggregators: [...] })` 或 `configureSDK({ aggregators: [...] })` 注册，优先级：实例 > 全局 > 内置。
 
 ### SummaryExtraRow
 
@@ -241,7 +257,7 @@ groupBy: {
   showSummary: true,
   summaryLabel: '{group}小计', // 支持 {group}/{count}/{value}
   summaryStyle: { backgroundColor: '#f5f5f5', textAlign: 'left' },
-  summaryItems: [{ label: '金额：', sourceColumn: 'amount' }]
+  summaryItems: [{ label: '金额：', dataIndex: 'amount' }]
 }
 ```
 
@@ -257,7 +273,10 @@ groupBy: {
 | `summaryStyle` | `TableSummaryStyle` | 否 | - | 小计行样式 |
 | `summaryItems` | `GroupSummaryItem[]` | 否 | - | 小计数据项，未配置时仅渲染标签行，可作签字行 |
 
-**GroupSummaryItem:** `{ sourceColumn: string (必填, 需对应 column.summary), label?: string, pipes?: PipeConfig[] }`
+**GroupSummaryItem:** `{ dataIndex?: string, summary?: TableColumnSummary, label?: string, pipes?: PipeConfig[] }`
+
+- `dataIndex`：取数路径（推荐）；`summary`：该小计项的聚合配置，未配置时回退 `dataIndex` 对应列的 `summary`
+- `sourceColumn`：已废弃（`@deprecated`），老模板仍兼容，自动映射为 `dataIndex`
 
 **TableSummaryStyle:** `{ backgroundColor?, fontWeight?, fontSize?, textAlign?: 'left'|'center'|'right' }`
 

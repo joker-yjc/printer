@@ -163,9 +163,42 @@ const sdk = createPrintSDK({
 
 ---
 
+## 自定义聚合器
+
+内置聚合类型（`sum/avg/max/min/count`）不满足需求时，可在创建 SDK 实例时注入自定义聚合器，实现加权求和、向上取整、去重计数等自定义聚合逻辑：
+
+```typescript
+import { createPrintSDK } from '@jcyao/print-sdk';
+
+const ceilSum = {
+  type: 'ceil-sum',
+  label: '向上取整求和',
+  aggregate(values: any[]) {
+    const nums = values.map(Number).filter(v => !isNaN(v));
+    if (nums.length === 0) return undefined;
+    return Math.ceil(nums.reduce((s, v) => s + v, 0));
+  },
+};
+
+const sdk = createPrintSDK({ customAggregators: [ceilSum] });
+```
+
+模板中列合计 / 分组小计通过 `summary.type` 引用：
+
+```json
+{
+  "columns": [{ "dataIndex": "amount", "summary": { "type": "ceil-sum", "precision": 0 } }]
+}
+```
+
+- `aggregate(values, options)` 接收该字段的**原始值数组**，返回 `number`（继续走 precision/前缀后缀/管道）、`string`（直接输出）或 `undefined`（显示 `-`）
+- 优先级：实例级 `customAggregators` > 全局级 `configureSDK({ aggregators })` > 内置
+
+---
+
 ## HTML 转义控制
 
-SDK 默认对所有输出内容进行 HTML 转义，防止 XSS 注入。如果你需要在打印内容中渲染富文本（如 `<b>`、`<span style>` 等 HTML 标签），可以关闭转义：
+SDK 默认对所有组件取值（文本、表格、页码等）进行 HTML 转义，防止 XSS 注入。如果你需要在打印内容中渲染富文本（如 `<b>`、`<span style>` 等 HTML 标签），可以关闭转义：
 
 ```typescript
 // 实例级关闭（仅当前实例）

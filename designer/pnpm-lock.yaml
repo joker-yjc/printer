@@ -9,8 +9,8 @@ dependencies:
     specifier: ^6.1.0
     version: 6.3.2(react-dom@18.3.1)(react@18.3.1)
   '@jcyao/print-sdk':
-    specifier: ^1.12.0-alpha.1
-    version: 1.12.0-alpha.1
+    specifier: ^1.12.0
+    version: 1.12.0
   '@monaco-editor/react':
     specifier: ^4.7.0
     version: 4.7.0(monaco-editor@0.55.1)(react-dom@18.3.1)(react@18.3.1)
@@ -633,8 +633,8 @@ packages:
     deprecated: Use @eslint/object-schema instead
     dev: true
 
-  /@jcyao/print-sdk@1.12.0-alpha.1:
-    resolution: {integrity: sha512-Mm7IiXmyCLR6BGozSdnh2G7gnvgb6B6s8fOY69b4MbtdPFH3vFIyu1ul9+HiKK4PGaX11LGOGqZUi82clIUHLg==}
+  /@jcyao/print-sdk@1.12.0:
+    resolution: {integrity: sha512-yx5tlO44fQHV+aWKYRzZZsTtw16GdP720aLEQS0Rrj9wrh+4Wpk4YsCBZzGkTMUHQBJJVAJbwqckgQpM+taqUQ==}
     dependencies:
       decimal.js: 10.6.0
       jsbarcode: 3.12.3

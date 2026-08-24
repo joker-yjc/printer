@@ -7,7 +7,7 @@
 import { Checkbox, Input, Select, Typography, InputNumber, Tag, Button } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import styles from './index.module.css';
-import type { ComponentNode, TableColumn, TableGroupConfig, GroupSummaryItem, PipeConfig, TableSummaryStyle } from '../../../../types';
+import type { ComponentNode, TableColumn, TableGroupConfig, GroupSummaryItem, PipeConfig, TableSummaryStyle, TableColumnSummary } from '../../../../types';
 import PipeConfigPanel from '../../../../components/PipeConfigPanel';
 
 const { Text } = Typography;
@@ -37,7 +37,7 @@ interface TableGroupSectionProps {
  * @param props - 组件属性
  * @returns 分组配置面板
  */
-const TableGroupSection: React.FC<TableGroupSectionProps> = ({ component, onPropsChange, updateComponent }) => {
+const TableGroupSection: React.FC<TableGroupSectionProps> = ({ component, onPropsChange }) => {
   if (component.type !== 'table') return null;
 
   const groupBy: TableGroupConfig | undefined = component.props?.groupBy;
@@ -80,13 +80,20 @@ const TableGroupSection: React.FC<TableGroupSectionProps> = ({ component, onProp
   // ── 小计数据项（summaryItems）管理 ──
   const summaryItems: GroupSummaryItem[] = groupBy?.summaryItems || [];
 
-  /** 添加小计数据项：默认引用第一个配置了合计的列 */
+  /** 取数据项实际生效的聚合配置：自带 summary 优先，缺省回退列 summary，再缺省默认 sum（与渲染端语义一致） */
+  const resolveItemSummary = (item: GroupSummaryItem): TableColumnSummary => {
+    if (item.summary) return item.summary;
+    const ref = item.dataIndex ?? item.sourceColumn;
+    const col = columns.find(c => c.dataIndex === ref);
+    return col?.summary || { type: 'sum', precision: 2 };
+  };
+
+  /** 添加小计数据项：默认取第一个列字段 + 自带 sum 聚合 */
   const handleAddSummaryItem = () => {
     const defaultCol = columns.find(c => c.summary) || columns[0];
-    // 无列可引用时不添加脏项（sourceColumn 为空字符串会导致渲染端跳过且无法补合计）
     if (!defaultCol?.dataIndex) return;
     updateGroupBy({
-      summaryItems: [...summaryItems, { sourceColumn: defaultCol.dataIndex }],
+      summaryItems: [...summaryItems, { dataIndex: defaultCol.dataIndex, summary: { type: 'sum', precision: 2 } }],
     });
   };
 
@@ -96,35 +103,27 @@ const TableGroupSection: React.FC<TableGroupSectionProps> = ({ component, onProp
     updateGroupBy({ summaryItems: next.length > 0 ? next : undefined });
   };
 
-  /** 更新单个数据项字段（sourceColumn / label / pipes） */
+  /** 更新单个数据项字段（dataIndex / label / pipes） */
   const handleSummaryItemChange = (index: number, patch: Partial<GroupSummaryItem>) => {
     const next = [...summaryItems];
     next[index] = { ...next[index], ...patch };
     updateGroupBy({ summaryItems: next });
   };
 
-  /** 引用列变更时，若该列未配合计则自动补 sum 合计（与额外行行为一致） */
-  const handleSummaryItemSourceChange = (index: number, dataIndex: string | undefined) => {
+  /** 取数路径变更：仅更新 dataIndex，不再自动补列合计（聚合配置已自带） */
+  const handleSummaryItemDataIndexChange = (index: number, dataIndex: string | undefined) => {
     if (!dataIndex) return;
     const nextItems = [...summaryItems];
-    nextItems[index] = { ...nextItems[index], sourceColumn: dataIndex };
+    nextItems[index] = { ...nextItems[index], dataIndex };
+    updateGroupBy({ summaryItems: nextItems });
+  };
 
-    let columnsUpdated = false;
-    const newColumns = [...columns];
-    const colIdx = newColumns.findIndex(c => c.dataIndex === dataIndex);
-    if (colIdx >= 0 && !newColumns[colIdx].summary?.type) {
-      newColumns[colIdx] = { ...newColumns[colIdx], summary: { type: 'sum', precision: 2 } };
-      columnsUpdated = true;
-    }
-
-    // 原子提交：一次 updateComponent 同时写 groupBy 与 columns，避免快照覆盖
-    updateComponent(component.id, {
-      props: {
-        ...component.props,
-        groupBy: { ...groupBy, summaryItems: nextItems },
-        ...(columnsUpdated ? { columns: newColumns } : {}),
-      },
-    });
+  /** 更新数据项的聚合配置（type / precision），基底取实际生效的配置，避免把列原聚合类型静默改掉 */
+  const handleSummaryItemSummaryChange = (index: number, patch: Partial<TableColumnSummary>) => {
+    const nextItems = [...summaryItems];
+    const cur = resolveItemSummary(nextItems[index]);
+    nextItems[index] = { ...nextItems[index], summary: { ...cur, ...patch } };
+    updateGroupBy({ summaryItems: nextItems });
   };
 
   return (
@@ -245,14 +244,6 @@ const TableGroupSection: React.FC<TableGroupSectionProps> = ({ component, onProp
                     <Tag>项 {idx + 1}</Tag>
                     <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleRemoveSummaryItem(idx)} />
                   </div>
-                  <Select
-                    size="small"
-                    style={{ width: '100%', marginBottom: 4 }}
-                    placeholder="引用合计列"
-                    value={item.sourceColumn || undefined}
-                    onChange={(val) => handleSummaryItemSourceChange(idx, val)}
-                    options={summaryColumnOptions}
-                  />
                   <Input
                     size="small"
                     placeholder="前缀文字（如：金额：）"
@@ -260,6 +251,39 @@ const TableGroupSection: React.FC<TableGroupSectionProps> = ({ component, onProp
                     onChange={(e) => handleSummaryItemChange(idx, { label: e.target.value || undefined })}
                     style={{ marginBottom: 4 }}
                   />
+                  <Select
+                    size="small"
+                    style={{ width: '100%', marginBottom: 4 }}
+                    placeholder="取数字段"
+                    value={item.dataIndex ?? item.sourceColumn}
+                    onChange={(val) => handleSummaryItemDataIndexChange(idx, val)}
+                    options={summaryColumnOptions}
+                  />
+                  <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+                    <Select
+                      size="small"
+                      style={{ flex: 1 }}
+                      value={resolveItemSummary(item).type}
+                      onChange={(val) => handleSummaryItemSummaryChange(idx, { type: val })}
+                      options={[
+                        { label: '求和', value: 'sum' },
+                        { label: '平均', value: 'avg' },
+                        { label: '最大', value: 'max' },
+                        { label: '最小', value: 'min' },
+                        { label: '计数', value: 'count' },
+                      ]}
+                    />
+                    <InputNumber
+                      size="small"
+                      style={{ width: 80 }}
+                      min={0}
+                      max={8}
+                      precision={0}
+                      value={resolveItemSummary(item).precision ?? 2}
+                      placeholder="精度"
+                      onChange={(v) => handleSummaryItemSummaryChange(idx, { precision: v ?? undefined })}
+                    />
+                  </div>
                   <PipeConfigPanel
                     pipes={item.pipes}
                     onChange={(newPipes) => handleSummaryItemChange(idx, { pipes: newPipes.length > 0 ? newPipes : undefined })}

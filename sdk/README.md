@@ -391,9 +391,73 @@ registerExecutor({
 | `type` 在 customPipes 中重复 | 警告，后者覆盖前者 |
 | `execute` 执行异常 | 自动捕获，返回原值，管道链不中断 |
 
+## 🧮 自定义聚合器
+
+内置聚合类型（`sum/avg/max/min/count`）不满足需求时，可通过聚合器扩展聚合算法（如四舍五入、向上取整、加权求和、去重计数等）。
+
+### 方式一：实例级注入（推荐）
+
+```typescript
+import { createPrintSDK } from '@jcyao/print-sdk';
+
+const ceilSum = {
+  type: 'ceil-sum',
+  label: '向上取整求和',
+  aggregate(values: any[]) {
+    const nums = values.map(Number).filter(v => !isNaN(v));
+    return Math.ceil(nums.reduce((s, v) => s + v, 0));
+  },
+};
+
+const sdk = createPrintSDK({ customAggregators: [ceilSum] });
+
+// 模板列合计 / 分组小计引用自定义聚合类型
+// columns: [{ dataIndex: 'amount', summary: { type: 'ceil-sum', precision: 0 } }]
+```
+
+### 方式二：全局注册
+
+```typescript
+import { configureSDK } from '@jcyao/print-sdk';
+
+configureSDK({ aggregators: [ceilSum] });
+```
+
+### 优先级与规则
+
+- 优先级：实例级 `customAggregators` > 全局级 `aggregators` > 内置聚合器
+- `aggregate(values, options)` 接收该字段的**原始值数组**（未过滤、未数值化），返回：
+  - `number`：继续走 `precision/prefix/suffix/pipe` 格式化
+  - `string`：作为最终文本直接输出
+  - `undefined`：表示无效（无数值），统一显示 `-`
+- `options` 来自 `TableColumnSummary.options`，用于向自定义聚合器传参
+
+### 生效范围
+
+自定义聚合器（含内置聚合器）会在以下三处生效，凡走聚合计算的地方都复用同一套聚合器：
+
+| 位置 | 配置入口 | 说明 |
+|------|---------|------|
+| 表格列合计 | `columns[].summary.type` | 表尾合计行（tfoot） |
+| 分组小计 | `groupBy.summaryItems[].summary.type` | 分组小计行；未配置时回退该列的 `summary.type` |
+| 合计额外行 | `summaryExtraRows[].items[].sourceColumn` | 额外行**引用列的** `summary.type`，本身不单独配聚合类型 |
+
+#### 不同位置取值方式的差异
+
+| 位置 | 消费的结果 | 是否走 `precision/prefix/suffix` |
+|------|-----------|-------------------------------|
+| 表格列合计（主合计行） | `text` | ✅ 走 |
+| 分组小计（无 `pipes`） | `text` | ✅ 走 |
+| 分组小计（有 `pipes`） | `raw`（原始返回） | ❌ 不走，由管道控制 |
+| 合计额外行 | `raw`（原始返回） | ❌ 不走，由管道控制 |
+
+> ℹ️ **`raw` 的含义**：`raw` 是聚合器的**原始返回结果**——number 聚合器返回 number，string 聚合器返回 string。因此在额外行 / 带 `pipes` 的分组小计中：
+> - 返回 `string` 的聚合器：`raw` 即该字符串，额外行直接 `String()` 展示，带管道小计从字符串继续走管道。
+> - 返回 `number` 的聚合器：显示原始数值（如 `183` 而非 `183.00`），不经过 precision，精度需由管道自行控制。
+
 ## 🛡️ HTML 转义控制
 
-SDK 默认对所有输出内容进行 HTML 转义（防止 XSS 注入）。如需在打印内容中渲染富文本（如 `<b>`、`<span style>` 等 HTML 标签），可关闭转义。
+SDK 默认对所有组件的取值输出（文本、表格单元格、页码等）进行 HTML 转义（防止 XSS 注入）。如需在打印内容中渲染富文本（如 `<b>`、`<span style>` 等 HTML 标签），可关闭转义。
 
 ### 优先级规则
 
@@ -440,7 +504,8 @@ const sdk = createPrintSDK({ escapeHtml: true }); // 该实例仍转义
 
 ```typescript
 interface SDKGlobalConfig {
-  escapeHtml?: boolean;  // 是否对输出内容进行 HTML 转义，默认 true
+  escapeHtml?: boolean;               // 是否对输出内容进行 HTML 转义，默认 true
+  aggregators?: AggregatorExecutor[]; // 全局自定义聚合器
 }
 
 function configureSDK(config: SDKGlobalConfig): void
@@ -722,8 +787,8 @@ function configureSDK(config: SDKGlobalConfig): void
         textAlign: 'left',
       },
       summaryItems: [                    // 小计数据项，未配置时仅显示标签不做数据汇总
-        { label: '金额：', sourceColumn: 'amount' },
-        { label: '大写：', sourceColumn: 'amount', pipes: [{ type: 'money', options: { mode: 'none', format: 'chineseUppercase' } }] },
+        { label: '金额：', dataIndex: 'amount' },
+        { label: '大写：', dataIndex: 'amount', pipes: [{ type: 'money', options: { mode: 'none', format: 'chineseUppercase' } }] },
       ],
     },
   },
@@ -742,7 +807,7 @@ function configureSDK(config: SDKGlobalConfig): void
 | `showSummary` | 是否显示组小计行，默认 `true` |
 | `summaryLabel` | 小计标签模板，默认 `{group}小计` |
 | `summaryStyle` | 组小计行样式（同 headerStyle） |
-| `summaryItems` | 小计数据项列表，每项引用一个配了 `summary` 的列；**未配置时仅渲染标签行（不汇总数据）**，可用于签字/签收等用途 |
+| `summaryItems` | 小计数据项列表，每项通过 `dataIndex` 指定取数路径，`summary` 可选（未配置时回退该列的 `summary`）；**未配置时仅渲染标签行（不汇总数据）**，可用于签字/签收等用途 |
 
 > 跨页时：整组优先保持在同一页，放不下整组跳到下一页；超过一页的组自动组内拆页并重复组标题行。
 

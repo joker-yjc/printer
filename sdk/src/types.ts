@@ -98,12 +98,14 @@ export interface DataBinding extends DataField {
 
 // 表格列合计配置
 export interface TableColumnSummary {
-  type: 'sum' | 'avg' | 'max' | 'min' | 'count';  // 聚合类型
-  precision?: number;   // 小数位数，默认 2
-  prefix?: string;      // 前缀，如 "￥"
-  suffix?: string;      // 后缀，如 "元"
+  type: string;                    // 聚合类型，支持内置 sum/avg/max/min/count 或自定义聚合器 type
+  precision?: number;              // 小数位数，默认 2
+  prefix?: string;                 // 前缀，如 "￥"
+  suffix?: string;                 // 后缀，如 "元"
   /** 管道配置，用于对合计值进行转换（如中文大写） */
   pipe?: PipeConfig;
+  /** 传给聚合器的选项（自定义聚合器参数） */
+  options?: Record<string, any>;
 }
 
 // 表格列定义
@@ -176,15 +178,19 @@ export interface PageNumberProps {
 
 /**
  * 分组小计数据项
- * 类似 SummaryExtraRowItem：每个数据项引用一个合计列，可单独配置前缀与管道
+ * 通过 dataIndex 指定取数路径、summary 指定聚合配置，两者解耦
  * pipes（继承自 DataField）在聚合后的原始数值上执行（与额外行语义一致），
- * 不经过列级 summary 的 precision/prefix/suffix 格式化，precision 等由管道自行控制
+ * 不经过 summary 的 precision/prefix/suffix 格式化，precision 等由管道自行控制
  */
 export interface GroupSummaryItem extends DataField {
   /** 静态前缀文字（如 "金额："），可选 */
   label?: string;
-  /** 引用列的 dataIndex，该列需配置 column.summary */
-  sourceColumn: string;
+  /** 取数路径（数据字段名，支持点号路径），替代 sourceColumn */
+  dataIndex?: string;
+  /** 自带聚合配置；缺省时回退查该列的 summary（向后兼容老模板） */
+  summary?: TableColumnSummary;
+  /** @deprecated 使用 dataIndex 替代，向后兼容 */
+  sourceColumn?: string;
 }
 
 /**
