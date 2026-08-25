@@ -3,7 +3,7 @@
  * 负责：插件管理、数据绑定、Pipe 转换、虚拟分页计算
  */
 
-import type { PrintTemplate, ComponentNode, DataBinding, PipeConfig, TableProps } from './types';
+import type { PrintTemplate, ComponentNode, DataBinding, PipeConfig, TableProps, TableGroupConfig, GroupProcessor } from './types';
 import type { ComponentRenderer, RenderContext } from './printEngine/types';
 import type { PipeExecutor } from './pipes/types';
 import type { AggregatorExecutor } from './aggregators/types';
@@ -15,7 +15,7 @@ import {
 import { executePipe as executeBuiltInPipe, getRegisteredTypes } from './pipes/registry';
 import { executeAggregate as executeBuiltInAggregate, getRegisteredAggregatorTypes } from './aggregators/registry';
 import { escapeHtml } from './utils/htmlEscape';
-import { groupByField, hasGroupSummary } from './printEngine/utils/groupBy';
+import { groupByField, hasGroupSummary, normalizeGroups, type GroupedData } from './printEngine/utils/groupBy';
 
 // 导入所有渲染器插件
 import {
@@ -40,24 +40,28 @@ export class PrintEngine {
   private customPipesMap: Map<string, PipeExecutor>;
   private customAggregatorsMap: Map<string, AggregatorExecutor>;
   private escapeHtmlFlag: boolean;
+  private groupProcessor?: GroupProcessor;
   private readonly mmToPx = MM_TO_PX; // 使用常量：96 DPI 下 1mm = 3.78px
 
-  constructor(template: PrintTemplate, data: any, customPipes?: PipeExecutor[], escapeHtml: boolean = true, customAggregators?: AggregatorExecutor[]) {
+  constructor(template: PrintTemplate, data: any, options: PrintEngineOptions = {}) {
     this.template = template;
     this.data = data;
     this.renderers = new Map();
     this.customPipesMap = new Map();
     this.customAggregatorsMap = new Map();
-    this.escapeHtmlFlag = escapeHtml;
+    this.escapeHtmlFlag = options.escapeHtml ?? true;
+    this.groupProcessor = options.groupProcessor;
 
     // 注册默认渲染器
     this.registerDefaultRenderers();
 
     // 注册自定义管道
+    const customPipes = options.customPipes;
     if (customPipes && customPipes.length > 0) {
       this.registerCustomPipes(customPipes);
     }
     // 注册自定义聚合器
+    const customAggregators = options.customAggregators;
     if (customAggregators && customAggregators.length > 0) {
       this.registerCustomAggregators(customAggregators);
     }
@@ -229,6 +233,36 @@ export class PrintEngine {
   }
 
   /**
+   * 对数据进行分组
+   * 优先使用自定义分组处理器，处理失败/返回 null 时回退内置按字段分组
+   * @param data - 扁平数据数组
+   * @param groupBy - 分组配置
+   * @returns 分组结果列表；无分组配置时返回 null
+   */
+  groupData(data: any[], groupBy?: TableGroupConfig): GroupedData[] | null {
+    if (!groupBy) return null;
+    if (this.groupProcessor) {
+      try {
+        const result = this.groupProcessor(data, groupBy);
+        // null/undefined → 调用方主动放弃，静默回退内置分组
+        if (result === null || result === undefined) {
+          const emptyLabel = groupBy.emptyGroupLabel ?? '未分组';
+          return groupByField(data, groupBy.field, emptyLabel);
+        }
+        const normalized = normalizeGroups(result);
+        if (normalized) return normalized;
+        // 非法结构（非数组/空数组）→ warn + 回退内置分组
+        console.warn('[PrintEngine] 自定义 groupProcessor 返回无效分组数据，回退内置分组');
+      } catch (err) {
+        // 处理器抛错 → warn + 回退内置分组，打印不中断
+        console.warn('[PrintEngine] 自定义 groupProcessor 执行失败，回退内置分组:', err);
+      }
+    }
+    const emptyLabel = groupBy.emptyGroupLabel ?? '未分组';
+    return groupByField(data, groupBy.field, emptyLabel);
+  }
+
+  /**
    * 简单的日期格式化
    */
   private formatDate(value: any, format: string): string {
@@ -280,6 +314,7 @@ export class PrintEngine {
       applyPipes: this.applyPipes.bind(this),
       executePipe: this.executePipe.bind(this),
       executeAggregate: this.executeAggregate.bind(this),
+      groupData: this.groupData.bind(this),
       getValueByPath: this.getValueByPath.bind(this),
       formatDate: this.formatDate.bind(this),
       mmToPx: this.mmToPx,
@@ -1203,7 +1238,6 @@ export class PrintEngine {
   ): Promise<{ currentPage: ComponentNode[]; currentPageHeight: number; isTableSplitAcrossPages: boolean; lastTableFragmentBottom: number }> {
     const initialPagesLength = pages.length;
     const groupBy = (tableComponent.props as any).groupBy;
-    const emptyLabel = groupBy.emptyGroupLabel || '未分组';
     const showGroupHeader = groupBy.showHeader !== false;
     // 复用与渲染端一致的判断：是否有可渲染的分组小计行（考虑 summaryItems/自动推断）
     const needSummary = hasGroupSummary(groupBy);
@@ -1225,7 +1259,7 @@ export class PrintEngine {
 
     // 预分组：携带每组的真实测量行高（按 startRowIndex 从全量测量结果切片）
     // 使用真实行高而非均值，避免长文本换行导致估算偏小、后续组件与表格重叠
-    let groups = groupByField(tableData, groupBy.field, emptyLabel);
+    let groups = this.groupData(tableData, groupBy) ?? [];
     interface RemainingGroup { key: string; items: any[]; startRowIndex: number; heights: number[] }
     let remainingGroups: RemainingGroup[] = groups.map(g => ({
       ...g,
@@ -1466,10 +1500,37 @@ export class PrintEngine {
 }
 
 /**
- * 工厂函数：创建打印引擎实例
+ * 打印引擎选项（createPrintEngine 新签名专用）
  */
-export function createPrintEngine(template: PrintTemplate, data: any, customPipes?: PipeExecutor[], escapeHtml: boolean = true, customAggregators?: AggregatorExecutor[]) {
-  const engine = new PrintEngine(template, data, customPipes, escapeHtml, customAggregators);
+export interface PrintEngineOptions {
+  /** 自定义管道执行器列表 */
+  customPipes?: PipeExecutor[];
+  /** 自定义聚合器执行器列表 */
+  customAggregators?: AggregatorExecutor[];
+  /** 是否对输出内容进行 HTML 转义，默认 true */
+  escapeHtml?: boolean;
+  /** 自定义分组处理器；返回 null/undefined 时回退内置分组 */
+  groupProcessor?: GroupProcessor;
+}
+
+export function createPrintEngine(template: PrintTemplate, data: any, options?: PrintEngineOptions): PrintEngine;
+/** @deprecated 旧签名，请改用 options 对象签名 */
+export function createPrintEngine(template: PrintTemplate, data: any, customPipes?: PipeExecutor[], escapeHtml?: boolean, customAggregators?: AggregatorExecutor[]): PrintEngine;
+/**
+ * 工厂函数：创建打印引擎实例
+ * 重载兼容：第三参为数组时走旧路径（customPipes），为对象时走 options 路径
+ */
+export function createPrintEngine(
+  template: PrintTemplate,
+  data: any,
+  optionsOrPipes?: PrintEngineOptions | PipeExecutor[],
+  escapeHtml: boolean = true,
+  customAggregators?: AggregatorExecutor[]
+) {
+  const options: PrintEngineOptions = Array.isArray(optionsOrPipes)
+    ? { customPipes: optionsOrPipes, escapeHtml, customAggregators } // 旧路径
+    : (optionsOrPipes ?? {});
+  const engine = new PrintEngine(template, data, options);
 
   return {
     /**

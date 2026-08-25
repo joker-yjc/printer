@@ -2,6 +2,27 @@
 
 所有版本的变更记录都列在这里，遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 规范。
 
+## [1.13.0] - 2026-08-25
+
+> 🎉 正式发布：新增自定义分组处理器（groupProcessor），可完全接管表格分组策略（自定义排序、过滤、二次加工、合并规则等），并同步设计器接入 Vercel Analytics 访问统计。
+
+### ✨ 新增功能
+
+- **自定义分组处理器（Custom Group Processor）**
+  - 新增 `GroupProcessor` 类型：`(data, groupBy) => GroupedData[] | null | undefined`，可在分组前对数据进行排序、过滤、归一化等加工，或直接返回自定义分组结果
+  - 注入与优先级：实例级 `createPrintSDK({ groupProcessor })` > 全局级 `configureSDK({ groupProcessor })` > 内置 `groupByField`
+  - `RenderContext.groupData()`：渲染上下文提供统一分组数据入口，表格分组渲染与分组小计复用同一份分组结果
+  - `normalizeGroups()`：对处理器返回结果做归一化与容错校验；返回不合法或执行抛错时，自动回退内置分组并打印警告日志
+  - 新增导出：`GroupProcessor` 类型
+
+- **`createPrintEngine` 签名重载**
+  - 新增 `createPrintEngine(template, data, options?)` options 对象签名，统一收敛引擎级配置
+  - 旧 `(template, data, customPipes?, escapeHtml?, customAggregators?)` 位置参数签名保留，标记 `@deprecated` 兼容老调用
+
+### ⚠️ 行为变更（破坏性）
+
+- 无（`createPrintEngine` 旧签名仅标记废弃，原型与行为不变）
+
 ## [1.12.0] - 2026-08-24
 
 > 🎉 正式发布：包含 [1.12.0-alpha.1] 的表格分组功能，并新增可覆盖聚合器、修复 HTML 转义覆盖范围。

@@ -2,7 +2,8 @@
  * 打印引擎插件化架构 - 类型定义
  */
 
-import type { ComponentNode, DataBinding, PipeConfig } from '../types';
+import type { ComponentNode, DataBinding, PipeConfig, TableGroupConfig } from '../types';
+import type { GroupedData } from './utils/groupBy';
 
 /**
  * 渲染上下文
@@ -34,6 +35,14 @@ export interface RenderContext {
    * 找不到执行器时返回 undefined
    */
   executeAggregate(type: string, values: any[], options?: Record<string, any>): number | string | undefined;
+
+  /**
+   * 对数据进行分组（优先自定义分组处理器，回退内置按字段分组）
+   * @param data 扁平数据数组
+   * @param groupBy 分组配置
+   * @returns 分组结果列表；无分组配置时返回 null
+   */
+  groupData(data: any[], groupBy?: TableGroupConfig): GroupedData[] | null;
 
   /**
    * 根据路径获取数据值
