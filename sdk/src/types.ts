@@ -1,3 +1,5 @@
+import type { GroupedData } from './printEngine/utils/groupBy';
+
 // Schema 相关类型定义
 export type SchemaFieldType =
   | 'string'
@@ -256,6 +258,25 @@ export interface TableGroupConfig {
   // sortField?: string; sortOrder?: 'asc'|'desc'; // 预留
   // groupSortComparator?: (a: GroupedData, b: GroupedData) => number; // 预留（运行时）
 }
+
+/**
+ * 自定义分组处理器
+ * 接收原始数据与分组配置，由调用方自行完成分组与组排序
+ *
+ * 契约：
+ * 1. key 唯一（重复 key 时 SDK 将后者 items 合并进先出现的组）
+ * 2. items 引用原始行对象（不要克隆/改造行数据，分页与行号依赖原始引用）
+ * 3. 返回数组的顺序即最终组的顺序
+ * 4. 返回 null/undefined 表示回退内置按字段分组
+ *
+ * @param data 当前表格的扁平数据（已过滤，与默认分组输入一致）
+ * @param groupBy 模板中的分组配置（TableGroupConfig 原样透传）
+ * @returns 分组结果；返回 null/undefined 表示回退内置按字段分组
+ */
+export type GroupProcessor = (
+  data: any[],
+  groupBy: TableGroupConfig
+) => GroupedData[] | null | undefined;
 
 // 表格组件 props 类型
 export interface TableProps {

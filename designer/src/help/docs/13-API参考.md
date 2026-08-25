@@ -43,6 +43,7 @@ configureSDK({ escapeHtml: false });
 |------|------|------|--------|------|
 | `customPipes` | `PipeExecutor[]` | 否 | - | 自定义管道执行器，`{ type, label, execute }` |
 | `customAggregators` | `AggregatorExecutor[]` | 否 | - | 自定义聚合器，`{ type, label, aggregate }` |
+| `groupProcessor` | `GroupProcessor` | 否 | - | 自定义分组处理器，完全接管分组策略 |
 | `escapeHtml` | `boolean` | 否 | `true` | 是否对输出 HTML 转义，`false` 允许富文本 |
 
 ### SDKGlobalConfig
@@ -50,6 +51,7 @@ configureSDK({ escapeHtml: false });
 | 字段 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
 | `aggregators` | `AggregatorExecutor[]` | 否 | - | 全局自定义聚合器 |
+| `groupProcessor` | `GroupProcessor` | 否 | - | 全局自定义分组处理器 |
 | `escapeHtml` | `boolean` | 否 | `true` | 全局 HTML 转义开关 |
 
 ---
@@ -281,6 +283,21 @@ groupBy: {
 **TableSummaryStyle:** `{ backgroundColor?, fontWeight?, fontSize?, textAlign?: 'left'|'center'|'right' }`
 
 > 跨页：整组优先同页，超大组组内拆页并重复标题；小计仅组尾渲染；空 `summaryItems` 仅标签便于签字。
+
+### GroupProcessor（自定义分组处理器）
+
+```typescript
+type GroupProcessor = (
+  data: any[],                 // 表格数据（渲染源）
+  groupBy?: TableGroupConfig   // 分组配置（groupBy.field 等）
+) => GroupedData[] | null | undefined; // null/undefined 回退内置分组
+```
+
+通过 `createPrintSDK({ groupProcessor })`（实例级）或 `configureSDK({ groupProcessor })`（全局级）注入。返回 `GroupedData[]`（`{ key, label, items }`）按自定义结果渲染；返回 `null`/`undefined` 或执行抛错时回退内置 `groupByField` 并打印 warning 日志。
+
+优先级：实例级 `createPrintSDK({ groupProcessor })` > 全局级 `configureSDK({ groupProcessor })` > 内置 `groupByField`。
+
+> 💡 表格分组渲染（组标题 / 组小计）通过 `RenderContext.groupData()` 复用同一次分组结果，保证分组策略一致。
 
 ---
 

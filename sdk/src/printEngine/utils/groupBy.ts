@@ -87,3 +87,40 @@ export function groupByField(
 export function hasGroupSummary(groupBy: any): boolean {
   return !!groupBy && groupBy.showSummary !== false;
 }
+
+/**
+ * 归一化自定义分组处理器返回的分组结果
+ * 契约加固：
+ * 1. 非数组或空数组 → 返回 null（触发调用方回退内置分组）
+ * 2. 逐组校验：key 缺失归 '未分组'，items 非数组归 []
+ * 3. 重复 key → 合并进先出现的组
+ * 4. 按组顺序重算 startRowIndex（供行号连续）
+ * @param groups - 自定义分组处理器返回的分组列表（可能为 null/undefined）
+ * @returns 归一化后的分组列表；输入无效时返回 null
+ */
+export function normalizeGroups(groups: GroupedData[] | null | undefined): GroupedData[] | null {
+  if (!Array.isArray(groups) || groups.length === 0) return null;
+  const seen = new Map<string, GroupedData>();
+  const order: string[] = [];
+  for (const raw of groups) {
+    const key = raw && typeof raw.key === 'string' && raw.key !== '' ? raw.key : '未分组';
+    let g = seen.get(key);
+    if (!g) {
+      g = { key: key, items: [], startRowIndex: 0, isEmpty: raw?.isEmpty };
+      seen.set(key, g);
+      order.push(key);
+    }
+    if (raw && Array.isArray(raw.items)) {
+      for (const item of raw.items) g.items.push(item);
+    }
+  }
+  // 快速失败：没有任何有效组
+  if (order.length === 0) return null;
+  // 重算 startRowIndex（基于 items 长度累计，供行号连续）
+  let acc = 0;
+  for (const key of order) {
+    seen.get(key)!.startRowIndex = acc;
+    acc += seen.get(key)!.items.length;
+  }
+  return order.map(k => seen.get(k)!);
+}

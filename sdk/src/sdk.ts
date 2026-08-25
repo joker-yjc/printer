@@ -73,6 +73,7 @@ export type {
   MockData,
   TableProps,
   TableGroupConfig,
+  GroupProcessor,
   GroupSummaryItem,
   TableColumn,
   TableColumnSummary,

@@ -196,6 +196,41 @@ const sdk = createPrintSDK({ customAggregators: [ceilSum] });
 
 ---
 
+## 自定义分组处理器
+
+内置分组逻辑（`groupByField`）按 `groupBy.field` 的字段值分组。若需自定义分组规则（如按区间、复合键、自定义排序、对分组做二次加工），可在创建 SDK 实例时注入 `groupProcessor`，完全接管分组策略：
+
+```typescript
+import { createPrintSDK } from '@jcyao/print-sdk';
+import type { GroupedData } from '@jcyao/print-sdk';
+
+// 按金额区间分组
+const rangeGroup = (data: any[]): GroupedData[] | null | undefined => {
+  const buckets = [
+    { key: '小额 (<100)', items: [] },
+    { key: '中额 (100-1000)', items: [] },
+    { key: '大额 (>1000)', items: [] },
+  ];
+  data.forEach((row) => {
+    const amount = Number(row.amount) || 0;
+    const bucket = amount < 100 ? buckets[0] : amount <= 1000 ? buckets[1] : buckets[2];
+    bucket.items.push(row);
+  });
+  return buckets.filter((b) => b.items.length > 0);
+};
+
+const sdk = createPrintSDK({ groupProcessor: rangeGroup });
+```
+
+- 返回 `GroupedData[]`（`{ key, label, items }`）：按自定义结果渲染
+- 返回 `null` / `undefined`：回退内置 `groupByField` 分组
+- 执行抛错或返回不合法：自动回退内置分组，并打印 warning 日志
+- 优先级：实例级 `createPrintSDK({ groupProcessor })` > 全局级 `configureSDK({ groupProcessor })` > 内置 `groupByField`
+
+> 💡 表格分组渲染（组标题 / 组小计）复用同一次 `groupData()` 的计算结果，保证分组策略一致。
+
+---
+
 ## HTML 转义控制
 
 SDK 默认对所有组件取值（文本、表格、页码等）进行 HTML 转义，防止 XSS 注入。如果你需要在打印内容中渲染富文本（如 `<b>`、`<span style>` 等 HTML 标签），可以关闭转义：
@@ -226,6 +261,8 @@ import type {
   PipeConfig,
   TableProps,
   TableColumn,
+  GroupProcessor,
+  GroupedData,
 } from '@jcyao/print-sdk';
 ```
 

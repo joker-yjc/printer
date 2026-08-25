@@ -8,7 +8,7 @@ import type { ComponentRenderer, RenderContext, StyleObject } from '../types';
 import { buildStyleString, buildPositionStyle } from '../utils/styleBuilder';
 import { escapeHtml } from '../../utils/htmlEscape';
 import { COMPONENT_DEFAULT_SIZE, TABLE_DEFAULT, TABLE_STYLE_DEFAULT, TABLE_HEADER_STYLE_DEFAULT, TABLE_DENSITY_PRESETS } from '../constants';
-import { groupByField, hasGroupSummary } from '../utils/groupBy';
+import { hasGroupSummary } from '../utils/groupBy';
 
 /**
  * 根据数据路径从对象中取值
@@ -359,13 +359,13 @@ export class TableRenderer implements ComponentRenderer {
     const hasGroupBy = !!(groupBy && groupBy.field);
     if (tableData.length > 0 && displayColumns.length > 0) {
       if (hasGroupBy) {
-        const emptyLabel = groupBy.emptyGroupLabel || '未分组';
-        // 分组（首版保持首次出现顺序，不排序）
-        const groups = groupByField(tableData, groupBy.field, emptyLabel);
+        // 分组（优先自定义分组处理器，内部已做 startRowIndex 归一化）
+        const groups = context.groupData(tableData, groupBy);
+        if (!groups) return bodyHtml;
         // 完整数据的分组映射：分页时 tableData 是当前页切片，跨页组的小计需基于完整组计算
         const totalSource = props?._totalData && props._totalData.length > 0 ? props._totalData : tableData;
         const fullItemsMap = new Map<string, any[]>(
-          groupByField(totalSource, groupBy.field, emptyLabel).map(g => [g.key, g.items])
+          (context.groupData(totalSource, groupBy) ?? []).map(g => [g.key, g.items])
         );
         const colCount = displayColumns.length;
         const baseStartRowIndex = props?._startRowIndex ?? 0;
@@ -869,7 +869,7 @@ export class TableRenderer implements ComponentRenderer {
         let groupExtraHeight = 0;
         const groupBy = (component.props as any)?.groupBy;
         if (groupBy?.field) {
-          const groups = groupByField(data, groupBy.field, groupBy.emptyGroupLabel || '未分组');
+          const groups = context.groupData(data, groupBy) ?? [];
           const headerRows = groupBy.showHeader !== false ? groups.length : 0;
           // 小计行仅当有小计列时才计高度，复用与渲染端一致的判断逻辑
           const summaryRows = hasGroupSummary(groupBy) ? groups.length : 0;

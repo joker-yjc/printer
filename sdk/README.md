@@ -5,7 +5,7 @@
 
 通用打印 SDK - 客户端打印解决方案
 
-**当前版本**: v1.12.0-alpha.1
+**当前版本**: v1.13.0
 
 ## 🎨 在线演示
 
@@ -23,6 +23,7 @@
 - 📄 **多组件支持** - 文本、表格、图片、二维码、条形码等
 - 🔄 **数据绑定** - Schema 驱动的数据绑定系统
 - 📊 **表格高级功能** - 跨页分页、表头重复、表格合计、字段分组（组标题 + 组小计）
+- 🎭 **自定义分组处理器** - 实例/全局级注入 `groupProcessor`，可完全接管分组策略（排序、过滤、二次加工、合并规则）
 - 🔌 **插件化架构** - 易于扩展的渲染器和管道系统，支持自定义管道
 - 🛡️ **HTML 转义控制** - 内置 XSS 防护，支持全局/实例级开关，允许富文本渲染
 - 💯 **TypeScript** - 完整的类型定义
@@ -108,6 +109,8 @@ const sdk = createPrintSDK({
 ```typescript
 interface PrintSDKOptions {
   customPipes?: PipeExecutor[];  // 自定义管道执行器列表
+  customAggregators?: AggregatorExecutor[]; // 自定义聚合器列表
+  groupProcessor?: GroupProcessor; // 自定义分组处理器，完全接管分组策略
   escapeHtml?: boolean;          // 是否对输出内容进行 HTML 转义，默认 true
 }
 ```
@@ -454,6 +457,54 @@ configureSDK({ aggregators: [ceilSum] });
 > ℹ️ **`raw` 的含义**：`raw` 是聚合器的**原始返回结果**——number 聚合器返回 number，string 聚合器返回 string。因此在额外行 / 带 `pipes` 的分组小计中：
 > - 返回 `string` 的聚合器：`raw` 即该字符串，额外行直接 `String()` 展示，带管道小计从字符串继续走管道。
 > - 返回 `number` 的聚合器：显示原始数值（如 `183` 而非 `183.00`），不经过 precision，精度需由管道自行控制。
+
+## 🎭 自定义分组处理器
+
+内置分组逻辑（`groupByField`）按 `groupBy.field` 的字段值分组。若需要自定义分组规则（如按区间、复合键、自定义排序、对分组做二次加工），可在创建 SDK 实例时注入 `groupProcessor`，完全接管分组策略。
+
+```typescript
+import { createPrintSDK } from '@jcyao/print-sdk';
+import type { GroupedData } from '@jcyao/print-sdk';
+
+// 按金额区间分组
+const rangeGroup = (data: any[]): GroupedData[] | null | undefined => {
+  const groups: GroupedData[] = [];
+  const buckets = [
+    { key: '小额 (<100)', items: [] },
+    { key: '中额 (100-1000)', items: [] },
+    { key: '大额 (>1000)', items: [] },
+  ];
+  data.forEach((row) => {
+    const amount = Number(row.amount) || 0;
+    const bucket = amount < 100 ? buckets[0] : amount <= 1000 ? buckets[1] : buckets[2];
+    bucket.items.push(row);
+  });
+  return buckets.filter((b) => b.items.length > 0);
+};
+
+const sdk = createPrintSDK({ groupProcessor: rangeGroup });
+```
+
+**`GroupProcessor` 类型：**
+
+```typescript
+type GroupProcessor = (
+  data: any[],                   // 表格数据（渲染源）
+  groupBy?: TableGroupConfig    // 分组配置（groupBy.field 等）
+) => GroupedData[] | null | undefined; // null/undefined 则回退内置分组
+```
+
+- 返回 `GroupedData[]`：按自定义结果渲染；`GroupedData` 结构为 `{ key, label, items }`
+- 返回 `null` / `undefined`：回退内置 `groupByField` 分组
+- 执行抛错或返回不合法：自动回退内置分组，并打印 warning 日志
+
+**优先级规则：**
+
+```
+实例级 createPrintSDK({ groupProcessor })  >  全局级 configureSDK({ groupProcessor })  >  内置 groupByField
+```
+
+> ℹ️ 全局级配置：`configureSDK({ groupProcessor })` 影响所有后续创建的实例。同一 SDK 实例中的表格分组渲染（组标题 / 组小计）复用同一次 `groupData()` 的计算结果。
 
 ## 🛡️ HTML 转义控制
 

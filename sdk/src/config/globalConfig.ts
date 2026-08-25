@@ -5,6 +5,7 @@
  */
 
 import type { AggregatorExecutor } from '../aggregators/types';
+import type { GroupProcessor } from '../types';
 
 /**
  * SDK 全局配置接口
@@ -15,6 +16,8 @@ export interface SDKGlobalConfig {
   escapeHtml?: boolean;
   /** 全局聚合器执行器列表（实例级可覆盖） */
   aggregators?: AggregatorExecutor[];
+  /** 全局自定义分组处理器（实例级可覆盖），返回 null/undefined 时回退内置分组 */
+  groupProcessor?: GroupProcessor;
 }
 
 /** 全局配置存储（模块级单例） */
