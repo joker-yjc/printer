@@ -1,5 +1,7 @@
 # 打印服务平台
 
+[English](./README.en.md) | 中文
+
 **当前版本**: v1.13.0 | **代号**: Custom Group（自定义分组版）
 
 ---
